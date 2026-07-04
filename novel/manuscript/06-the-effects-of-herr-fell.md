@@ -18,7 +18,7 @@ I sat down with the Whymper, because my own copy had eight days of the Atlantic 
 
 *14 July 65 — 9 August 96.*
 
-I had copied Fell's last manifest into my notebook in Chicago. I did not need to open it to know the date on which he had exposed eleven plates of the Matterhorn glacier and listed them under one subject. I sat for a while with the lamp hissing gently and the shutters open, and the village went to bed under my window, and above the roofline, where the sky kept a paler blue than the street, the mountain stood up black with the last light on the very tip of it, the way a snuffed wick holds a spark.
+I had copied Fell's last manifest into my notebook in Chicago. I did not need to open it to know the date on which he had exposed eleven plates of the Matterhorn glacier and listed them under one subject. I sat for a while with the lamp hissing gently and the shutters open, and the village went to bed under my window, and above the roofline, where the sky kept a paler blue than the street, the mountain stood up black with the last light on the very tip of it, a snuffed wick holding its spark.
 
 Thirty-one years, less five weeks. A man does not rule a line like that with a straightedge and mean nothing arithmetical by it.
 
@@ -30,7 +30,7 @@ The work of June wants a word, because the reader has by now heard the romance o
 
 To re-make a Fell composition, the procedure was this. Read the station note. Walk to the station, which the note locates by boundary stones, chapel corners, and boulders that have not moved since the ice let go of them, carrying seventy pounds of camera, glass, and tripod, generally uphill, generally before dawn. Find the exact prospect, which is not a place so much as a height and an angle, fifty-two inches mattering as much as fifty-two paces. Wait for the note's weather. Expose. Carry everything down. Develop by night in the cellar Herr Imboden had cleared for me among the wine, with the smell of fixer and Fendant contending, and compare the wet plate against the 1878 print, and learn, in the comparing, that the master had waited twenty minutes longer than you did, and that his twenty minutes were the picture.
 
-For the carrying I had Clemenz Biner, nineteen, porter, of the guild of Zermatt porters who are all waiting to be guides the way clerks are all waiting to be partners. Herr Imboden had assigned him to me with the remark that the boy's English was the best in the village and his opinion of it better still. Clemenz's English had been acquired over four winters as boots at a Territet hotel and it was a glorious instrument, fluent, headlong, and mined throughout with hotel vocabulary deployed at altitude. He would top a moraine crest at four in the morning, set down seventy pounds of my livelihood, survey a five-mile prospect of glacier and precipice going gold at the edges, and pronounce it *a very superior aspect, with every modern comfort*, and I never once heard the phrase without my morning improving, which is a thing worth carrying to five thousand feet, whatever the manifest says.
+For the carrying I had Clemenz Biner, nineteen, porter, of the guild of Zermatt porters who are all waiting to be guides as clerks wait to be partners. Herr Imboden had assigned him to me with the remark that the boy's English was the best in the village and his opinion of it better still. Clemenz's English had been acquired over four winters as boots at a Territet hotel and it was a glorious instrument, fluent, headlong, and mined throughout with hotel vocabulary deployed at altitude. He would top a moraine crest at four in the morning, set down seventy pounds of my livelihood, survey a five-mile prospect of glacier and precipice going gold at the edges, and pronounce it *a very superior aspect, with every modern comfort*, and I never once heard the phrase without my morning improving, which is a thing worth carrying to five thousand feet, whatever the manifest says.
 
 It was Clemenz who took me, the second Sunday, after Mass, to the churchyard.
 
@@ -40,7 +40,7 @@ He did not make an excursion of it. The village does not. The graves are inside 
 
 "Still?"
 
-"Still." He looked up past the church roof, to where the mountain stood over the village in its afternoon smoke of cloud, with the patience of the very large, and then he said the thing that everyone in that valley knew and no one in my trade had thought to put on a shot list. He said it kindly, and with a shrug, the shrug of a man whose family has lived under a fact for thirty years the way other families live under a mortgage.
+"Still." He looked up past the church roof, to where the mountain stood over the village in its afternoon smoke of cloud, with the patience of the very large, and then he said the thing that everyone in that valley knew and no one in my trade had thought to put on a shot list. He said it kindly, and with a shrug, the shrug of a man whose family has lived under a fact for thirty years as other families live under a mortgage.
 
 "The ice is a river, Herr Joiner. Slow, but it runs downhill all the same. My grandfather says: what the mountain takes at the top, the glacier one day pays out at the bottom. It keeps its own books, that one." He picked up his rucksack, done with churchyards. "Only nobody stays for the paying. It is thirty years, forty. Who waits forty years at a bank?"
 

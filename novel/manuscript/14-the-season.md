@@ -14,7 +14,7 @@ The third had no stamp. It had been left at the desk by hand, in an envelope of 
 
 *Welcome back from the sea, sir. We really must compare notes on the picturesque before the summer gets away from us both. Time and ice wait for no man. — B.K.P.*
 
-I stood at the desk reading that twice, and the second reading did what the first had declined to do. *Time and ice.* It might have been the small talk of the season; the whole village discussed glaciers at dinner the way coastal towns discuss tides. It might have been. I went down to my cellar with a lamp before I had taken off my coat.
+I stood at the desk reading that twice, and the second reading did what the first had declined to do. *Time and ice.* It might have been the small talk of the season; the whole village discussed glaciers at dinner as coastal towns discuss tides. It might have been. I went down to my cellar with a lamp before I had taken off my coat.
 
 The lock was where I had left it, and it opened as it had always opened, and that told me what I needed, because I had left it, deliberately, since June, with the shackle turned a half-turn short of home, a joiner's son's habit, my father having taught me that a lock tells you more about your visitors than it refuses them. It was turned fully home now. Some tidy soul had locked up conscientiously on his way out.
 
@@ -54,4 +54,4 @@ At the shoulder Clemenz stopped, as ordered, and looked past me up the darkening
 
 "I'll say it."
 
-He nodded and went down, and I turned up the path alone, no lantern, the dew coming into the grass, the great wall of the mountain to my left going from rose to ash the way iron cools, and after the first mile there was no sound in that whole high world except the river far under everything, and my own boots, and once, from the ice, a single dry crack traveling the dark like news.
+He nodded and went down, and I turned up the path alone, no lantern, the dew coming into the grass, the great wall of the mountain to my left going from rose to ash, iron cooling, and after the first mile there was no sound in that whole high world except the river far under everything, and my own boots, and once, from the ice, a single dry crack traveling the dark like news.

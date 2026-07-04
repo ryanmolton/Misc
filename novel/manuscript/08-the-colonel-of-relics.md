@@ -44,7 +44,7 @@ He introduced himself to me, of course. Men like Prewitt inventory a village ins
 
 "No doubt, no doubt." He smiled with everything but the eyes, which stayed on me, taking their own kind of exposure. "Well. A great house looks after its property. Should you ever find the firm's interests and mine in, let us say, adjacency, my card."
 
-He entrusted me with the card and went up the cellar stair, and paused at the top of it, because men like Prewitt exit on a line the way actors do.
+He entrusted me with the card and went up the cellar stair, and paused at the top of it, because men like Prewitt exit on a line, like actors.
 
 "This valley, Mr. Joiner," he said, gazing out at the street with real, unfeigned satisfaction, the satisfaction of a farmer surveying bottomland, "is the finest property in the memorial line on this continent. Thirty years of mourning, sir, with a railway to it."
 

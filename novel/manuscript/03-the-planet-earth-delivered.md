@@ -40,7 +40,7 @@ The manifests were in Fell's hand, which I knew from the vault, a narrow upright
 
 The hotel bill was from the Monte Rosa Hotel, Zermatt, the house of the Seiler family, addressed to the firm with Alpine courtesy and an unmistakable Alpine firmness, for a room held vacant, with effects, since the 12th of September, 1896.
 
-The letter was Fell's. It was dated the 30th of August and it was four sentences long, and I will set it down in full because I came to know it the way other men know a psalm.
+The letter was Fell's. It was dated the 30th of August and it was four sentences long, and I will set it down in full because I came to know it as men know psalms.
 
 *Sirs. The season's numbers to date are sixty-one, of which forty-three are equal or superior to the originals and the rest will want re-making. I am pursuing a subject of importance not on the list, of which more when it can be shown rather than argued. You will forgive the delay or you will not; the subject will not wait on either.* *— A.F.*
 

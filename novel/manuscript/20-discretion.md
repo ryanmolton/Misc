@@ -12,7 +12,7 @@ What was kept was paper. The chaplain drew up that night, and we signed before m
 
 A stranger, given back by the mountain. Known to God.
 
-As for the village, no proclamation was ever made, none being the village's way. What happened instead, Clemenz reported to me, was one sentence in the guides' room on the Tuesday morning, when the talk paused on some ordinary matter of tariffs, and old Perren of the committee looked across at Taugwalder and said, in dialect, gruffly, the way such men pay thirty years of debt, "Your father tied well, Peter," and the room said nothing at all, in the way a room says amen, and the talk went on to tariffs, and that was the end of the slander of Peter Taugwalder the elder in the one jurisdiction where it had ever really been tried.
+As for the village, no proclamation was ever made, none being the village's way. What happened instead, Clemenz reported to me, was one sentence in the guides' room on the Tuesday morning, when the talk paused on some ordinary matter of tariffs, and old Perren of the committee looked across at Taugwalder and said, in dialect, gruffly, as such men pay thirty years of debt, "Your father tied well, Peter," and the room said nothing at all, in the way a room says amen, and the talk went on to tariffs, and that was the end of the slander of Peter Taugwalder the elder in the one jurisdiction where it had ever really been tried.
 
 * * *
 

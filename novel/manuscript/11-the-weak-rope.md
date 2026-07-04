@@ -1,6 +1,6 @@
 # 11. The Weak Rope
 
-The rain held Zermatt indoors for three days, and a resort indoors is a pressure vessel, and the Monte Rosa managed the pressure the way the house had managed everything for sixty years, with soup, whist, and rationed anecdote. On the second evening, when the parlor had exhausted the day's newspapers and a Manchester cotton man had twice proposed charades, Herr Imboden crossed to the little cabinet between the barometer and the chamois horn, unlocked it with a key from his own ring, and lifted out the glass case with the rope in it, and the room went quiet before he had turned around.
+The rain held Zermatt indoors for three days, and a resort indoors is a pressure vessel, and the Monte Rosa managed the pressure as it had managed everything for sixty years, with soup, whist, and rationed anecdote. On the second evening, when the parlor had exhausted the day's newspapers and a Manchester cotton man had twice proposed charades, Herr Imboden crossed to the little cabinet between the barometer and the chamois horn, unlocked it with a key from his own ring, and lifted out the glass case with the rope in it, and the room went quiet before he had turned around.
 
 He did this, I came to learn, perhaps twice a season, by a private almanac of his own: when the weather was foul, when the company was decent, and when some regulating instinct told him the story was about to be told anyway, badly, by somebody else, and had better be told right.
 

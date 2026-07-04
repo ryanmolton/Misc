@@ -32,7 +32,7 @@ I was at that work an evening ago, the dog at the door, the town going quiet, wh
 
 Number 87 was in the rack.
 
-I did not interrupt, having been raised in the trade. I lettered my cards, and the light came long down Orange Street the way it comes in the last hour, gold over the groves the way it was gold over the groves when a train took me east through the blossom smell half a life ago, and after a while the boy said, without lifting his face from the eyepiece, to the room in general, in the voice they always use, the ones the card is going to keep:
+I did not interrupt, having been raised in the trade. I lettered my cards, and the light came long down Orange Street as it comes in the last hour, gold over the groves as it was gold over the groves when a train took me east through the blossom smell half a life ago, and after a while the boy said, without lifting his face from the eyepiece, to the room in general, in the voice they always use, the ones the card is going to keep:
 
 "Who's the man standing on the rocks?"
 

@@ -6,7 +6,7 @@ The letter from Scotland came on the eighth, to Forsyth, with an enclosure for t
 
 The dowager marchioness thanked the daughter of Professor Forsyth for the survey record, which she had read, she wrote, entire, twice, with her spectacles and then with her glass, and found more comfort in than in most sermons, exactness being, at her age, the only tenderness left that did not condescend. The button she acknowledged in one sentence I will not copy out, because there is a species of sentence that should be read only by the person it was written to, and the rest of us that morning heard it once, which was already one hearing more than our right. And the business paragraph, the solicitor's paragraph, was this: that in memory of her son, and in recognition of a debt her family had owed since 1866 to a man it had never thanked, provision had been made, under terms of the strictest anonymity, for the continuance of the glacier survey of the late Professor David Forsyth, at his daughter's direction, for a term of not less than twenty years; the fund to be styled, in all documents, with no name in it at all, the Line Endowment.
 
-Forsyth folded the letter along its creases. She looked down the valley for a while at the ice, her line, her father's line, twenty years of Augusts standing suddenly in a row in front of her the way rungs stand in a ladder, and what she finally said, she said in exactly the voice she used for freight rates, which was how we knew to leave it alone for the present.
+Forsyth folded the letter along its creases. She looked down the valley for a while at the ice, her line, her father's line, twenty years of Augusts standing suddenly in a row in front of her, rungs in a ladder, and what she finally said, she said in exactly the voice she used for freight rates, which was how we knew to leave it alone for the present.
 
 "He asked eleven pounds of the Alpine Club, over twenty-seven years. Eleven." She put the letter into the oilcloth satchel, with the tables. "Boy. The instrument. We have readings."
 
@@ -30,7 +30,7 @@ And she went down the path with the boy and the instrument behind her, and I sto
 
 * * *
 
-The rest of the leavings were quickly made, the way the true ones are.
+The rest of the leavings were quickly made, as the true ones are.
 
 Peter Taugwalder, met the last Sunday outside the church, did not shake my hand, but stood with me a moment in the thinning morning crowd and then said that the third table by the dining-room window had coffee at it, most fine mornings, at half past six, and that a man who wintered in the valley, or came back to it, would be expected, and went in to Mass, having conferred, I was given to understand by Herr Imboden's face across the street, something the house had watched him confer twice before in thirty years.
 

@@ -14,7 +14,7 @@ I looked down. Between my boots was a patch of white paint the size of a saucer,
 
 She took her sight, called a string of figures to the boy in French, wrote in a notebook bound in oilcloth, and only then looked at me again, at the camera, at Clemenz under his mountain of cases, and performed the whole examination in about a second and a half.
 
-"You'd be the new view man," she said. Scots, the words squared off at the corners like ashlar. "The hotel said Chicago had sent someone." Her eyes went over my equipment the way a customs officer's do, looking for the lie in the manifest. "You people are early this year. The picture-postal trade doesn't usually infest this side before July."
+"You'd be the new view man," she said. Scots, the words squared off at the corners like ashlar. "The hotel said Chicago had sent someone." Her eyes went over my equipment like a customs officer's, looking for the lie in the manifest. "You people are early this year. The picture-postal trade doesn't usually infest this side before July."
 
 "The infestation is four numbers and three days, ma'am, and I'll keep off your paint."
 
