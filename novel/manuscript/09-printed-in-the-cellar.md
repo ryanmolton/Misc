@@ -1,0 +1,47 @@
+# 9. Printed in the Cellar
+
+The box held glass, as I had known since June it would, the weight and the small bright chime of it under the lid being past disguising. Eleven negatives, five-by-eight, the stereo pairs side by side on each plate, every one sleeved in Fell's brown paper, and on the top sleeve, in the narrow upright hand, an inscription that I read standing, and then read again sitting down.
+
+*Spoiled: all eleven. Exposure correct, development correct, subject correct. Spoiled by being true too slowly. If the firm's man reads German, the word is* zu früh.
+
+I did not read German, then. Clemenz rendered it for me later without being told where it came from: *too soon.* The same two words the loupe had found scratched on Number 87 in the vault in Chicago, nineteen years earlier, against a mountain four miles distant and a guide the size of a beetle. A man may carry a phrase his whole working life, the way my father carried *measure it standing*, and I had now met this one at both ends of Ambrose Fell's, and I still did not know what it measured.
+
+The plates themselves I took down to the cellar that same night to print, which the reader will have expected. What the reader may not expect, unless the reader has stood at a sink at one in the morning with another man's negatives, is the intimacy of the thing. Printing a stranger's plate, you stand where he stood in the most exact sense the world allows: his sky comes up in your dish, at the pace he metered for it, and every choice he made argues with every choice you would have made, in the red dark, at conversational range. By the third plate I knew Fell as I knew perhaps four living men. By the eleventh I could hear him.
+
+Here is what the eleven said, laid out wet on the racks with the wine bottles looking on.
+
+They were one subject, as the manifest had confessed: the snout of the Matterhorn glacier from the Zmutt moraine, the dead gray end of the ice where it breaks into rubble and the milk river runs out of a low arched cave in the ice wall, blue-shadowed, mean, and by every commercial standard of my firm and every other, nothing. No peak. No scale figure. No romance. Ice in the middle distance, dirt in the near, a subject Stroud had rated one number and would have cut from the list if cardboard cost a cent more.
+
+Eleven times. Dated on the emulsion edge, the scratches tiny and orderly: 19 July, 24 July, 29 July, and so on at intervals of four or five days to 9 August. All in fair weather. All at the same hour, within minutes, the shadows agreeing like witnesses rehearsed.
+
+And all, so far as the loupe could find, from the same station to the breadth of a tripod screw. Understand what that means in the field. To re-set a camera on rubble to the same inch, eleven times over three weeks, is not persistence, it is masonry. He had built a station and hidden the building: I would find, when I went up, three flat stones set in the moraine crest like pads for a transit, under the gravel, patient as Rome. The compositions were not similar. They were identical, in the way no two exposures of a living scene are ever identical, except that they were not identical, and it took me until nearly three in the morning, and the last two prints, to put my eye on the difference, because the difference was not in any *thing*. Every boulder held its place, plate over plate. The difference was in the ice, and it was small, and it was everywhere: the crevasse patterns walked, print to print, the way a sleeping dog's flank walks with its breathing. The glacier had sat for its portrait eleven times, and, like any living sitter across three weeks, it had not held still.
+
+I want to say plainly that up to this point I had followed Fell's procedure without following his mind. I stood at the racks looking at eleven gray near-twins and thought, God forgive the trade that trained me, *there is no card here.*
+
+Then, because my hands were idle while the last prints washed, and because his folding viewer was upstairs and I had brought it down, having told myself the instrument wanted testing after nine idle months, meaning that I wanted an excuse to be in its company: I set Marianne's portrait carefully aside, face down, the way you turn a portrait when the room is about to hold something not hers; and I slid two of the wet prints into the rack together. Not a proper pair. The pair off one plate would have shown me the scene as any tourist's stereograph shows it, true depth, dull ice. What I racked, out of a printer's idleness at three in the morning, was the left half of the 19th of July beside the left half of the 9th of August. Same lens. Same station. Twenty-one days apart.
+
+I put my eyes to the hoods, and the two prints poured together, and I am now going to attempt the thing I have failed to say aloud for many years, which is what happened in that instrument.
+
+The mountain fused. The moraine fused, boulder onto boulder, and lay down flat as a painted drop, because to a stereoscope whatever has not moved between the two views is at infinity: no difference, no depth. All the dead country fused and flattened and retired.
+
+The glacier refused. Every point of the ice had traveled those twenty-one days, and the instrument, which knows no time, only difference, read all that travel as parallax, and hung the whole tongue of the glacier out in front of the flattened world in a relief no natural view could ever own. I tell you the ice *stood up off the plate*. It came forward into the little walnut dark of the viewer like a thing shown against black velvet, every crevasse in relief, the entire dying snout of it presented to the eye the way a jeweler presents a stone on cloth, and what the presentation said, said not in figures as the Fräulein Doktor's stakes said it but to the animal back of the eye, in the oldest language depth owns, was: *this is not scenery. This is motion. The scenery is behind it; this thing is in transit.*
+
+Two views of one summer, and between them the truth that neither held alone. My trade had spent fifty years putting two eyes a nose apart to make space stand up in a parlor. Fell had set his two eyes three weeks apart, and made *time* stand up. There is no other man in the story of the craft, I believe, who would have thought of it, and I include myself with no discount, because I did not think of it either. I only inherited it, at three in the morning, wet to both elbows, with my heart going like a watch in a fist.
+
+That was the first thing. The second thing was small, as the large things in this account will keep insisting on being.
+
+Deep in the print, at the snout, where the melt river came out of its arched cave and the ice wall stood in its own blue shadow, there was a point of light. In any single print I would have passed it for a wet fleck on the paper, or a glint of quartz in the rubble, the snout of a glacier being a scrapyard of the mountain's mineral opinions. In the fused view it could not be passed, because it did not lie with the rubble plane and it did not lie at infinity with the honest rock. It hung *in the ice*, at the ice's own uncanny forward relief, a single bright grain in the shadowed wall above the cave mouth, and when I changed prints, July 24th against August 4th, any left half against any later left half, my hands by now not entirely reliable, it was in every fusion, always in the wall, always with the ice.
+
+Whatever threw that glint was inside the glacier, near enough its skin to catch morning sun through melt, and it was riding the ice down the valley at the freight rate Miss Forsyth had given me on the moraine with her back straight and her voice level: nine inches a day, rising. Metal, said the printer in me, or glass, or the dressed nailheads of a boot sole, and the rest of me stood very still and said nothing at all, because over the racks, in the red light, I had remembered the sleeve. *Exposure correct, development correct, subject correct. Spoiled by being true too slowly.*
+
+He had not been photographing ice.
+
+He had been photographing an arrival. Eleven times, at four-day intervals, a man of fifty-six had walked two hours up a moraine to stand at a masonry station and document the progress of the slowest freight in Europe, and in August he had ruled a line in a book against a sentence about a nineteen-year-old boy the mountain never gave back, and had done the arithmetic thirty-one years of ice had been doing all along, and had understood, *zu früh*, too soon, that the delivery would not come that season, and had shut the box, and lettered a lie on the lid to keep the firm's hands off the truth, and had gone away somewhere to wait out the winter with the patience of a man who has, at last, after a whole life in the trade of other people's monuments, found the one photograph that could not be taken by standing where anyone had stood before.
+
+The wash water ran on over the prints with the sound small water makes in a stone room. I sat on a wine crate until the red lamp paled and the gray of morning came down the cellar stair, doing sums I had no tables for and getting, over and over, the same remainder, which was a question: how far up the ice, and how long?
+
+Clemenz found me there at six, come to load for the day's number on the shot list, a waterfall above Täsch, very superior, every modern comfort. He looked at the racks, and at me, and at the racks.
+
+"Change of program?" said Clemenz.
+
+"Change of program," I said. "Zmutt."
