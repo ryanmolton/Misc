@@ -5,24 +5,36 @@ from gfx import *
 from art import *
 
 # ------------------------------------------------------------------ timeline
-T_BOOT, T_TITLE, T_BEACH, T_PROF, T_BATTLE, T_TALLY, T_END, T_TOTAL = 0.0, 1.3, 3.6, 8.0, 12.4, 21.2, 26.0, 30.0
+T_BOOT, T_TITLE, T_BEACH, T_PROF, T_BATTLE, T_TALLY, T_END, T_TOTAL = 0.0, 1.3, 3.6, 9.2, 15.2, 28.7, 35.1, 41.6
+B = T_BATTLE
+# battle cues (absolute)
+BT_SCENE = B + 0.5         # battle screen appears
+BT_POSE = B + 7.0          # full-screen POSE cut-in starts
+BT_POSE_END = B + 8.9      # back to the battle
+BT_TROMBONE = B + 9.0
+BT_FLEE = B + 11.35        # seagull takes off
+E = T_END
+END_LIGHT_OFF = E + 2.9
+END_FADE = E + 3.6
+END_FIN = E + 3.9
 
 # typed dialog: (start, end, lines, chars/sec)
 DIALOG = {
     'beach1': (3.85, 6.2, ["CARPINTERIA, CALIFORNIA.", "\"THE WORLD'S SAFEST BEACH.\""], 34),
-    'beach2': (6.95, 8.0, ["(NOT BECAUSE OF THIS GUY.)"], 42),
-    'b1': (13.0, 14.7, ["A WILD SEAGULL APPEARS!", "IT HAS YOUR BREAKFAST BURRITO."], 45),
-    'b2': (15.3, 16.2, ["YOU DON'T HAVE ANY POWERS."], 48),
-    'b3': (16.7, 18.0, ["STRAWBERRY MAN", "STRIKES A POSE!"], 40),
-    'b4': (18.05, 19.6, ["IT'S NOT VERY EFFECTIVE..."], 30),
-    'b5': (19.6, 21.2, ["THE SEAGULL FLED!", "(WITH YOUR BURRITO.)"], 45),
-    'end1': (26.45, 30, ["WILL RETURN."], 22),
-    'end2': (27.15, 30, ["...TO THE VAN."], 22),
-    'fin': (28.95, 30, ["NO POWERS WERE USED IN", "THE MAKING OF THIS FILM."], 60),
+    'beach2': (T_BEACH + 3.35, T_PROF, ["(NOT BECAUSE OF THIS GUY.)"], 42),
+    'b1': (B + 0.6, B + 3.2, ["A WILD SEAGULL APPEARS!", "IT HAS YOUR BREAKFAST BURRITO."], 45),
+    'b2': (B + 4.3, B + 6.0, ["YOU DON'T HAVE ANY POWERS."], 48),
+    'b3': (BT_POSE + 0.1, BT_POSE_END, ["STRAWBERRY MAN", "STRIKES A POSE!"], 40),
+    'b4': (BT_POSE_END + 0.05, B + 11.2, ["IT'S NOT VERY EFFECTIVE..."], 30),
+    'b5': (B + 11.2, T_TALLY, ["THE SEAGULL FLED!", "(WITH YOUR BURRITO.)"], 45),
+    'end1': (E + 0.45, T_TOTAL, ["WILL RETURN."], 22),
+    'end2': (E + 1.3, T_TOTAL, ["...TO THE VAN."], 22),
+    'fin': (END_FIN + 0.05, T_TOTAL, ["NO POWERS WERE USED IN", "THE MAKING OF THIS FILM."], 60),
 }
-MENU = [(14.7, 15.3, [(14.7, 0), (15.0, 1)], 15.3), (16.2, 16.7, [(16.2, 1), (16.4, 2)], 16.6)]
-PROFILE_LINES_T0, PROFILE_DT = 8.35, 0.4
-TALLY = {'clear': 21.35, 'l0': 22.15, 'l1': 22.55, 'l2': 22.95, 'l2end': 23.75, 'l3': 23.95, 'label': 24.4, 'stamp': 24.75}
+# (start, end, [(time, cursor index)], select time)
+MENU = [(B + 3.2, B + 4.3, [(B + 3.2, 0), (B + 3.8, 1)], B + 4.3), (B + 6.0, BT_POSE, [(B + 6.0, 1), (B + 6.5, 2)], B + 6.9)]
+PROFILE_LINES_T0, PROFILE_DT = T_PROF + 0.35, 0.55
+TALLY = {k: T_TALLY + v for k, v in dict(clear=0.15, l0=1.0, l1=1.6, l2=2.2, l2end=3.0, l3=3.4, label=4.0, stamp=4.4).items()}
 
 
 def typed(key, t):
@@ -460,8 +472,8 @@ def render_beach(cv, t):
         dialog_box(cv, 'beach2', t, y=26, h=30)
     if lt < 0.3:
         iris(cv, 170, 150, 330 * ease_out(lt / 0.3))
-    if lt > 4.25:  # blinds wipe to next scene
-        k = (lt - 4.25) / 0.15
+    if t > T_PROF - 0.15:  # blinds wipe to next scene
+        k = (t - (T_PROF - 0.15)) / 0.15
         for x0 in range(0, W, 16):
             rect(cv, x0, 0, int(16 * k), H, PAL['K'])
 
@@ -590,27 +602,27 @@ def render_battle(cv, t):
                 else:
                     rect(cv, W - wdt, y0, wdt, 12, PAL['K'])
         return
-    if 16.6 <= t < 18.0:
+    if BT_POSE <= t < BT_POSE_END:
         return render_pose(cv, t)
     cv[:] = battle_bg()
-    et = t - 12.9
+    et = t - BT_SCENE
     # enemy
     gx = -80 + (204 + 80) * ease_out(et / 0.45)
     gy = 46 + (1 if int(t * 4) % 2 else 0)
-    if 18.2 < t < 19.5:
-        gy -= int(abs(math.sin((t - 18.2) * 9)) * 5)  # smug hops
-    flee = t >= 19.75
+    if BT_POSE_END + 0.2 < t < BT_POSE_END + 2.0:
+        gy -= int(abs(math.sin((t - BT_POSE_END - 0.2) * 9)) * 5)  # smug hops
+    flee = t >= BT_FLEE
     if flee:
-        ft = t - 19.75
+        ft = t - BT_FLEE
         gx += ft * 125
         gy -= ft * 70 + 6 * math.sin(ft * 30)
-    gimg = scale(GULL_ANGRY if (t > 18.0) else GULL, 3)
+    gimg = scale(GULL_ANGRY if (t > BT_POSE_END) else GULL, 3)
     blit(cv, gimg, gx, gy)
     blit(cv, scale(BURRITO, 3), gx - 21, gy + 6)
     if flee and int(t * 12) % 2:
         blit(cv, scale(WING_UP, 3), gx + 33, gy - 12)
-    if 18.05 < t < 18.8:
-        text(cv, '-0', gx + 24, gy - 8 - (t - 18.05) * 20, color=PAL['W'], outline=PAL['K'])
+    if BT_POSE_END + 0.05 < t < BT_POSE_END + 0.9:
+        text(cv, '-0', gx + 24, gy - 8 - (t - BT_POSE_END - 0.05) * 20, color=PAL['W'], outline=PAL['K'])
     # hero back sprite
     hx = 320 - (320 - 36) * ease_out(et / 0.45)
     blit(cv, scale(HERO_BACK, 3), hx, 64 + (1 if int(t * 3) % 2 else 0))
@@ -620,7 +632,7 @@ def render_battle(cv, t):
         text(cv, 'SEAGULL', 22, 18, color=PAL['K'])
         text(cv, 'LV99', 110, 18, color=PAL['K'])
         text(cv, 'HP', 22, 30, color=hexc('#e06020'))
-        hp_bar(cv, 38, 32, 96, 1.0, blink=(18.05 < t < 18.6 and int(t * 16) % 2))
+        hp_bar(cv, 38, 32, 96, 1.0, blink=(BT_POSE_END + 0.05 < t < BT_POSE_END + 0.6 and int(t * 16) % 2))
         box(cv, 172, 92, 142, 36, fill=hexc('#fff8e8'), border=PAL['K'], border2=hexc('#c0b090'))
         text(cv, 'STRAWBERRY MAN', 180, 98, color=PAL['K'])
         text(cv, 'LV1', 290, 98, color=PAL['K'])
@@ -640,7 +652,7 @@ def render_battle(cv, t):
         box(cv, 172, 132, 144, 44, fill=hexc('#fff8e8'), border=PAL['K'], border2=hexc('#c0b090'))
         opts = [('FIGHT', 192, 142), ('POWERS', 252, 142), ('POSE', 192, 156), ('RUN', 252, 156)]
         for i, (o, x, y) in enumerate(opts):
-            text(cv, o, x, y, color=hexc('#a0a0a0') if (o == 'POWERS' and t > 16.0) else PAL['K'])
+            text(cv, o, x, y, color=hexc('#a0a0a0') if (o == 'POWERS' and t > DIALOG['b2'][0] + 0.5) else PAL['K'])
         o, x, y = opts[idx]
         flash = t > sel and int(t * 20) % 2
         if not flash:
@@ -650,13 +662,13 @@ def render_battle(cv, t):
             t0, t1 = DIALOG[key][:2]
             if t0 <= t < t1:
                 dialog_box(cv, key, t)
-    if t < 13.0:
-        f = clamp01((13.0 - t) / 0.1)
+    if t < BT_SCENE + 0.1:
+        f = clamp01((BT_SCENE + 0.1 - t) / 0.1)
         cv[:] = (cv * (1 - f) + 255 * f).astype(np.uint8)
-    if 18.0 <= t < 18.08:
+    if BT_POSE_END <= t < BT_POSE_END + 0.08:
         cv[:] = 255
-    if t > 21.0:
-        fade(cv, (21.2 - t) / 0.2)
+    if t > T_TALLY - 0.2:
+        fade(cv, (T_TALLY - t) / 0.2)
 
 
 _ang = None
@@ -664,7 +676,7 @@ _ang = None
 
 def render_pose(cv, t):
     global _ang
-    lt = t - 16.6
+    lt = t - BT_POSE
     if _ang is None:
         yy, xx = np.mgrid[0:H, 0:W]
         _ang = np.arctan2(yy - 80, xx - 90)
@@ -756,7 +768,7 @@ def render_tally(cv, t):
 def render_end(cv, t):
     lt = t - T_END
     cam = 203
-    light = t < 27.9
+    light = t < END_LIGHT_OFF
     vimg = tint_img(van(night=True, light=light), PALETTES['night']['tint'], keep=(PAL['y'], PAL['O']))
     draw_world(cv, 'night', cam, t, vimg)
     if light:  # warm light spilling on the ground
@@ -768,12 +780,12 @@ def render_end(cv, t):
                         cv[yy, xx] = np.minimum(255, cv[yy, xx].astype(int) + [70, 50, 10])
     else:
         for i in range(3):
-            zt = t - 28.0 - i * 0.25
+            zt = t - END_LIGHT_OFF - 0.1 - i * 0.25
             if zt > 0:
                 text(cv, 'Z', VAN_WX - cam + 44 + zt * 10, VAN_Y + 2 - zt * 22, color=hexc('#c8d0ff'), scale=1 + i % 2)
     # shooting star
-    if 26.5 < t < 27.1:
-        k = (t - 26.5) / 0.6
+    if E + 0.5 < t < E + 1.1:
+        k = (t - E - 0.5) / 0.6
         sx, sy = 40 + 180 * k, 20 + 40 * k
         for j in range(8):
             rect(cv, sx - j * 3, sy - j * 0.66, 2, 1, (np.array([255, 255, 255]) * (1 - j / 8)).astype(np.uint8))
@@ -787,14 +799,14 @@ def render_end(cv, t):
         text_c(cv, lines[0].ljust(len(DIALOG[key][2][0])), 160, y, color=PAL['W'], shadow=PAL['K'])
     if lt < 0.25:
         fade(cv, lt / 0.25)
-    if t >= 28.6:
-        fade(cv, (28.9 - t) / 0.3)
-    if t >= 28.9:
+    if t >= END_FADE:
+        fade(cv, (END_FIN - t) / 0.3)
+    if t >= END_FIN:
         cv[:] = 0
         lines, _ = typed('fin', t)
         for i, ln in enumerate(lines):
             text_c(cv, ln.ljust(len(DIALOG['fin'][2][i])), 160, 78 + i * 12, color=hexc('#c8c8d8'))
-        if t > 29.35:
+        if t > END_FIN + 0.9:
             blit(cv, scale(STRAWBERRY_ICON, 2), 152, 108)
 
 

@@ -29,14 +29,16 @@ def build_audio():
             "F5:2 A5:2 C6:3 D6:1 C6:2 A5:2 F5:4 "
             "G5:2 B5:2 D6:3 C6:1 B5:2 A5:2 G5:4 "
             "A5:2 C6:2 F6:2 E6:2 D6:2 B5:2 G5:2 D6:2 "
-            "C6:2 G5:1 E5:1 C6:2 E6:2 G6:8")
-    chords = [(16, 'C'), (16, 'Am'), (16, 'F'), (16, 'G'), (8, 'F'), (8, 'G'), (16, 'C')]
+            "C6:2 G5:1 E5:1 C6:2 E6:2 G6:8 "
+            "E5:2 G5:2 C6:3 G5:1 A5:2 G5:2 E5:4 "
+            "C5:2 E5:2 A5:3 G5:1 E5:2 C5:2 A4:4")
+    chords = [(16, 'C'), (16, 'Am'), (16, 'F'), (16, 'G'), (8, 'F'), (8, 'G'), (16, 'C'), (16, 'C'), (16, 'Am')]
     cut = T_BATTLE + 0.02
     play_melody(mx, t0, lead, step, duty=0.25, vol=0.16, cut=cut)
     play_melody(mx, t0 + 0.3, lead, step, duty=0.125, vol=0.045, pan=0.6, cut=cut)  # echo
     play_arp(mx, t0, chords, step, cut=cut)
     play_bass(mx, t0, chords, step, cut=cut)
-    play_drums(mx, t0, "x.h.o.h.x.hxo.h.", step, 6, vol=0.26, cut=cut)
+    play_drums(mx, t0, "x.h.o.h.x.hxo.h.", step, 8, vol=0.26, cut=cut)
     add(T_BEACH, waves(T_PROF - T_BEACH + 0.3), 0.10)
     # beach SFX
     for i in range(3):
@@ -56,8 +58,8 @@ def build_audio():
     add(PROFILE_LINES_T0 + 6 * PROFILE_DT, np.concatenate([sfx_powerup(), sfx_powerup()]), 0.13)
     # --- battle
     add(T_BATTLE, sfx_sweep(0.5), 0.2)
-    bt0, bstep = 12.9, 0.085
-    bcut = 16.6
+    bt0, bstep = BT_SCENE, 0.085
+    bcut = BT_POSE
     blead = ("A5:1 R:1 A5:1 C6:1 E6:2 A5:2 G5:1 A5:1 C6:2 B5:2 A5:2 "
              "F5:1 R:1 F5:1 A5:1 C6:2 F5:2 E5:1 F5:1 A5:2 C6:2 F6:2 "
              "G5:1 R:1 G5:1 B5:1 D6:2 G6:2 F6:1 E6:1 D6:2 B5:2 G5:2 "
@@ -75,33 +77,34 @@ def build_audio():
         for tt, i in cur[1:]:
             add(tt, sfx_blip(1200, 0.03), 0.12)
         add(sel, sfx_select(), 0.2)
-    add(15.33, sfx_buzz(), 0.22)
+    add(DIALOG['b2'][0] + 0.03, sfx_buzz(), 0.22)
     # POSE!
-    add(16.6, crash(), 0.35)
-    add(16.6, sfx_powerup(), 0.16)
-    add(16.95, sfx_sparkle(), 0.14)
+    add(BT_POSE, crash(), 0.35)
+    add(BT_POSE, sfx_powerup(), 0.16)
+    add(BT_POSE + 0.35, sfx_sparkle(), 0.14)
     for m, v in ((60, 0.12), (64, 0.08), (67, 0.08), (72, 0.1)):
         s = pulse(freq(m), 1.2, 0.5, vib=0.01) * env(int(1.2 * SR), d=0.6, s=0.4, r=0.2)
-        add(16.75, s, v)
-    add(16.75, tri(freq(36), 1.2) * env(int(1.2 * SR), d=0.6, s=0.5, r=0.2), 0.35)
+        add(BT_POSE + 0.15, s, v)
+    add(BT_POSE + 0.15, tri(freq(36), 1.2) * env(int(1.2 * SR), d=0.6, s=0.5, r=0.2), 0.35)
     for k in range(3):
-        add(16.75 + k * 0.1, snare(), 0.25)
-    add(18.1, sfx_sad_trombone(), 0.3)
-    add(19.6, sfx_squawk(), 0.3, -0.2)
+        add(BT_POSE + 0.15 + k * 0.1, snare(), 0.25)
+    add(BT_TROMBONE, sfx_sad_trombone(), 0.3)
+    add(DIALOG['b5'][0], sfx_squawk(), 0.3, -0.2)
     for k in range(12):
-        add(19.75 + k * 0.1, sfx_flap(), 0.18, min(0.8, k * 0.08))
-    add(20.3, sfx_squawk()[::-1] * 0.5, 0.2, 0.6)
+        add(BT_FLEE + k * 0.1, sfx_flap(), 0.18, min(0.8, k * 0.08))
+    add(BT_FLEE + 0.55, sfx_squawk()[::-1] * 0.5, 0.2, 0.6)
     # --- tally (sunset)
     add(T_TALLY, waves(T_END - T_TALLY + 0.5), 0.07)
     fs = 0.08
     play_melody(mx, TALLY['clear'], "G5:1 C6:1 E6:1 G6:3 E6:1 G6:6", fs, duty=0.25, vol=0.17, legato=0.95)
     play_melody(mx, TALLY['clear'], "E5:1 G5:1 C6:1 E6:3 C6:1 E6:6", fs, duty=0.5, vol=0.07, pan=0.4, legato=0.95)
     play_bass(mx, TALLY['clear'], [(3, 'C'), (3, 'C'), (7, 'C')], fs, every=3, octave_bounce=False)
-    mt0, mst = 22.4, 0.12
-    mch = [(16, 'F'), (16, 'C')]
-    play_arp(mx, mt0, mch, mst, root=60, vol=0.05, pattern=(0, 1, 2, 3, 2, 1))
-    play_bass(mx, mt0, mch, mst, every=4, vol=0.22, octave_bounce=False)
-    play_melody(mx, mt0, "A5:4 C6:4 A5:2 G5:2 F5:4 E5:4 G5:4 C6:8", mst, duty=0.125, vol=0.09, legato=0.95)
+    mt0, mst = T_TALLY + 1.2, 0.12
+    tcut = T_END + 0.1
+    mch = [(16, 'F'), (16, 'C'), (8, 'Dm'), (8, 'G')]
+    play_arp(mx, mt0, mch, mst, root=60, vol=0.05, pattern=(0, 1, 2, 3, 2, 1), cut=tcut)
+    play_bass(mx, mt0, mch, mst, every=4, vol=0.22, octave_bounce=False, cut=tcut)
+    play_melody(mx, mt0, "A5:4 C6:4 A5:2 G5:2 F5:4 E5:4 G5:4 C6:8 D6:4 C6:4 B5:4 G5:4", mst, duty=0.125, vol=0.09, legato=0.95, cut=tcut)
     for key in ('l0', 'l1', 'l3'):
         add(TALLY[key], sfx_coin(), 0.13)
     n = 47
@@ -111,16 +114,16 @@ def build_audio():
     add(TALLY['label'], sfx_blip(990, 0.05), 0.1)
     add(TALLY['stamp'], sfx_stamp(), 0.5)
     # --- end (night)
-    et0, est = 26.1, 0.13
+    et0, est = T_END + 0.1, 0.16
     endlead = "E5:2 G5:2 C6:3 G5:1 A5:2 G5:2 E5:4 D5:2 F5:2 B5:2 D6:2 C6:10"
     play_melody(mx, et0, endlead, est, duty=0.125, vol=0.12, vib=0.01, legato=0.95)
     play_melody(mx, et0 + 0.26, endlead, est, duty=0.125, vol=0.04, pan=0.6, vib=0.01)
     play_arp(mx, et0, [(16, 'C'), (8, 'G'), (10, 'C')], est, root=48, vol=0.05, pattern=(0, 2, 1, 3))
     play_bass(mx, et0, [(16, 'C'), (8, 'G'), (10, 'C')], est, every=8, vol=0.22, octave_bounce=False)
-    add(26.5, sfx_twinkle(), 0.08, 0.5)
-    add(27.9, sfx_click(), 0.4)
+    add(T_END + 0.5, sfx_twinkle(), 0.08, 0.5)
+    add(END_LIGHT_OFF, sfx_click(), 0.4)
     for i in range(3):
-        add(28.0 + i * 0.25, sfx_snore(0.22), 0.12)
+        add(END_LIGHT_OFF + 0.1 + i * 0.25, sfx_snore(0.22), 0.12)
     for tt in typed_blip_times('end1') + typed_blip_times('end2'):
         add(tt, sfx_blip(1100), 0.04)
     L, R = lowpass(mx.L, 0.7), lowpass(mx.R, 0.7)  # tame naive-square aliasing
