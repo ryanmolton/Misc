@@ -624,8 +624,8 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(900,32,16),new THREE.ShaderMat
 scene.add(sky);
 
 /* lights */
-scene.add(new THREE.HemisphereLight('#d4dcff','#f2c7a4',0.58));
-const sun=new THREE.DirectionalLight('#ffd0a0',0.85);
+scene.add(new THREE.HemisphereLight('#e6e9f5','#f1e2d4',0.8));
+const sun=new THREE.DirectionalLight('#ffe2c4',0.5);
 sun.castShadow=true;
 const SH=SMALL?1024:2048;
 sun.shadow.mapSize.set(SH,SH);
@@ -637,7 +637,7 @@ const SUN_OFF=new THREE.Vector3(-90,70,20);
 /* water */
 const waterMat=new THREE.ShaderMaterial({
   fog:true,
-  uniforms:THREE.UniformsUtils.merge([THREE.UniformsLib.fog,{time:{value:0},deep:{value:new THREE.Color('#6d93aa')},light:{value:new THREE.Color('#a9c1cf')}}]),
+  uniforms:THREE.UniformsUtils.merge([THREE.UniformsLib.fog,{time:{value:0},deep:{value:new THREE.Color('#a3bccb')},light:{value:new THREE.Color('#c3d4de')}}]),
   vertexShader:[
     '#include <fog_pars_vertex>','varying vec2 vW;',
     'void main(){vec4 wp=modelMatrix*vec4(position,1.);vW=wp.xz;vec4 mvPosition=viewMatrix*wp;gl_Position=projectionMatrix*mvPosition;',
@@ -645,7 +645,7 @@ const waterMat=new THREE.ShaderMaterial({
   fragmentShader:[
     '#include <fog_pars_fragment>','uniform float time;uniform vec3 deep,light;varying vec2 vW;',
     'void main(){float w=sin(vW.x*.9+time*.7)*sin(vW.y*1.1-time*.55)+.5*sin((vW.x+vW.y)*2.3+time*1.3);',
-    'float s=smoothstep(1.3,1.5,w)*.5;vec3 c=mix(deep,light,.4+.25*sin(vW.x*.04+vW.y*.03));c+=s*.18*vec3(1.,.88,.75);gl_FragColor=vec4(c,1.);',
+    'float s=smoothstep(1.3,1.5,w)*.5;vec3 c=mix(deep,light,.4+.25*sin(vW.x*.04+vW.y*.03));c+=s*.08*vec3(1.,.95,.9);gl_FragColor=vec4(c,1.);',
     '#include <fog_fragment>','}'].join('\n')
 });
 const water=new THREE.Mesh(new THREE.PlaneGeometry(2400,2400),waterMat);
@@ -663,7 +663,7 @@ const toXZ=poly=>poly.map(p=>[X(p[1]),Z(p[0])]);
 const MANxz=toXZ(MAN), PARKxz=toXZ(PARK), BKNxz=toXZ(BKN), NJxz=toXZ(NJ), BRXxz=toXZ(BRX);
 function inPoly(x,z,poly){let c=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const xi=poly[i][0],zi=poly[i][1],xj=poly[j][0],zj=poly[j][1];if(((zi>z)!==(zj>z))&&(x<(xj-xi)*(z-zi)/(zj-zi)+xi))c=!c;}return c;}
 
-const landMat=new THREE.MeshStandardMaterial({color:'#d6c8b5',roughness:1});
+const landMat=new THREE.MeshStandardMaterial({color:'#ded6ca',roughness:1});
 function landMesh(xz,depth,mat,y){
   const sh=new THREE.Shape(); xz.forEach((p,i)=>i?sh.lineTo(p[0],-p[1]):sh.moveTo(p[0],-p[1]));
   const g=new THREE.ExtrudeGeometry(sh,{depth,bevelEnabled:false});
@@ -671,7 +671,7 @@ function landMesh(xz,depth,mat,y){
   const m=new THREE.Mesh(g,mat); m.receiveShadow=true; scene.add(m); return m;
 }
 [MANxz,BKNxz,NJxz,BRXxz,toXZ(RVI)].forEach(p=>landMesh(p,0.6,landMat,0));
-const parkMat=new THREE.MeshStandardMaterial({color:'#9fbf86',roughness:1});
+const parkMat=new THREE.MeshStandardMaterial({color:'#bfd0ae',roughness:1});
 landMesh(PARKxz,0.1,parkMat,0.04);
 
 function ellipse(lat,lon,a,b,rot){ // a along avenue, b cross
@@ -679,7 +679,7 @@ function ellipse(lat,lon,a,b,rot){ // a along avenue, b cross
   for(let i=0;i<40;i++){const t=i/40*Math.PI*2, ca=Math.cos(t)*a, cb=Math.sin(t)*b; pts.push([c.x+V_.x*ca+U_.x*cb, c.z+V_.y*ca+U_.y*cb]);}
   return pts;
 }
-const pondMat=new THREE.MeshStandardMaterial({color:'#86aebf',roughness:.25,metalness:.1});
+const pondMat=new THREE.MeshStandardMaterial({color:'#b4cad4',roughness:.6});
 [[40.7860,-73.9625,6.3,3.2],[40.7768,-73.9713,1.7,1.2],[40.7664,-73.9748,.9,.45],[40.7745,-73.9662,.55,.35],[40.7950,-73.9555,1.3,1.2]].forEach(e=>landMesh(ellipse(e[0],e[1],e[2],e[3]),0.05,pondMat,0.07));
 // islands: Governors, Liberty, Ellis
 [[40.6895,-74.0165,5,4.2],[40.6893,-74.0447,1.2,1.2],[40.6990,-74.0395,1.2,.9]].forEach(e=>landMesh(ellipse(e[0],e[1],e[2],e[3]),0.6,landMat,0));
@@ -693,7 +693,7 @@ const B=[]; // {x,z,w,d,h,rot,col}
 const avoid=[]; // landmark footprints
 const LM={}; ['esb:40.7484,-73.9857','chr:40.7516,-73.9755','wtc:40.7130,-74.0132','rock:40.7593,-73.9794','plaza:40.7645,-73.9744','gugg:40.7830,-73.9590','met:40.7794,-73.9632','nypl:40.7532,-73.9822','gct:40.7527,-73.9772','stpat:40.7585,-73.9760','bp:40.7538,-73.9845','wsq:40.7308,-73.9973','paley:40.7598,-73.9758','cm:40.7424,-74.0061','hotel:40.7626,-73.9764']
   .forEach(s=>{const [k,ll]=s.split(':');const [a,b]=ll.split(',').map(Number);LM[k]=V(a,b);avoid.push([LM[k].x,LM[k].z,k==='bp'?1.4:k==='wsq'?1.1:k==='met'?1.3:0.75]);});
-const PAL=['#efe6d8','#e4d6c2','#d9c4ab','#c99a7e','#b98670','#aab7c3','#c6ced6','#e9ddc9','#d6b79a','#f3ece1'];
+const PAL=['#ebe7e1','#e7e2db','#eeeae4','#e4dfd8','#e9e4de','#e5e1dc'];
 function nearAvoid(x,z){for(const a of avoid){if((x-a[0])**2+(z-a[1])**2<a[2]*a[2])return true;}return false;}
 const HL=[[40.7526,-74.0036],[40.7497,-74.0045],[40.7470,-74.0052],[40.7440,-74.0066],[40.7410,-74.0080],[40.7396,-74.0083]].map(p=>V(p[0],p[1]));
 function nearHL(x,z){for(let i=0;i<HL.length-1;i++){const a=HL[i],b=HL[i+1];const abx=b.x-a.x,abz=b.z-a.z;let t=((x-a.x)*abx+(z-a.z)*abz)/(abx*abx+abz*abz);t=Math.max(0,Math.min(1,t));if((x-a.x-abx*t)**2+(z-a.z-abz*t)**2<0.12)return true;}return false;}
@@ -753,7 +753,7 @@ const m4=new THREE.Matrix4(), q=new THREE.Quaternion(), sc=new THREE.Vector3(), 
 B.forEach((b,i)=>{
   q.setFromAxisAngle(YAX,b.rot); sc.set(b.w,b.h,b.d); ps.set(b.x,0,b.z);
   m4.compose(ps,q,sc); bMesh.setMatrixAt(i,m4);
-  col.set(b.col); if(b.outer) col.lerp(new THREE.Color('#cdbfae'),0.55); if(b.h>2.4) col.lerp(new THREE.Color('#9fb2c4'),0.45);
+  col.set(b.col); if(b.outer) col.lerp(new THREE.Color('#e2dcd3'),0.7); if(b.h>2.4) col.lerp(new THREE.Color('#e1e4e8'),0.5);
   bMesh.setColorAt(i,col);
 });
 scene.add(bMesh);
@@ -782,7 +782,7 @@ const DOT=dotTex();
   const g=new THREE.BufferGeometry();
   g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
   g.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
-  const m=new THREE.PointsMaterial({size:0.16,map:DOT,vertexColors:true,transparent:true,opacity:.85,depthWrite:false,blending:THREE.AdditiveBlending});
+  const m=new THREE.PointsMaterial({size:0.12,map:DOT,vertexColors:true,transparent:true,opacity:.3,depthWrite:false,blending:THREE.AdditiveBlending});
   scene.add(new THREE.Points(g,m));
 })();
 
@@ -797,9 +797,9 @@ const DOT=dotTex();
   // Bryant Park, Washington Sq, Brooklyn Bridge Park, Paley
   [[40.7538,-73.9840,.9,40],[40.7308,-73.9973,1.0,40],[40.7010,-73.9975,1.2,50],[40.6995,-73.9990,1.0,30],[40.7598,-73.9758,.12,4]].forEach(c=>{const o=V(c[0],c[1]);for(let t=0;t<c[3];t++){const a=rnd()*6.283,r=Math.sqrt(rnd())*c[2];pts.push([o.x+Math.cos(a)*r,o.z+Math.sin(a)*r,0.8]);}});
   const g=new THREE.IcosahedronGeometry(0.16,0); g.translate(0,0.2,0);
-  const m=new THREE.MeshStandardMaterial({roughness:1,flatShading:true});
+  const m=new THREE.MeshStandardMaterial({roughness:1});
   const im=new THREE.InstancedMesh(g,m,pts.length); im.castShadow=true;
-  const greens=['#5f8f55','#6e9d5c','#7ea866','#4f7f4a','#8fb070','#a3b774','#c9a55a'];
+  const greens=['#a9c296','#b2c9a0','#a1bb8f','#b8cda6','#adc49b'];
   pts.forEach((p,i)=>{
     const s=p[2]*(0.8+rnd()*0.6), yy=p[3]!==undefined?p[3]:0.08;
     q.setFromAxisAngle(YAX,rnd()*6.28); sc.set(s,s*(0.9+rnd()*.5),s); ps.set(p[0],yy,p[1]);
@@ -812,17 +812,17 @@ const DOT=dotTex();
 (function(){
   const curve=new THREE.CatmullRomCurve3(HL.map(p=>new THREE.Vector3(p.x,0.42,p.z)),false,'centripetal');
   const g=new THREE.TubeGeometry(curve,40,0.12,4,false);
-  const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:'#8a8f7a',roughness:1,flatShading:true}));
+  const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:'#cfd2c3',roughness:1}));
   m.scale.y=0.5; m.position.y=0.2; m.castShadow=true; scene.add(m);
 })();
 
 /* landmarks */
-const STONE=new THREE.MeshStandardMaterial({color:'#e8dcc7',roughness:.9});
+const STONE=new THREE.MeshStandardMaterial({color:'#e9e4dc',roughness:.9});
 const WHITE=new THREE.MeshStandardMaterial({color:'#f7f3ec',roughness:.7});
 const STEEL=new THREE.MeshStandardMaterial({color:'#d9dde3',roughness:.25,metalness:.75});
-const GLASS=new THREE.MeshStandardMaterial({color:'#9fb7cc',roughness:.15,metalness:.55});
-const VERD=new THREE.MeshStandardMaterial({color:'#7fb5a3',roughness:.6});
-const COPPER=new THREE.MeshStandardMaterial({color:'#b86b43',roughness:.45,metalness:.5});
+const GLASS=new THREE.MeshStandardMaterial({color:'#d3dce4',roughness:.4,metalness:.2});
+const VERD=new THREE.MeshStandardMaterial({color:'#a9ccbf',roughness:.7});
+const COPPER=new THREE.MeshStandardMaterial({color:'#d2ab94',roughness:.6,metalness:.2});
 function put(geo,mat,v,y,rot){const m=new THREE.Mesh(geo,mat);m.position.set(v.x,y,v.z);m.rotation.y=rot===undefined?-A:rot;m.castShadow=true;m.receiveShadow=true;scene.add(m);return m;}
 const bx=(w,h,d)=>{const g=new THREE.BoxGeometry(w,h,d);g.translate(0,h/2,0);return g;};
 const H=1.25;
@@ -849,7 +849,7 @@ put(bx(0.55,0.34,2.0),STONE,LM.met,0);
 put(bx(0.3,0.42,0.7),STONE,LM.met,0);
 // NYPL + Bryant Park lawn
 put(bx(0.55,0.38,1.2),WHITE,LM.nypl,0);
-put(bx(1.1,0.02,1.3),new THREE.MeshStandardMaterial({color:'#9fc17f',roughness:1}),LM.bp,0.01);
+put(bx(1.1,0.02,1.3),new THREE.MeshStandardMaterial({color:'#bfd0ae',roughness:1}),LM.bp,0.01);
 // Grand Central
 put(bx(0.8,0.45,0.55),STONE,LM.gct,0); put(bx(0.9,2.4*H,0.4),STONE,V(40.7535,-73.9765),0); // + MetLife behind
 // St Patrick's
@@ -861,10 +861,10 @@ put(bx(0.35,0.35,0.8),WHITE,LM.stpat,0);
 put(new THREE.CylinderGeometry(0.34,0.16,0.55,12,4,true).translate(0,.275,0),COPPER,V(40.7538,-74.0022),0).material.side=THREE.DoubleSide;
 // Little Island
 (function(){const o=V(40.7420,-74.0118);for(let i=0;i<22;i++){const a=rnd()*6.28,r=Math.sqrt(rnd())*0.55;put(new THREE.CylinderGeometry(0.1,0.03,0.35,6).translate(0,.175,0),WHITE,o.clone().add(new THREE.Vector3(Math.cos(a)*r,0,Math.sin(a)*r)),-0.25);}
-  const top=put(new THREE.CylinderGeometry(0.7,0.7,0.08,20),new THREE.MeshStandardMaterial({color:'#9cbf7a',roughness:1}),o,0.14);top.rotation.z=0.12;})();
+  const top=put(new THREE.CylinderGeometry(0.7,0.7,0.08,20),new THREE.MeshStandardMaterial({color:'#bfd0ae',roughness:1}),o,0.14);top.rotation.z=0.12;})();
 // Jane's Carousel
 (function(){const o=V(40.7049,-73.9930);const g=put(bx(0.45,0.22,0.45),new THREE.MeshStandardMaterial({color:'#dff0ff',transparent:true,opacity:.45,roughness:.05}),o,0,0);g.castShadow=false;
-  put(new THREE.CylinderGeometry(0.14,0.14,0.14,16).translate(0,.07,0),new THREE.MeshStandardMaterial({color:'#e7a64a',emissive:'#7a3b10',roughness:.5}),o,0.01,0);})();
+  put(new THREE.CylinderGeometry(0.14,0.14,0.14,16).translate(0,.07,0),new THREE.MeshStandardMaterial({color:'#ecc9a0',emissive:'#5a3a20',roughness:.6}),o,0.01,0);})();
 // Statue of Liberty
 (function(){const o=V(40.6893,-74.0447);put(bx(0.35,0.35,0.35),STONE,o,0.02,0);put(new THREE.CylinderGeometry(0.06,0.11,0.55,8).translate(0,.275,0),VERD,o,0.37,0);
   const arm=put(new THREE.CylinderGeometry(0.02,0.02,0.25,6).translate(0,.125,0),VERD,o.clone().add(new THREE.Vector3(0.06,0,0)),0.8,0);arm.rotation.z=-0.25;
@@ -875,7 +875,7 @@ function bridge(a,b,towerMat,towerH,deckY,cableCol){
   const A_=V(a[0],a[1]),B_=V(b[0],b[1]);
   const dir=B_.clone().sub(A_); const L=dir.length(); const ang=Math.atan2(dir.x,dir.z);
   const mid=A_.clone().add(B_).multiplyScalar(.5);
-  const deck=put(bx(0.22,0.06,L),new THREE.MeshStandardMaterial({color:'#8d8478',roughness:.9}),mid,deckY,ang);
+  const deck=put(bx(0.22,0.06,L),new THREE.MeshStandardMaterial({color:'#cbc3b8',roughness:.9}),mid,deckY,ang);
   const t1=A_.clone().lerp(B_,.3), t2=A_.clone().lerp(B_,.72);
   [t1,t2].forEach(t=>put(bx(0.32,towerH,0.16),towerMat,t,-0.3,ang));
   // cables
@@ -892,9 +892,9 @@ function bridge(a,b,towerMat,towerH,deckY,cableCol){
     scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),cm));
   });
 }
-bridge(BRIDGE_B[0],BRIDGE_B[1],new THREE.MeshStandardMaterial({color:'#c8b59a',roughness:.95}),1.35,0.45,'#6b5f55');
-bridge([40.7128,-73.9950],[40.7022,-73.9866],new THREE.MeshStandardMaterial({color:'#7d98b8',roughness:.6}),1.55,0.55,'#50698a');
-bridge([40.7160,-73.9780],[40.7115,-73.9640],new THREE.MeshStandardMaterial({color:'#93a3b3',roughness:.6}),1.4,0.55,'#50698a'); // Williamsburg-ish
+bridge(BRIDGE_B[0],BRIDGE_B[1],new THREE.MeshStandardMaterial({color:'#e0d6c8',roughness:.95}),1.35,0.45,'#a79c92');
+bridge([40.7128,-73.9950],[40.7022,-73.9866],new THREE.MeshStandardMaterial({color:'#c3cedb',roughness:.8}),1.55,0.55,'#98a8ba');
+bridge([40.7160,-73.9780],[40.7115,-73.9640],new THREE.MeshStandardMaterial({color:'#cbd3dc',roughness:.8}),1.4,0.55,'#a2afbd'); // Williamsburg-ish
 
 /* ferries */
 const ferries=[];
@@ -935,17 +935,23 @@ DAYS.forEach(d=>{
       const curve= pts.length>2? new THREE.CatmullRomCurve3(pts,false,'centripetal',0.2) : new THREE.LineCurve3(pts[0],pts[1]);
       const len=curve.getLength();
       if(s.m==='walk'){
+        const casing=mkMat(new THREE.Color('#ffffff'),.95); mats.push(casing);
+        const cas=new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(8,Math.ceil(len*6)),0.19,6,false),casing);
+        cas.renderOrder=9; g.add(cas);
         const mat=mkMat(colr,1); mats.push(mat);
-        const tube=new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(8,Math.ceil(len*6)),0.11,6,false),mat);
+        const tube=new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(8,Math.ceil(len*6)),0.13,6,false),mat);
         tube.renderOrder=10; g.add(tube);
-        const glow=mkMat(new THREE.Color('#ffffff'),.55); mats.push(glow);
+        const glow=mkMat(new THREE.Color('#ffffff'),.35); mats.push(glow);
         const inner=new THREE.Mesh(new THREE.TubeGeometry(curve,Math.max(8,Math.ceil(len*6)),0.03,4,false),glow);
         inner.position.y=0.02; inner.renderOrder=11; g.add(inner);
       } else {
         const mat=mkMat(colr,0.95); mats.push(mat);
+        const dcas=mkMat(new THREE.Color('#ffffff'),.9); mats.push(dcas);
         const dash=0.5, n=Math.max(2,Math.floor(len/dash));
         for(let k=0;k<n;k+=2){
           const a=curve.getPointAt(k/n), b=curve.getPointAt(Math.min(1,(k+1)/n));
+          const cas=new THREE.Mesh(new THREE.TubeGeometry(new THREE.LineCurve3(a,b),1,0.15,5,false),dcas);
+          cas.renderOrder=9; g.add(cas);
           const tube=new THREE.Mesh(new THREE.TubeGeometry(new THREE.LineCurve3(a,b),1,0.09,5,false),mat);
           tube.renderOrder=10; g.add(tube);
         }
