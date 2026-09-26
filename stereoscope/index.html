@@ -47,6 +47,15 @@
   #caption h3 { margin: 0 0 4px; font: 400 21px/1.2 var(--display); color: var(--gilt-hi); letter-spacing: .02em; }
   #caption p { margin: 0; color: var(--text); font-size: 15px; }
   #caption .k { font: 500 12px/1 var(--mono); color: var(--dim); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; display: block; }
+  .cap-nav { display: flex; align-items: center; gap: 6px; margin-top: 12px; }
+  .cap-nav button { font: 500 14px var(--sans); color: var(--text); background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+  .cap-nav .arrow { width: 40px; height: 40px; padding: 0; font: 400 26px/1 var(--serif); color: #231a0c;
+    background: linear-gradient(180deg, var(--gilt-hi), var(--gilt)); border: 0; display: grid; place-items: center; }
+  .cap-nav .arrow[data-a="next"] { margin-left: auto; }
+  .cap-nav button:disabled { opacity: .3; cursor: default; }
+  .cap-nav button:hover:not(:disabled) { filter: brightness(1.1); }
+  .cap-nav button:focus-visible { outline: 2px solid var(--gilt-hi); outline-offset: 2px; }
   #picked { position: absolute; top: 16px; right: 16px; padding: 8px 12px; font-size: 14px; color: var(--text);
     background: rgba(17, 14, 12, .78); border: 1px solid var(--line); border-radius: 6px; max-width: 46%; }
   #picked b { color: var(--gilt-hi); font-weight: 500; }
@@ -130,7 +139,16 @@
     #caption p { font-size: 14px; }
     .modes { top: 10px; left: 10px; right: 10px; justify-content: center; }
     .modes button { padding: 8px 10px; font-size: 13px; }
-    #picked { display: none; }
+    .cap-nav { display: flex; align-items: center; gap: 6px; margin-top: 12px; }
+  .cap-nav button { font: 500 14px var(--sans); color: var(--text); background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 999px; padding: 6px 14px; cursor: pointer; }
+  .cap-nav .arrow { width: 40px; height: 40px; padding: 0; font: 400 26px/1 var(--serif); color: #231a0c;
+    background: linear-gradient(180deg, var(--gilt-hi), var(--gilt)); border: 0; display: grid; place-items: center; }
+  .cap-nav .arrow[data-a="next"] { margin-left: auto; }
+  .cap-nav button:disabled { opacity: .3; cursor: default; }
+  .cap-nav button:hover:not(:disabled) { filter: brightness(1.1); }
+  .cap-nav button:focus-visible { outline: 2px solid var(--gilt-hi); outline-offset: 2px; }
+  #picked { display: none; }
     #eyeview { top: 56px; bottom: auto; right: 10px; width: 46%; }
   }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
@@ -161,7 +179,7 @@
         <dt>Lenses</dt><dd>2 × 38 mm ⌀, f 150 mm, on 76 mm centres</dd>
         <dt>Focus</dt><dd>Helicoid eyepieces, −8 to +15 mm</dd>
         <dt>Viewer</dt><dd>252 × 231 × 123 mm, ½″ walnut</dd>
-        <dt>Pedestal</dt><dd>254 mm (10″) with card drawer</dd>
+        <dt>Pedestal</dt><dd>365 mm: a 229 mm (9″) gilt stand on a 136 mm drawer base</dd>
       </dl>
     </div>
     <hr class="orn">

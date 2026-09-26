@@ -21,7 +21,9 @@
   const LENS_Z = 5;               // nominal lens plane (card 150 mm = f away)
   const LENS_X = 38;              // lens centres 76 mm apart
   const HUB_Z = 88;               // bayonet centre along body
-  const PED_TOP = 254;            // 10" pedestal
+  const BASE_TOP = 136;           // top of the drawer base
+  const PED_TOP = BASE_TOP + 229;  // 9" gilt stand above the base
+  const PLATE_BOT = PED_TOP - 24;
   const LID_FRONT = 34, LID_REAR = 167.5, LID_H = 14;
   const RAIL_Z0 = 168, GROOVE_Z0 = 172, GROOVE_Z1 = 187, RAIL_Z1 = 191;
   const THREAD = { pitch: 2.5, starts: 3 };  // helicoid: 7.5 mm lead per turn
@@ -516,10 +518,10 @@
   }
 
   // console scroll outline (r, y)
-  function consoleShape() {
+  function consoleShape(dx = -7) {
     const ctrl = [[80, 147], [85, 150.5], [86, 145], [81, 140], [73, 141.5], [69.5, 149], [72.5, 157],
       [72, 168], [63, 180], [51, 192], [42, 203], [37, 212], [35.5, 219], [39, 224.5], [44.5, 223], [45, 217.5], [41, 216]];
-    const curve = new THREE.CatmullRomCurve3(ctrl.map(p => new THREE.Vector3(p[0], p[1], 0)), false, 'centripetal');
+    const curve = new THREE.CatmullRomCurve3(ctrl.map(p => new THREE.Vector3(p[0] + dx, p[1], 0)), false, 'centripetal');
     const N = 120, pts = curve.getSpacedPoints(N);
     const width = t => {
       if (t < 0.28) return 2.2 + 11 * smooth(0, 0.28, t);
@@ -722,8 +724,9 @@
       note: 'Sits through the top plate onto the column. Three lugs, 4 mm thick. Three matching magnets in its crown.',
       shells: () => {
         const lug = th => LUG_ANGLES.some(a => Math.abs(angDiff(th, a)) < lugHalf) ? 52.5 : 45;
-        return [radialSolid([{ y: 230, r: 62 }, { y: 254, r: 62 }, { y: 254, r: 45 }, { y: 259.3, r: 45 }, { y: 259.3, r: lug },
-          { y: 263.0, r: lug }, { y: 263.0, r: 45 }, { y: 263.2, r: 44.2 }], 360)];
+        const P = PED_TOP;
+        return [radialSolid([{ y: PLATE_BOT, r: 62 }, { y: P, r: 62 }, { y: P, r: 45 }, { y: P + 5.3, r: 45 }, { y: P + 5.3, r: lug },
+          { y: P + 9.0, r: lug }, { y: P + 9.0, r: 45 }, { y: P + 9.2, r: 44.2 }], 360)];
       }, explode: [0, 135, 0] });
 
     // ── Lid: the Sun ──
@@ -839,14 +842,17 @@
         shells: () => [heightOval(30, 40, Math.round(60 * q), Math.round(220 * q), 1.8, (x, z, r, t) => wreathHeight(z, -x, r, t))],
         rot: [0, sg > 0 ? 0 : PI, -PI / 2], rotOrder: 'YXZ', pos: [sg * CW, 68, -9], explode: [sg * 130, 0, 0] });
     });
-    // column
+    // column: base torus, gadrooned urn, Solomonic (twisted) shaft, acanthus bell, flared capital
     add({ id: 'column', name: 'Gilt column', group: 'Pedestal', mat: 'gilt', qty: 1, parent: 'pedestal', print: 'axis',
-      note: 'Simplified stand-in for your sculpted column: gadrooned urn, acanthus collar, flared capital. Hollow for an M8 rod.',
+      note: 'Stand-in for your sculpted column, 205 mm tall: gadrooned urn, twisted Solomonic shaft, acanthus bell and capital. Drill through for an M8 rod.',
       shells: () => {
+        const B = BASE_TOP, C = PLATE_BOT;
         const prof = [
-          [136, 52], [139, 54], [142, 53], [144.5, 49], [146, 44], [148, 36], [152, 32], [158, 36], [165, 42], [171, 44.5],
-          [177, 43], [183, 38], [189, 31], [195, 27], [201, 24.5], [205, 24], [208, 27], [210, 26], [213, 27.5], [217, 31],
-          [221, 38], [224.5, 48], [227, 55], [228.5, 58], [230, 58]];
+          [B, 54], [B + 3, 56], [B + 6, 55], [B + 9, 50], [B + 11, 44], [B + 14, 36], [B + 18, 33], [B + 26, 38], [B + 36, 45], [B + 44, 47],
+          [B + 52, 44], [B + 59, 38], [B + 64, 33], [B + 67, 36], [B + 70, 37], [B + 73, 33], [B + 77, 27], [B + 82, 24.5],
+          [C - 51, 24.5], [C - 47, 29], [C - 44, 31], [C - 41, 29], [C - 37, 27], [C - 29, 30], [C - 21, 35], [C - 15, 40],
+          [C - 11, 43], [C - 8, 49], [C - 5, 55], [C - 2, 59], [C, 60]];
+        const sh0 = B + 82, sh1 = C - 51, bell0 = C - 37, bell1 = C - 11;
         const rings = [];
         for (let i = 0; i < prof.length - 1; i++) {
           const [y0, r0] = prof[i], [y1, r1] = prof[i + 1];
@@ -855,31 +861,37 @@
             const t = k / n, y = y0 + (y1 - y0) * t, r = r0 + (r1 - r0) * (t * t * (3 - 2 * t));
             rings.push({ y, r: th => {
               let rr = r;
-              if (y > 153 && y < 184) rr += 2.6 * Math.sin((y - 153) / 31 * PI) * (Math.pow(Math.abs(Math.cos(8 * th)), 0.6) - 0.35);
-              if (y > 186 && y < 207) {
-                const t2 = (y - 186) / 21, a = ((th * 8 / TAU) % 1 + 1) % 1, dd = Math.abs(a - 0.5) * 2;
-                rr += 3.2 * Math.max(0, (1 - t2) - dd * (0.35 + t2)) * (1 - t2 * 0.4);
+              if (y > B + 18 && y < B + 58) rr += 2.8 * Math.sin((y - B - 18) / 40 * PI) * (Math.pow(Math.abs(Math.cos(8 * th)), 0.6) - 0.35);
+              if (y > sh0 && y < sh1) {
+                const e = smooth(sh0, sh0 + 6, y) * (1 - smooth(sh1 - 6, sh1, y));
+                rr += 4.2 * e * Math.pow(0.5 + 0.5 * Math.cos(4 * th - (y - sh0) * 0.085), 1.6);
               }
-              if (y > 217 && y < 228) rr += 1.2 * Math.abs(Math.cos(12 * th)) * Math.sin((y - 217) / 11 * PI);
+              if (y > bell0 && y < bell1) {
+                const t2 = (y - bell0) / (bell1 - bell0), a = ((th * 8 / TAU) % 1 + 1) % 1, dd = Math.abs(a - 0.5) * 2;
+                rr += 3.6 * Math.max(0, t2 * 1.1 - dd * (0.4 + (1 - t2))) ;
+              }
+              if (y > C - 10 && y < C - 1) rr += 1.2 * Math.abs(Math.cos(12 * th)) * Math.sin((y - C + 10) / 9 * PI);
               return rr;
             } });
           }
         }
-        rings.push({ y: 230, r: 58 });
+        rings.push({ y: C, r: 60 });
         return [radialSolid(rings, Math.round(192 * q))];
-      }, explode: [0, 55, 0] });
-    for (let k = 0; k < 4; k++) {
-      const a = PI / 4 + k * PI / 2;
+      }, explode: [0, 60, 0] });
+    for (let k = 0; k < 8; k++) {
+      const upper = k >= 4, a = PI / 4 + (k % 4) * PI / 2;
       add({ id: 'console-' + k, name: 'Scroll console', group: 'Pedestal', mat: 'gilt', qty: 1, parent: 'pedestal', print: true, shared: 'console',
-        note: 'Four identical S-scrolls buttress the column.',
+        note: 'Eight identical S-scrolls: four buttress the foot of the column, four (inverted) carry the top.',
         shells: () => [extrudeXY(consoleShape(), [], -7, 7)],
-        rot: [0, -a, 0], pos: [0, -3.5, 0], explode: [70 * Math.cos(a), 55, 70 * Math.sin(a)] });
+        rot: upper ? [PI, -a, 0] : [0, -a, 0], rotOrder: 'YXZ',
+        pos: upper ? [0, PLATE_BOT + 138.5, 0] : [0, BASE_TOP - 139.5, 0],
+        explode: [70 * Math.cos(a), upper ? 90 : 40, 70 * Math.sin(a)] });
     }
     const plate = [[-135, -80], [-107, -108], [107, -108], [135, -80], [135, 80], [107, 108], [-107, 108], [-135, 80]];
     add({ id: 'top-plate', name: 'Pedestal top', group: 'Pedestal', mat: 'walnut', qty: 1, parent: 'pedestal',
       note: 'Walnut, 24 mm, canted corners. The brass boss drops through its 124 mm hole.',
-      shells: () => [sweepRing(plate, [[-7, 230], [-6, 230], [-3, 231.5], [-1, 234], [0, 238], [0, 246], [-1, 250], [-3, 252.5], [-6, 254], [-7, 254]]),
-        extrudePlan(insetPoly(plate, 6.5), [circle(0, 0, 62, 96)], 230, 24)],
+      shells: () => [sweepRing(plate, [[-7, 0], [-6, 0], [-3, 1.5], [-1, 4], [0, 8], [0, 16], [-1, 20], [-3, 22.5], [-6, 24], [-7, 24]].map(([o, y]) => [o, PLATE_BOT + y])),
+        extrudePlan(insetPoly(plate, 6.5), [circle(0, 0, 62, 96)], PLATE_BOT, 24)],
       explode: [0, 95, 0] });
     // expand arrays
     return parts;
@@ -888,6 +900,6 @@
 
   root.Helio = {
     buildParts, finalize, D: { T, L, HW0, HW1, AXIS_Y, CARD_Z, LENS_Z, LENS_X, HUB_Z, PED_TOP, ROOF_TOP, WALL_TOP, CARD_BOTTOM, CARD_W, CARD_H,
-      LID_FRONT, LID_REAR, LID_H, GROOVE_Z0, GROOVE_Z1, LOCK_TURN, LEAD: THREAD.pitch * THREAD.starts, hwOut, hwIn }
+      BASE_TOP, LID_FRONT, LID_REAR, LID_H, GROOVE_Z0, GROOVE_Z1, LOCK_TURN, LEAD: THREAD.pitch * THREAD.starts, hwOut, hwIn }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

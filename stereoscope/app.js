@@ -20,9 +20,9 @@
   scene.environment = pmrem.fromScene(new THREE.RoomEnvironment(), 0.04).texture;
 
   const camera = new THREE.PerspectiveCamera(30, 1, 5, 9000);
-  camera.position.set(640, 560, 820);
+  camera.position.set(780, 760, 1040);
   const controls = new THREE.OrbitControls(camera, canvas);
-  controls.target.set(0, 250, 0);
+  controls.target.set(0, 330, 0);
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
   controls.minDistance = 120; controls.maxDistance = 2600;
@@ -30,10 +30,10 @@
 
   scene.add(new THREE.HemisphereLight(0xfff1dc, 0x2a1d14, 0.35));
   const key = new THREE.DirectionalLight(0xffe6c2, 1.55);
-  key.position.set(420, 980, 520);
+  key.position.set(460, 1200, 580);
   key.castShadow = true;
   key.shadow.mapSize.set(2048, 2048);
-  Object.assign(key.shadow.camera, { left: -420, right: 420, top: 420, bottom: -420, near: 200, far: 2400 });
+  Object.assign(key.shadow.camera, { left: -560, right: 560, top: 560, bottom: -560, near: 200, far: 2800 });
   key.shadow.bias = -0.0004; key.shadow.normalBias = 0.6;
   scene.add(key);
   const rim = new THREE.DirectionalLight(0xbcd0ff, 0.45);
@@ -51,16 +51,16 @@
   function walnutCanvas() {
     const N = 1024, c = document.createElement('canvas'); c.width = c.height = N;
     const x = c.getContext('2d'), img = x.createImageData(N, N), d = img.data;
-    const dark = [44, 27, 17], mid = [78, 50, 31], light = [106, 70, 43];
+    const lo = [64, 41, 26], hi = [88, 58, 36];
     for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
-      const w = i + 7 * Math.sin(j * 0.0045) + 3 * Math.sin(j * 0.017 + i * 0.006);
-      const g = 0.5 + 0.5 * Math.sin(w * 0.21 + 1.6 * Math.sin(w * 0.027));
-      const fig = 0.5 + 0.25 * Math.sin(i * 0.011 + 2 * Math.sin(j * 0.003)) + 0.25 * Math.sin(i * 0.037 + j * 0.002);
+      const w = i + 4 * Math.sin(j * 0.006) + 1.5 * Math.sin(j * 0.031 + i * 0.01);
+      const g = 0.5 + 0.5 * Math.sin(w * 0.62 + 1.2 * Math.sin(w * 0.05));          // fine lines, ~1.5 mm apart
+      const g2 = 0.5 + 0.5 * Math.sin(w * 1.9 + 3 * Math.sin(j * 0.02));            // pores
+      const fig = 0.5 + 0.5 * Math.sin(i * 0.009 + 1.5 * Math.sin(j * 0.0025));      // soft figure
       const n = Math.abs((Math.sin(i * 12.9898 + j * 78.233) * 43758.5453) % 1);
-      const t = Math.min(1, 0.3 * Math.pow(g, 3) + 0.55 * fig + 0.15 * n);
-      const a = t < 0.5 ? dark : mid, b = t < 0.5 ? mid : light, tt = t < 0.5 ? t * 2 : (t - 0.5) * 2;
+      const t = 0.3 * Math.pow(g, 2) + 0.12 * g2 + 0.43 * fig + 0.15 * n;
       const k = (j * N + i) * 4;
-      d[k] = a[0] + (b[0] - a[0]) * tt; d[k + 1] = a[1] + (b[1] - a[1]) * tt; d[k + 2] = a[2] + (b[2] - a[2]) * tt; d[k + 3] = 255;
+      d[k] = lo[0] + (hi[0] - lo[0]) * t; d[k + 1] = lo[1] + (hi[1] - lo[1]) * t; d[k + 2] = lo[2] + (hi[2] - lo[2]) * t; d[k + 3] = 255;
     }
     x.putImageData(img, 0, 0);
     return c;
@@ -201,7 +201,7 @@
 
   // ───────────────────────────── materials ─────────────────────────────────
   const MAT = {
-    walnut: () => new THREE.MeshPhysicalMaterial({ map: walnutTex, roughness: 0.5, clearcoat: 0.35, clearcoatRoughness: 0.35, envMapIntensity: 0.55 }),
+    walnut: () => new THREE.MeshPhysicalMaterial({ map: walnutTex, roughness: 0.58, clearcoat: 0.2, clearcoatRoughness: 0.4, envMapIntensity: 0.32 }),
     gilt: () => new THREE.MeshStandardMaterial({ color: 0xd49c42, metalness: 1, roughness: 0.32, envMapIntensity: 1.0 }),
     brass: () => new THREE.MeshStandardMaterial({ color: 0xc19650, metalness: 1, roughness: 0.4 }),
     black: () => new THREE.MeshStandardMaterial({ color: 0x15120f, roughness: 0.85 }),
@@ -307,7 +307,7 @@
     // world points in the drawer → viewer-local
     scene.updateMatrixWorld(true);
     const inDrawer = drawer.localToWorld(tmpV.set(0, 69.5, 98.5)).clone();
-    const lifted = inDrawer.clone().add(new THREE.Vector3(0, 230, 0));
+    const lifted = new THREE.Vector3(inDrawer.x, D.PED_TOP + 95, inDrawer.z);
     const P0 = viewer.worldToLocal(inDrawer.clone()), P1 = viewer.worldToLocal(lifted.clone());
     const K = [P0.toArray(), P1.toArray(), [0, D.AXIS_Y + 175, D.CARD_Z], [0, D.AXIS_Y, D.CARD_Z]];
     const n = 3, s = Math.min(n - 1e-6, Math.max(0, c)), i = Math.floor(s), t = s - i;
@@ -338,25 +338,34 @@
     if (glassPlane) glassPlane.material.map = (S.card > 2.9 && e === 0) ? glassTexLoaded : glassTexEmpty;
   }
 
-  // tweening
-  let tween = null;
-  function animateTo(target, dur = 1600, camTo) {
-    const from = { ...S };
-    const camFrom = { p: camera.position.clone(), t: controls.target.clone() };
-    tween = { from, target, t0: performance.now(), dur, camFrom, camTo };
+  // tweening: a queue of state phases, plus an independent camera flight
+  let queue = [], phase = null, camT = null, onQueueDone = null;
+  const PATH_KEYS = ['card', 'lid'];   // these ease inside their own keyframed paths
+  function runPhases(phases, done) { queue = phases.slice(); onQueueDone = done || null; nextPhase(performance.now()); }
+  function nextPhase(now) {
+    phase = null;
+    if (!queue.length) { const d = onQueueDone; onQueueDone = null; if (d) d(); return; }
+    const ph = queue.shift();
+    phase = { from: { ...S }, to: ph.to || {}, t0: now, dur: ph.dur || 1500 };
   }
+  function stopAnims() { queue = []; phase = null; onQueueDone = null; }
+  function flyTo(p, t, dur = 1700) {
+    camT = { fp: camera.position.clone(), ft: controls.target.clone(), p: new THREE.Vector3(...p), t: new THREE.Vector3(...t), t0: performance.now(), dur };
+  }
+  function animateTo(target, dur = 1600, cam) { runPhases([{ to: target, dur }]); if (cam) flyTo(cam.p, cam.t); }
   function stepTween(now) {
-    if (!tween) return;
-    const u = Math.min(1, (now - tween.t0) / tween.dur);
-    for (const k in tween.target) S[k] = lerp(tween.from[k], tween.target[k], k === 'card' || k === 'lid' ? u : ease(u));
-    if (tween.camTo) {
-      const cu = ease(Math.min(1, (now - tween.t0) / Math.min(tween.dur, 1500)));
-      camera.position.lerpVectors(tween.camFrom.p, new THREE.Vector3(...tween.camTo.p), cu);
-      controls.target.lerpVectors(tween.camFrom.t, new THREE.Vector3(...tween.camTo.t), cu);
+    if (phase) {
+      const u = Math.min(1, (now - phase.t0) / phase.dur);
+      for (const k in phase.to) S[k] = lerp(phase.from[k], phase.to[k], PATH_KEYS.includes(k) ? u : ease(u));
+      if (u >= 1) nextPhase(now);
     }
-    if (u >= 1) { const done = tween.onDone; tween = null; if (done) done(); }
+    if (camT) {
+      const cu = ease(Math.min(1, (now - camT.t0) / camT.dur));
+      camera.position.lerpVectors(camT.fp, camT.p, cu);
+      controls.target.lerpVectors(camT.ft, camT.t, cu);
+      if (cu >= 1) camT = null;
+    }
   }
-  function flyTo(p, t, dur = 1300) { animateTo({}, dur, { p, t }); }
 
   // ghosting for the mount view
   function ghost(on, keep) {
@@ -378,16 +387,16 @@
 
   // ───────────────────────────── modes ─────────────────────────────────────
   const caption = $('#caption'), controlsEl = $('#controls'), eyeview = $('#eyeview');
-  let mode = 'assembled', mountT0 = 0, ritualStep = 0;
+  let mode = 'assembled';
+  const PT = D.PED_TOP;
   const CAM = {
-    assembled: { p: [620, 560, 800], t: [0, 255, 0] },
-    exploded: { p: [1450, 1200, 1750], t: [0, 440, 0] },
-    mount: { p: [400, 560, 520], t: [0, 270, 0] },
+    assembled: { p: [780, 760, 1040], t: [0, 330, 0] },
+    exploded: { p: [1750, 1500, 2100], t: [0, 560, 0] },
+    mount: { p: [420, PT + 330, 560], t: [0, PT + 16, 0] },
   };
-  function setCaption(k, h, p) {
-    if (!h) { caption.hidden = true; return; }
-    caption.hidden = false;
-    caption.innerHTML = (k ? `<span class="k">${k}</span>` : '') + `<h3>${h}</h3><p>${p}</p>`;
+  function setCaption(html) {
+    caption.hidden = !html;
+    if (html) caption.innerHTML = html;
   }
   const seg = (id, label, opts, val) => `<div class="ctl-row"><span class="lab">${label}</span><div class="seg" id="${id}">` +
     opts.map(([v, l]) => `<button data-v="${v}" aria-pressed="${v == val}">${l}</button>`).join('') + '</div></div>';
@@ -400,18 +409,124 @@
     });
   }
   const diopters = f => 1000 / 150 - 1000 / (150 - f);
+
+  // ── step sequences ──
+  const T3 = 1 / 3;
+  const lidUp = [{ to: { lid: T3 }, dur: 1900 }, { dur: 500 }, { to: { lid: 2 * T3 }, dur: 2800 }, { dur: 300 }, { to: { lid: 1 }, dur: 1700 }];
+  const lidDown = [{ to: { lid: 2 * T3 }, dur: 1700 }, { dur: 300 }, { to: { lid: T3 }, dur: 2800 }, { dur: 400 }, { to: { lid: 0 }, dur: 1900 }];
+  const STEPS = {
+    mount: {
+      label: 'Bayonet mount',
+      base: { psi: REST_PSI, lift: 0, explode: 0, drawer: 0, card: 3, lid: 1, focus: 0 },
+      items: [
+        { h: 'Locked', p: 'The three lugs on the brass boss sit under the lip of the socket in the viewer’s floor. The viewer cannot lift, slide or tip off, and three magnets hold it square.',
+          ph: [], hl: ['socket', 'boss'] },
+        { h: 'Turn a twelfth anticlockwise', p: 'Holding the body under the cornice, turn it 30°. The lugs slide along the gallery inside the socket until they line up with the notches.',
+          ph: [{ to: { psi: REST_PSI + D.LOCK_TURN }, dur: 2800 }], hl: ['socket', 'boss'] },
+        { h: 'Lift it off', p: 'The lugs pass up through the notches and the viewer comes free. Its underside is flat, so it stands on any table.',
+          ph: [{ to: { lift: 90 }, dur: 2800 }], hl: ['socket', 'boss'] },
+        { h: 'Set it down turned', p: 'Lower it with the eyepieces turned 30° to the left. When the notches find the lugs it drops the last 9.5 mm onto the boss.',
+          ph: [{ to: { lift: 0 }, dur: 2800 }], hl: ['socket', 'boss'] },
+        { h: 'Turn clockwise to lock', p: 'Turn until it stops square to the pedestal. The stop is part of the socket, so you cannot over-turn it, and the magnets click it home.',
+          ph: [{ to: { psi: REST_PSI }, dur: 2800 }], hl: ['socket', 'boss'] }],
+      cams: () => CAM.mount,
+    },
+    ritual: {
+      label: 'Using it',
+      base: { drawer: 0, card: 0, lid: 0, focus: 0, psi: REST_PSI, lift: 0, explode: 0 },
+      items: [
+        { h: 'At rest', p: 'The Sun covers the skylight. On the far end, the ground glass shows two small upside-down images of the room: with no card in place, the lenses work as a camera obscura.',
+          ph: [], cam: { p: [-660, PT + 330, -900], t: [0, PT + 40, -40] } },
+        { h: 'Choose a card', p: 'Draw out the drawer. About 250 cards stand on their long edges, picture toward you, held up by a sliding follower. Lift one out by its top edge.',
+          ph: [{ to: { drawer: 1 }, dur: 1900 }, { dur: 500 }, { to: { card: 1 }, dur: 2800 }], hl: ['card'], cam: { p: [640, PT + 200, 1060], t: [0, 260, 150] } },
+        { h: 'Raise the Sun', p: 'Lift the cover straight up with both hands. Tip it toward you until it stands on its front edge, then set that edge into the gilt crest behind the card slot. The Sun faces you, and light falls through the skylight.',
+          ph: lidUp, hl: ['lid', 'sun', 'rest'], cam: { p: [640, PT + 470, 720], t: [0, PT + 110, 20] } },
+        { h: 'Set the card', p: 'Carry the card over the slot in front of the Sun and let it down picture-first. It rides down onto the silk ribbon and stops on the gate sill, centred on both lenses. Slide the drawer home.',
+          ph: [{ to: { card: 2 }, dur: 3000 }, { dur: 500 }, { to: { card: 3 }, dur: 2600 }, { to: { drawer: 0 }, dur: 1700 }], hl: ['card'], cam: { p: [760, PT + 360, 900], t: [0, PT - 20, 60] } },
+        { h: 'Focus', p: 'Turn each knurled ring. The helicoid moves the lens up to 15 mm toward the card for short sight, or 8 mm away. Each eye focuses separately.',
+          ph: [{ to: { focus: 9 }, dur: 3200 }], hl: ['draw-tube'], cam: { p: [330, PT + 140, 480], t: [0, PT + 60, 100] } },
+        { h: 'Look', p: 'Rest your brow on the eyecups. The two pictures merge into one view in depth, lit from above and framed by the arch of the mask.',
+          ph: [], eye: true, cam: { p: [0, PT + 92, 420], t: [0, PT + 60, 0] } },
+        { h: 'Put the card away', p: 'Pull a ribbon loop and the card rises out of the slot. Return it to the drawer, then lift the Sun from the crest and lay it back over the skylight, where four magnets seat it.',
+          ph: [{ to: { card: 2, focus: 0 }, dur: 2400 }, { to: { drawer: 1 }, dur: 1500 }, { to: { card: 0 }, dur: 3000 }, ...lidDown, { to: { drawer: 0 }, dur: 1700 }],
+          hl: ['card', 'ribbon', 'lid', 'sun'], cam: { p: [760, PT + 330, 1080], t: [0, 320, 60] } },
+        { h: 'Lift the viewer off', p: 'Hold the body under the cornice, turn it a twelfth anticlockwise until the bayonet frees, and lift. It stands flat on any table, or in your lap.',
+          ph: [{ to: { psi: REST_PSI + D.LOCK_TURN }, dur: 2600 }, { dur: 300 }, { to: { lift: 170 }, dur: 3000 }], cam: { p: [760, PT + 300, 1000], t: [0, PT + 40, 0] } },
+        { h: 'Set it back', p: 'Lower it onto the boss still turned, let it drop the last few millimetres, and turn it clockwise until it stops square. It is locked.',
+          ph: [{ to: { lift: 0 }, dur: 3000 }, { dur: 300 }, { to: { psi: REST_PSI }, dur: 2600 }], hl: ['socket', 'boss'], cam: { p: [760, PT + 300, 1000], t: [0, PT + 20, 0] } }],
+    },
+  };
+  let steps = null, stepI = 0, playing = false, dwellTimer = 0, animating = false, hlKeys = [];
+  function stepEnd(list, i) {
+    const s = { ...list.base };
+    for (let k = 0; k <= i; k++) list.items[k].ph.forEach(p => Object.assign(s, p.to || {}));
+    return s;
+  }
+  function goStep(i, forward) {
+    const list = steps; if (!list) return;
+    clearTimeout(dwellTimer);
+    const sequential = forward && i === stepI + 1;
+    stepI = i;
+    const st = list.items[i];
+    if (!sequential) { stopAnims(); Object.assign(S, i === 0 ? list.base : stepEnd(list, i - 1)); }
+    renderSteps();
+    eyeview.hidden = !st.eye; if (st.eye) drawEyeView();
+    hlKeys = st.hl || [];
+    animating = true;
+    const cam = st.cam || list.cams();
+    flyTo(cam.p, cam.t, 1800);
+    runPhases([{ dur: 900 }, ...st.ph], () => {
+      animating = false; hlKeys = [];
+      if (playing) dwellTimer = setTimeout(() => {
+        if (stepI < list.items.length - 1) goStep(stepI + 1, true); else setPlaying(false);
+      }, Math.max(5000, st.p.length * 55));
+    });
+  }
+  function setPlaying(v) {
+    playing = v; clearTimeout(dwellTimer);
+    if (v && !animating) { if (stepI >= steps.items.length - 1) goStep(0); else goStep(stepI + 1, true); }
+    renderSteps();
+  }
+  function renderSteps() {
+    const list = steps, n = list.items.length, st = list.items[stepI];
+    setCaption(`<span class="k">${list.label} · step ${stepI + 1} of ${n}</span><h3>${st.h}</h3><p>${st.p}</p>
+      <div class="cap-nav">
+        <button class="arrow" data-a="prev" aria-label="Previous step" ${stepI === 0 ? 'disabled' : ''}>‹</button>
+        <button class="txt" data-a="replay">Replay</button>
+        <button class="txt" data-a="play">${playing ? 'Pause' : 'Play all'}</button>
+        <button class="arrow" data-a="next" aria-label="Next step" ${stepI === n - 1 ? 'disabled' : ''}>›</button>
+      </div>`);
+    document.querySelectorAll('#steps button').forEach((b, k) => { if (k === stepI) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current'); });
+    const pb = $('#r-play'); if (pb) pb.textContent = playing ? 'Pause' : 'Play all';
+  }
+  function stepAction(a) {
+    if (!steps) return;
+    const n = steps.items.length;
+    if (a === 'play') return setPlaying(!playing);
+    playing = false;
+    if (a === 'prev' && stepI > 0) goStep(stepI - 1);
+    else if (a === 'next' && stepI < n - 1) goStep(stepI + 1, true);
+    else if (a === 'replay') goStep(stepI);
+    else renderSteps();
+  }
+  caption.addEventListener('click', e => { const b = e.target.closest('button[data-a]'); if (b) stepAction(b.dataset.a); });
+  document.addEventListener('keydown', e => {
+    if (!steps || e.target.matches('input, textarea')) return;
+    if (e.key === 'ArrowRight') { e.preventDefault(); stepAction('next'); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); stepAction('prev'); }
+  });
+
   function setMode(m) {
     mode = m;
     document.querySelectorAll('.modes button').forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === m));
     ghost(m === 'mount', ['socket', 'boss', 'top-plate']);
-    caption.dataset.idx = '';
     meshes.filter(r => r.part.id === 'socket').forEach(r => {
       r.mesh.material.clippingPlanes = m === 'mount' ? [cutPlane] : [];
       r.mesh.material.side = m === 'mount' ? THREE.DoubleSide : THREE.FrontSide;
       r.mesh.material.needsUpdate = true;
     });
     eyeview.hidden = true;
-    tween = null;
+    stopAnims(); clearTimeout(dwellTimer); playing = false; steps = null; hlKeys = []; animating = false;
     if (m === 'assembled') {
       Object.assign(S, { explode: 0, psi: REST_PSI, lift: 0 });
       controlsEl.innerHTML = `<h2>Assembled</h2><div class="ctl">
@@ -420,10 +535,10 @@
         ${seg('s-drawer', 'Drawer', [[0, 'Closed'], [1, 'Open']], S.drawer > 0.5 ? 1 : 0)}
         <div class="ctl-row"><label for="s-focus">Focus <output id="o-focus"></output></label>
           <input type="range" id="s-focus" min="-8" max="15" step="0.5" value="${S.focus}"></div>
-        <p class="hint">Drag to orbit, scroll or pinch to zoom, right-drag to pan. Turn the focus to watch both helicoids screw in.</p></div>`;
-      wireSeg('s-lid', v => animateTo({ lid: v }, 2200));
-      wireSeg('s-card', v => animateTo({ card: v, drawer: 1 }, 2400));
-      wireSeg('s-drawer', v => animateTo({ drawer: v }, 1200));
+        <p class="hint">Drag to orbit, scroll or pinch to zoom, right-drag to pan. Turn the focus to watch both helicoids screw in. “Using it” animates the whole sequence.</p></div>`;
+      wireSeg('s-lid', v => runPhases(v ? lidUp : lidDown));
+      wireSeg('s-card', v => runPhases(v ? [{ to: { drawer: 1 }, dur: 1200 }, { to: { card: 2 }, dur: 2600 }, { to: { card: 3 }, dur: 2000 }] : [{ to: { card: 2 }, dur: 1800 }, { to: { drawer: 1 }, dur: 1200 }, { to: { card: 0 }, dur: 2600 }]));
+      wireSeg('s-drawer', v => animateTo({ drawer: v }, 1400));
       const fr = $('#s-focus'), fo = $('#o-focus');
       const showF = () => { const d = diopters(+fr.value); fo.textContent = `${(+fr.value > 0 ? '+' : '') + fr.value} mm · ${d > 0.005 ? '+' : d < -0.005 ? '−' : ''}${Math.abs(d).toFixed(2)} D`; };
       fr.addEventListener('input', () => { S.focus = +fr.value; showF(); }); showF();
@@ -435,76 +550,25 @@
           <input type="range" id="s-exp" min="0" max="1" step="0.01" value="1"></div>
         <p class="hint">Every part moves out along the direction it is assembled. Click any piece to find it in the list.</p></div>`;
       const ex = $('#s-exp'), eo = $('#o-exp');
-      ex.addEventListener('input', () => { tween = null; S.explode = +ex.value; eo.textContent = Math.round(ex.value * 100) + '%'; });
+      ex.addEventListener('input', () => { stopAnims(); S.explode = +ex.value; eo.textContent = Math.round(ex.value * 100) + '%'; });
       eo.textContent = '100%';
       animateTo({ explode: 1, psi: REST_PSI, lift: 0 }, 1500, CAM.exploded);
       setCaption();
-    } else if (m === 'mount') {
-      Object.assign(S, { explode: 0 });
-      controlsEl.innerHTML = `<h2>Bayonet mount</h2><div class="ctl">
-        <p class="hint" style="color:var(--muted)">The viewer is ghosted and its brass socket cut in half, so you can see the three lugs on the pedestal boss pass through the notches and turn under the lip. The cycle repeats.</p>
-        <div class="nav"><button class="btn ghost" id="m-pause">Pause</button></div></div>`;
-      let paused = false;
-      $('#m-pause').addEventListener('click', e => { paused = !paused; e.target.textContent = paused ? 'Play' : 'Pause'; mountPaused = paused; if (!paused) mountT0 = performance.now() - mountClock; });
-      mountPaused = false; mountT0 = performance.now();
-      flyTo(CAM.mount.p, CAM.mount.t);
-    } else if (m === 'ritual') {
-      S.explode = 0;
-      controlsEl.innerHTML = `<h2>Using it</h2><ol class="steps" id="steps">${RITUAL.map((s, i) =>
+    } else {
+      steps = STEPS[m];
+      stepI = 0;
+      const intro = m === 'mount'
+        ? '<p class="hint" style="color:var(--muted);margin-bottom:12px">The viewer is ghosted and its brass socket cut in half, so you can see the lugs on the pedestal boss pass through the notches and turn under the lip.</p>'
+        : '<p class="hint" style="color:var(--muted);margin-bottom:12px">Each step animates, then waits. Use the arrows (or your ← → keys) to move on, Replay to see a step again, or Play all to run through with time to read.</p>';
+      controlsEl.innerHTML = `<h2>${steps.label}</h2>${intro}<ol class="steps" id="steps">${steps.items.map((s, i) =>
         `<li><button data-i="${i}"><b>${i + 1}</b><span>${s.h}</span></button></li>`).join('')}</ol>
-        <div class="nav"><button class="btn ghost" id="r-prev">Back</button><button class="btn" id="r-next">Next step</button></div>`;
-      $('#steps').addEventListener('click', e => { const b = e.target.closest('button'); if (b) goStep(+b.dataset.i); });
-      $('#r-prev').addEventListener('click', () => goStep(Math.max(0, ritualStep - 1)));
-      $('#r-next').addEventListener('click', () => goStep((ritualStep + 1) % RITUAL.length));
-      goStep(0, true);
+        <div class="nav"><button class="btn ghost" id="r-prev" aria-label="Previous step">‹ Back</button><button class="btn ghost" id="r-play">Play all</button><button class="btn" id="r-next" aria-label="Next step">Next ›</button></div>`;
+      $('#steps').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { playing = false; const i = +b.dataset.i; goStep(i, i === stepI + 1); } });
+      $('#r-prev').addEventListener('click', () => stepAction('prev'));
+      $('#r-next').addEventListener('click', () => stepAction('next'));
+      $('#r-play').addEventListener('click', () => stepAction('play'));
+      goStep(0);
     }
-  }
-  let mountPaused = false, mountClock = 0;
-  const MOUNT = [
-    [0.0, 'Locked', 'The three lugs sit under the socket lip. The viewer cannot lift, slide or tip off; magnets hold it square.'],
-    [1.4, 'Turn a twelfth anticlockwise', 'Holding the body under the cornice, turn it 30°. The lugs slide along the gallery until they reach the notches.'],
-    [3.0, 'Lift', 'The lugs pass up through the notches. The viewer comes away and stands flat on any table.'],
-    [5.2, 'Set it down turned', 'Lower it with the eyepieces turned 30° to the left. It drops 9.5 mm onto the boss when the notches find the lugs.'],
-    [6.6, 'Turn clockwise to lock', 'Turn until it stops square to the pedestal. The stop sits in the socket, so you cannot over-turn it.']];
-  function mountPose(t) {
-    const T = 8.4, s = t % T;
-    const seg = (a, b) => ease(Math.min(1, Math.max(0, (s - a) / (b - a))));
-    const turnOut = seg(1.4, 2.6), up = seg(3.0, 4.1), down = seg(5.2, 6.3), turnIn = seg(6.6, 7.7);
-    S.psi = REST_PSI + D.LOCK_TURN * (turnOut - turnIn);
-    S.lift = 70 * (up - down);
-    let idx = 0; MOUNT.forEach((m, i) => { if (s >= m[0]) idx = i; });
-    if (s > 7.7) idx = 0;
-    if (mode === 'mount' && caption.dataset.idx !== String(idx)) {
-      caption.dataset.idx = idx;
-      setCaption('Bayonet · ' + (idx + 1) + ' of 5', MOUNT[idx][1], MOUNT[idx][2]);
-    }
-  }
-
-  const RITUAL = [
-    { h: 'At rest', p: 'The Sun covers the skylight. On the far end, the ground glass shows two small upside-down images of the room. With no card in place, the lenses work as a camera obscura.',
-      s: { drawer: 0, card: 0, lid: 0, focus: 0 }, cam: { p: [-560, 560, -780], t: [0, 290, -40] } },
-    { h: 'Choose a card', p: 'Draw out the drawer. About 250 cards stand on their long edges, picture toward you, held up by a sliding follower. Lift one out by its top edge.',
-      s: { drawer: 1, card: 1, lid: 0 }, cam: { p: [520, 520, 900], t: [0, 230, 130] } },
-    { h: 'Raise the Sun', p: 'Lift the cover with both hands, tip it toward you until it stands, and set its lower edge in the crest at the back. The Sun now faces you, and daylight falls through the skylight.',
-      s: { lid: 1 }, cam: { p: [560, 640, 620], t: [0, 360, 0] } },
-    { h: 'Set the card', p: 'Drop the card picture-first into the slot in front of the Sun. It rides down onto the silk ribbon and stops on the gate sill, centred on both lenses. Slide the drawer home.',
-      s: { card: 3, drawer: 0 }, cam: { p: [470, 620, 330], t: [0, 340, -40] } },
-    { h: 'Focus', p: 'Turn each knurled ring. The helicoid moves the lens up to 15 mm toward the card for short sight, or 8 mm away. Each eye focuses separately.',
-      s: { focus: 9 }, cam: { p: [300, 380, 430], t: [0, 314, 100] } },
-    { h: 'Look', p: 'Rest your brow on the eyecups. The two pictures merge into one view in depth, lit from above, framed by the arch of the mask.',
-      s: {}, cam: { p: [0, 345, 380], t: [0, 314, 0] }, eye: true },
-    { h: 'Put it away', p: 'Pull a ribbon loop and the card rises from the slot. Return it to the drawer and lay the Sun back over the skylight, where four magnets seat it.',
-      s: { card: 0, drawer: 1, lid: 0, focus: 0 }, cam: { p: [560, 560, 860], t: [0, 230, 60] } }];
-  function goStep(i, instant) {
-    ritualStep = i;
-    const st = RITUAL[i];
-    document.querySelectorAll('#steps button').forEach((b, k) => { if (k === i) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current'); });
-    setCaption('Step ' + (i + 1) + ' of ' + RITUAL.length, st.h, st.p);
-    eyeview.hidden = !st.eye;
-    if (st.eye) drawEyeView();
-    const target = { psi: REST_PSI, lift: 0, explode: 0, ...st.s };
-    if (i === 0) Object.assign(target, { card: 0, drawer: 0, lid: 0, focus: 0 });
-    animateTo(target, instant ? 1400 : 2600, st.cam);
   }
   function drawEyeView() {
     const cv = eyeview.querySelector('canvas'), x = cv.getContext('2d');
@@ -517,16 +581,23 @@
     x.fillStyle = g; x.fillRect(0, 0, cv.width, cv.height);
     x.restore();
   }
+  // selection glow and a gentle pulse on whatever the current step is moving
+  const emA = new THREE.Color(0x5a3a08), emB = new THREE.Color();
+  function updateGlow(now) {
+    const pulse = 0.5 + 0.5 * Math.sin(now / 260);
+    for (const r of meshes) {
+      const k = r.mesh.userData.key;
+      const mats = Array.isArray(r.mesh.material) ? r.mesh.material : [r.mesh.material];
+      let c = 0;
+      if (k === selKey) c = 1; else if (hlKeys.includes(k) && animating) c = 0.25 + 0.45 * pulse;
+      mats.forEach(m => { if (m.emissive) m.emissive.copy(emB.copy(emA).multiplyScalar(c)); });
+    }
+  }
 
   // ───────────────────────────── picking & parts list ──────────────────────
   let selKey = null;
   function select(key, scroll) {
     selKey = key;
-    for (const r of meshes) {
-      const on = r.mesh.userData.key === key;
-      const mats = Array.isArray(r.mesh.material) ? r.mesh.material : [r.mesh.material];
-      mats.forEach(m => { if (m.emissive) m.emissive.setHex(on ? 0x5a3a08 : 0x000000); });
-    }
     rows.forEach(r => r.el && r.el.classList.toggle('sel', r.key === key));
     const picked = $('#picked');
     if (key) {
@@ -711,11 +782,7 @@
   resize();
   function frame(now) {
     stepTween(now);
-    if (mode === 'mount' && meshes.length) {
-      if (!mountPaused) mountClock = (now - mountT0);
-      mountPose(mountClock / 1000);
-    }
-    if (meshes.length) apply();
+    if (meshes.length) { apply(); updateGlow(now); }
     controls.update();
     renderer.render(scene, camera);
     requestAnimationFrame(frame);
