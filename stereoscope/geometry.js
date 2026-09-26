@@ -24,6 +24,8 @@
   const BASE_TOP = 136;           // top of the drawer base
   const PED_TOP = BASE_TOP + 229;  // 9" gilt stand above the base
   const PLATE_BOT = PED_TOP - 24;
+  const CW = 118, CZ0 = -122, CZ1 = 104, DF = 123;   // base carcase half-width, back, front, drawer face
+  const PLATE_POLY = [[-135, -80], [-107, -108], [107, -108], [135, -80], [135, 80], [107, 108], [-107, 108], [-135, 80]];
   const LID_FRONT = 34, LID_REAR = 167.5, LID_H = 14;
   const RAIL_Z0 = 168, GROOVE_Z0 = 172, GROOVE_Z1 = 187, RAIL_Z1 = 191;
   const THREAD = { pitch: 2.5, starts: 3 };  // helicoid: 7.5 mm lead per turn
@@ -553,6 +555,48 @@
     return pts.reverse();
   }
 
+  // column profile rings (y, r(θ)); every flare is ≤45° so it prints upright without supports
+  function columnRings(y0 = -1e9, y1 = 1e9) {
+    const B = BASE_TOP, C = PLATE_BOT;
+    const prof = [
+      [B, 54], [B + 3, 56], [B + 6, 55], [B + 9, 50], [B + 11, 44], [B + 14, 36], [B + 18, 33], [B + 26, 38], [B + 36, 45], [B + 44, 47],
+      [B + 52, 44], [B + 59, 38], [B + 64, 33], [B + 67, 36], [B + 70, 37], [B + 73, 33], [B + 77, 27], [B + 82, 24.5],
+      [C - 51, 24.5], [C - 47, 29], [C - 44, 31], [C - 41, 29], [C - 37, 27], [C - 29, 30], [C - 21, 35], [C - 15, 40],
+      [C - 9, 46], [C - 4, 51], [C, 55]];
+    const sh0 = B + 82, sh1 = C - 51, bell0 = C - 37, bell1 = C - 11;
+    const rings = [];
+    const rAt = y => { for (let i = 0; i < prof.length - 1; i++) if (y <= prof[i + 1][0]) { const t = (y - prof[i][0]) / (prof[i + 1][0] - prof[i][0]); return prof[i][1] + (prof[i + 1][1] - prof[i][1]) * (t * t * (3 - 2 * t)); } return prof[prof.length - 1][1]; };
+    const ringAt = y => ({ y, r: th => {
+      let rr = rAt(y);
+      if (y > B + 18 && y < B + 58) rr += 2.8 * Math.sin((y - B - 18) / 40 * PI) * (Math.pow(Math.abs(Math.cos(8 * th)), 0.6) - 0.35);
+      if (y > sh0 && y < sh1) {
+        const e = smooth(sh0, sh0 + 6, y) * (1 - smooth(sh1 - 6, sh1, y));
+        rr += 4.2 * e * Math.pow(0.5 + 0.5 * Math.cos(4 * th - (y - sh0) * 0.085), 1.6);
+      }
+      if (y > bell0 && y < bell1) {
+        const t2 = (y - bell0) / (bell1 - bell0), a = ((th * 8 / TAU) % 1 + 1) % 1, dd = Math.abs(a - 0.5) * 2;
+        rr += 3.6 * Math.max(0, t2 * 1.1 - dd * (0.4 + (1 - t2)));
+      }
+      if (y > C - 10 && y < C - 1) rr += 1.0 * Math.abs(Math.cos(12 * th)) * Math.sin((y - C + 10) / 9 * PI);
+      return rr;
+    } });
+    const lo = Math.max(B, y0), hi = Math.min(C, y1);
+    const n = Math.ceil((hi - lo) / 0.8);
+    for (let k = 0; k <= n; k++) rings.push(ringAt(lo + (hi - lo) * k / n));
+    return rings;
+  }
+  const KNOB_PROF = [[0, 17], [1.5, 18], [3, 16], [3.5, 7], [6, 6], [8, 7.5], [10, 9.5], [11, 10.5], [15, 12], [19, 11], [22, 8], [23.5, 5], [24.5, 2.5], [25.5, 0.01]];
+  function knobRings(y0 = -1, y1 = 99) {
+    const rings = [];
+    KNOB_PROF.forEach(([y, r], i) => {
+      if (y < y0 - 1e-9 || y > y1 + 1e-9) return;
+      if (y <= 3) rings.push({ y, r: th => r + (i < 3 ? 2.6 * (Math.pow(Math.abs(Math.cos(6 * th)), 0.5) - 0.3) : 0) });
+      else if (y > 9 && y < 21) rings.push({ y, r: th => r * (1 + 0.07 * Math.abs(Math.cos(6 * th))) });
+      else rings.push({ y, r });
+    });
+    return rings;
+  }
+
   // ───────────────────────────── part list ─────────────────────────────────
   function buildParts(opts = {}) {
     const q = opts.quality || 1;
@@ -569,14 +613,14 @@
       explode: [0, -70, 0] });
     const wallR = [[HW0, 0], [HW1, L], [hwIn(L), L], [hwIn(0), 0]];
     add({ id: 'wall-r', name: 'Side wall, right', group: 'Viewer body', mat: 'walnut', qty: 1, parent: 'viewer',
-      note: '½" walnut. Ends bevelled 10.1° to meet the tapered plan.',
+      note: '½" walnut. Ends bevelled 10.1° to meet the tapered plan.', down: [nOut[0], 0, nOut[1]],
       shells: () => [extrudePlan(wallR, [], FLOOR_TOP, WALL_TOP - FLOOR_TOP)], explode: [95, 0, 0] });
     add({ id: 'wall-l', name: 'Side wall, left', group: 'Viewer body', mat: 'walnut', qty: 1, parent: 'viewer',
-      note: 'Mirror of the right wall.',
+      note: 'Mirror of the right wall.', down: [-nOut[0], 0, nOut[1]],
       shells: () => [extrudePlan(wallR.map(p => [-p[0], p[1]]), [], FLOOR_TOP, WALL_TOP - FLOOR_TOP)], explode: [-95, 0, 0] });
     const boardH = [FLOOR_TOP, WALL_TOP];
     add({ id: 'lens-board', name: 'Lens board', group: 'Viewer body', mat: 'walnut', qty: 1, parent: 'viewer',
-      note: '½" walnut. Two 50.2 mm bores on 76 mm centres at axis height 60.2 mm.',
+      note: '½" walnut. Two 50.2 mm bores on 76 mm centres at axis height 60.2 mm.', down: [0, 0, -1],
       shells: () => {
         const w = hwIn(T);
         return [extrudeXY([[-w, boardH[0]], [w, boardH[0]], [w, boardH[1]], [-w, boardH[1]]],
@@ -584,7 +628,7 @@
       }, explode: [0, 0, -80] });
     const ENDZ0 = L - T;
     add({ id: 'end-wall', name: 'End wall', group: 'Viewer body', mat: 'walnut', qty: 1, parent: 'viewer',
-      note: '½" walnut with a 156 × 61 mm window for the ground glass.',
+      note: '½" walnut with a 156 × 61 mm window for the ground glass.', down: [0, 0, 1],
       shells: () => {
         const w = hwIn(L);
         return [extrudeXY([[-w, boardH[0]], [w, boardH[0]], [w, boardH[1]], [-w, boardH[1]]],
@@ -597,7 +641,7 @@
       note: '½" walnut, two laminations: the lower one forms a 4 mm ledge that the skylight glass drops onto. Card slot 182 × 4 mm.',
       shells: () => [
         extrudePlan(roofPoly, [sky, slot], WALL_TOP + 3, T - 3, 1.5),
-        extrudePlan(insetPoly(roofPoly, 0.01), [insetPoly(sky, 4), slot], WALL_TOP, 3.05)],
+        extrudePlan(roofPoly, [insetPoly(sky, 4), slot], WALL_TOP, 3)],
       explode: [0, 100, 0] });
     const cornice = [[-1, 101], [0.5, 101], [1.8, 102.4], [2.5, 104.2], [3.3, 105.8], [4.6, 107.1], [5.7, 108.2], [6.1, 110], [-1, 110]];
     add({ id: 'cornice', name: 'Cornice moulding', group: 'Ornament', mat: 'gilt', qty: 1, parent: 'viewer', print: true,
@@ -632,7 +676,7 @@
     const femaleR = zv => th => 22.0 + 1.3 * tri(zv / THREAD.pitch - THREAD.starts * th / TAU);
     const maleR = zl => th => 21.6 + 1.3 * tri((zl + LENS_Z) / THREAD.pitch - THREAD.starts * th / TAU);
     const petals = (th, n, a) => a * (Math.pow(Math.abs(Math.cos(n * th / 2)), 0.6) - 0.5);
-    add({ id: 'sleeve', name: 'Eyepiece sleeve', group: 'Eyepieces', mat: 'gilt', qty: 2, parent: 'viewer', print: 'axis', pair: true,
+    add({ id: 'sleeve', name: 'Eyepiece sleeve', group: 'Eyepieces', mat: 'gilt', qty: 2, parent: 'viewer', print: 'axisDown', pair: true,
       note: 'Fixed in the lens board. Rosette flange; 3-start internal helicoid (2.5 mm pitch, 7.5 mm per turn).',
       shells: () => {
         const rings = [];
@@ -647,14 +691,14 @@
           if (zv > 0 || (zv === 0 && !flangeStarted)) { ro = 25; if (zv === 0) flangeStarted = true; }
           else {
             const t = -zv / 7;
-            const prof = 26.5 + 7.5 * Math.sqrt(Math.max(0, 1 - t * t * 0.92));
+            const prof = 27 + 7 * (1 - t);   // 45° cone: prints outer face down without support
             ro = th => prof + petals(th, 12, 2.6 * (1 - t * 0.5));
           }
           rings.push({ y: -zv, ro, ri: femaleR(zv) });
         });
         return [tubeSolid(rings, Math.round(144 * q))];
       }, explode: [0, 0, -100] });
-    add({ id: 'draw-tube', name: 'Eyepiece draw tube & eyecup', group: 'Eyepieces', mat: 'gilt', qty: 2, parent: 'viewer', print: 'axis', pair: true,
+    add({ id: 'draw-tube', name: 'Eyepiece draw tube & eyecup', group: 'Eyepieces', mat: 'gilt', qty: 2, parent: 'viewer', print: 'axisDown', pair: true,
       note: 'Screws into the sleeve to focus (−8 to +15 mm travel). Knurled grip, gadrooned eyecup with pearl rim. Holds one 38 mm f150 lens.',
       shells: () => {
         const rings = [];
@@ -683,7 +727,7 @@
           else if (zl > -27) ro = 21.4;
           else if (zl > -37) {
             const e = Math.min(zl + 37, -27 - zl);
-            const base = 25 + Math.min(2, e * 2);
+            const base = 25 + Math.min(2, zl + 37, (-27 - zl) * 2);   // 45° step up from the eyecup when printed eyecup-down
             ro = th => base + 0.55 * tri(30 * th / TAU) * Math.min(1, e);
           } else {
             const t = (-37 - zl) / 8;
@@ -778,7 +822,6 @@
       explode: [0, 210, 0] });
 
     // ── Pedestal ──
-    const CW = 118, CZ0 = -122, CZ1 = 104, DF = 123;
     const baseRect = [[-CW, CZ0], [CW, CZ0], [CW, DF], [-CW, DF]];
     add({ id: 'plinth', name: 'Plinth', group: 'Pedestal', mat: 'walnut', qty: 1, parent: 'pedestal',
       note: 'Walnut, 16 mm, ogee edge. Forms the carcase bottom.',
@@ -824,15 +867,9 @@
     add({ id: 'card-stack', name: 'Your stereographs', group: 'Cards', mat: 'stack', qty: 1, parent: 'drawer', buy: true, noExport: true,
       shells: () => [box(-89, 89, 25, 114, -69, 96)], explode: [0, 40, 0] });
     add({ id: 'knob', name: 'Drawer knob', group: 'Drawer', mat: 'gilt', qty: 1, parent: 'drawer', print: 'axis',
-      note: 'Sunflower rosette and gadrooned knob; M4 bolt through the front.',
+      note: 'Sunflower rosette and gadrooned knob; an M3 screw from inside the drawer.',
       shells: () => {
-        const rings = [];
-        const prof = [[0, 17], [1.5, 18], [3, 16], [3.5, 7], [6, 6], [8, 7.5], [11, 10.5], [15, 12], [19, 11], [22, 8], [23.5, 5], [24.5, 2.5], [25.5, 0.01]];
-        prof.forEach(([y, r], i) => {
-          if (y <= 3) rings.push({ y, r: th => r + (i < 3 ? 2.6 * (Math.pow(Math.abs(Math.cos(6 * th)), 0.5) - 0.3) : 0) });
-          else if (y > 9 && y < 21) rings.push({ y, r: th => r * (1 + 0.07 * Math.abs(Math.cos(6 * th))) });
-          else rings.push({ y, r });
-        });
+        const rings = knobRings();
         return [radialSolid(rings, 144)];
       }, rot: [PI / 2, 0, 0], pos: [0, 68.5, DF], explode: [0, 0, 110] });
     // base medallions
@@ -845,39 +882,7 @@
     // column: base torus, gadrooned urn, Solomonic (twisted) shaft, acanthus bell, flared capital
     add({ id: 'column', name: 'Gilt column', group: 'Pedestal', mat: 'gilt', qty: 1, parent: 'pedestal', print: 'axis',
       note: 'Stand-in for your sculpted column, 205 mm tall: gadrooned urn, twisted Solomonic shaft, acanthus bell and capital. Drill through for an M8 rod.',
-      shells: () => {
-        const B = BASE_TOP, C = PLATE_BOT;
-        const prof = [
-          [B, 54], [B + 3, 56], [B + 6, 55], [B + 9, 50], [B + 11, 44], [B + 14, 36], [B + 18, 33], [B + 26, 38], [B + 36, 45], [B + 44, 47],
-          [B + 52, 44], [B + 59, 38], [B + 64, 33], [B + 67, 36], [B + 70, 37], [B + 73, 33], [B + 77, 27], [B + 82, 24.5],
-          [C - 51, 24.5], [C - 47, 29], [C - 44, 31], [C - 41, 29], [C - 37, 27], [C - 29, 30], [C - 21, 35], [C - 15, 40],
-          [C - 11, 43], [C - 8, 49], [C - 5, 55], [C - 2, 59], [C, 60]];
-        const sh0 = B + 82, sh1 = C - 51, bell0 = C - 37, bell1 = C - 11;
-        const rings = [];
-        for (let i = 0; i < prof.length - 1; i++) {
-          const [y0, r0] = prof[i], [y1, r1] = prof[i + 1];
-          const n = Math.max(2, Math.ceil((y1 - y0) / 0.8));
-          for (let k = 0; k < n; k++) {
-            const t = k / n, y = y0 + (y1 - y0) * t, r = r0 + (r1 - r0) * (t * t * (3 - 2 * t));
-            rings.push({ y, r: th => {
-              let rr = r;
-              if (y > B + 18 && y < B + 58) rr += 2.8 * Math.sin((y - B - 18) / 40 * PI) * (Math.pow(Math.abs(Math.cos(8 * th)), 0.6) - 0.35);
-              if (y > sh0 && y < sh1) {
-                const e = smooth(sh0, sh0 + 6, y) * (1 - smooth(sh1 - 6, sh1, y));
-                rr += 4.2 * e * Math.pow(0.5 + 0.5 * Math.cos(4 * th - (y - sh0) * 0.085), 1.6);
-              }
-              if (y > bell0 && y < bell1) {
-                const t2 = (y - bell0) / (bell1 - bell0), a = ((th * 8 / TAU) % 1 + 1) % 1, dd = Math.abs(a - 0.5) * 2;
-                rr += 3.6 * Math.max(0, t2 * 1.1 - dd * (0.4 + (1 - t2))) ;
-              }
-              if (y > C - 10 && y < C - 1) rr += 1.2 * Math.abs(Math.cos(12 * th)) * Math.sin((y - C + 10) / 9 * PI);
-              return rr;
-            } });
-          }
-        }
-        rings.push({ y: C, r: 60 });
-        return [radialSolid(rings, Math.round(192 * q))];
-      }, explode: [0, 60, 0] });
+      shells: () => [radialSolid(columnRings(), Math.round(192 * q))], explode: [0, 60, 0] });
     for (let k = 0; k < 8; k++) {
       const upper = k >= 4, a = PI / 4 + (k % 4) * PI / 2;
       add({ id: 'console-' + k, name: 'Scroll console', group: 'Pedestal', mat: 'gilt', qty: 1, parent: 'pedestal', print: true, shared: 'console',
@@ -887,7 +892,7 @@
         pos: upper ? [0, PLATE_BOT + 138.5, 0] : [0, BASE_TOP - 139.5, 0],
         explode: [70 * Math.cos(a), upper ? 90 : 40, 70 * Math.sin(a)] });
     }
-    const plate = [[-135, -80], [-107, -108], [107, -108], [135, -80], [135, 80], [107, 108], [-107, 108], [-135, 80]];
+    const plate = PLATE_POLY;
     add({ id: 'top-plate', name: 'Pedestal top', group: 'Pedestal', mat: 'walnut', qty: 1, parent: 'pedestal',
       note: 'Walnut, 24 mm, canted corners. The brass boss drops through its 124 mm hole.',
       shells: () => [sweepRing(plate, [[-7, 0], [-6, 0], [-3, 1.5], [-1, 4], [0, 8], [0, 16], [-1, 20], [-3, 22.5], [-6, 24], [-7, 24]].map(([o, y]) => [o, PLATE_BOT + y])),
@@ -899,7 +904,9 @@
   function extrudeXYArr(pts, z0, z1) { return [extrudeXY(pts, [], z0, z1)]; }
 
   root.Helio = {
-    buildParts, finalize, D: { T, L, HW0, HW1, AXIS_Y, CARD_Z, LENS_Z, LENS_X, HUB_Z, PED_TOP, ROOF_TOP, WALL_TOP, CARD_BOTTOM, CARD_W, CARD_H,
+    buildParts, finalize,
+    lib: { Shell, box, radialSolid, tubeSolid, extrudePlan, extrudeXY, extrudeZY, sweepRing, profileSolid, circle, insetPoly, transformShell, shellFromGeo, columnRings, knobRings, polyFrame },
+    D: { PLATE_BOT, CW, CZ0, CZ1, DF, PLATE_POLY, NOUT: nOut, WALL_ANG: Math.atan2(HW1 - HW0, L), FLOOR_TOP, T, L, HW0, HW1, AXIS_Y, CARD_Z, LENS_Z, LENS_X, HUB_Z, PED_TOP, ROOF_TOP, WALL_TOP, CARD_BOTTOM, CARD_W, CARD_H,
       BASE_TOP, LID_FRONT, LID_REAR, LID_H, GROOVE_Z0, GROOVE_Z1, LOCK_TURN, LEAD: THREAD.pitch * THREAD.starts, hwOut, hwIn }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

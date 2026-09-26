@@ -229,21 +229,26 @@
   const parts = Helio.buildParts();
   const meshes = [];            // {mesh, part, base: Vector3, explode: Vector3, kind}
   const rows = new Map();       // key -> {parts:[], meshes:[], el}
+  const kitRows = new Map();    // 'kit:'+id -> {key, part, meshes:[], el}
+  let kit = null, kitBusy = null;
   let glassPlane = null;
 
   function placeMesh(part, geo, mat, extra = {}) {
     const m = new THREE.Mesh(geo, mat);
     m.castShadow = !['groundglass', 'lens'].includes(part.mat);
     m.receiveShadow = true;
-    const pos = extra.pos || part.pos || [0, 0, 0];
+    const pos = extra.pos || (extra.place ? extra.place.pos : part.pos) || [0, 0, 0];
     m.position.set(pos[0], pos[1], pos[2]);
-    if (part.rot) m.rotation.set(part.rot[0], part.rot[1], part.rot[2], part.rotOrder || 'XYZ');
+    const rot = extra.place ? extra.place.rot : part.rot, ro = extra.place ? extra.place.rotOrder : part.rotOrder;
+    if (rot) m.rotation.set(rot[0], rot[1], rot[2], ro || 'XYZ');
     if (extra.rot) m.rotation.set(extra.rot[0], extra.rot[1], extra.rot[2], 'XYZ');
-    PARENT[part.parent].add(m);
-    const rec = { mesh: m, part, base: m.position.clone(), explode: new THREE.Vector3(...(part.explode || [0, 0, 0])), kind: extra.kind };
+    PARENT[extra.parent || part.parent].add(m);
+    const ex = new THREE.Vector3(...(extra.explode || part.explode || [0, 0, 0]));
+    const rec = { mesh: m, part, base: m.position.clone(), explode: ex, kind: extra.kind, kit: !!extra.kit };
     meshes.push(rec);
-    m.userData.key = part.shared || part.id;
-    const r = rows.get(m.userData.key); r.meshes.push(m);
+    m.userData.key = extra.key || part.shared || part.id;
+    const r = (extra.kit ? kitRows : rows).get(m.userData.key); if (r) r.meshes.push(m);
+    if (extra.kit) m.visible = false;
     return rec;
   }
 
@@ -527,6 +532,8 @@
     });
     eyeview.hidden = true;
     stopAnims(); clearTimeout(dwellTimer); playing = false; steps = null; hlKeys = []; animating = false;
+    showKit(m === 'kit');
+    if (m === 'kit') { setCaption(); enterKit(); return; }
     if (m === 'assembled') {
       Object.assign(S, { explode: 0, psi: REST_PSI, lift: 0 });
       controlsEl.innerHTML = `<h2>Assembled</h2><div class="ctl">
@@ -594,13 +601,158 @@
     }
   }
 
+  // ───────────────────────────── prototype kit ─────────────────────────────
+  const steelMat = () => new THREE.MeshStandardMaterial({ color: 0xb4b9bf, metalness: 1, roughness: 0.32 });
+  const FMAT = { dowel: MAT.bone, pin: MAT.bone, screw: steelMat, insert: MAT.brass, rod: steelMat, nut: steelMat,
+    magnet: () => new THREE.MeshStandardMaterial({ color: 0x46484e, metalness: 0.85, roughness: 0.3 }) };
+  const cylG = new THREE.CylinderGeometry(1, 1, 1, 20), hexG = new THREE.CylinderGeometry(1, 1, 1, 6);
+  let kitHide = new Set();
+  function showKit(on) {
+    for (const r of meshes) {
+      if (r.kit) r.mesh.visible = on;
+      else if (kitHide.has(r.part.id)) r.mesh.visible = !on;
+    }
+  }
+  function ensureKit() {
+    if (kit) return Promise.resolve(kit);
+    if (kitBusy) return kitBusy;
+    kitBusy = (async () => {
+      const k = await Helio.buildKit(parts, (i, n, kp) => {
+        const e = document.getElementById('kit-status');
+        if (e) e.textContent = `Cutting joints: ${kp.name} (${i + 1} of ${n})…`;
+      });
+      const dById = Object.fromEntries(parts.map(p => [p.id, p]));
+      const kById = Object.fromEntries(k.parts.map(p => [p.id, p]));
+      k.parts.forEach(p => p.from && p.from.forEach(id => kitHide.add(id)));
+      for (const p of k.parts) {
+        const key = 'kit:' + p.id;
+        kitRows.set(key, { key, part: p, meshes: [] });
+        if (p.parent === null || p.alt) continue;
+        await new Promise(r => setTimeout(r, 0));
+        const geo = Helio.finalize(p._shells);
+        const n = p.nudge || [0, 0, 0], ex = e => [e[0] + n[0], e[1] + n[1], e[2] + n[2]];
+        if (p.pair) [-1, 1].forEach(sg => placeMesh(p, geo, MAT[p.mat](), { pos: [sg * D.LENS_X, D.AXIS_Y, 0], kind: p.id, kit: true, key }));
+        else if (p.from.length) p.from.forEach(id => {
+          const d = dById[id];
+          (d.multi || [null]).forEach(z => placeMesh(p, geo, MAT[p.mat](), { parent: d.parent, place: d, pos: z === null ? undefined : [0, 0, z], explode: ex(d.explode || [0, 0, 0]), kit: true, key }));
+        });
+        else placeMesh(p, geo, MAT[p.mat](), { explode: ex(p.explode || [0, 0, 0]), kit: true, key });
+      }
+      const explodeOf = id => (dById[id] && dById[id].explode) || (kById[id] && kById[id].explode) || [0, 0, 0];
+      for (const f of k.fasteners) {
+        const len = f.a1 - f.a0, mid = (f.a0 + f.a1) / 2;
+        const pos = f.axis === 'y' ? [f.p[0], mid, f.p[2]] : f.axis === 'x' ? [mid, f.p[1], f.p[2]] : [f.p[0], f.p[1], mid];
+        const rot = f.axis === 'x' ? [0, 0, PI / 2] : f.axis === 'z' ? [PI / 2, 0, 0] : [0, 0, 0];
+        const ids = (f.withIds || []).filter(Boolean), ex = [0, 0, 0];
+        ids.forEach(id => explodeOf(id).forEach((v, i) => ex[i] += v / ids.length));
+        const rec = placeMesh({ id: 'fastener', mat: f.kind === 'dowel' || f.kind === 'pin' ? 'bone' : 'brass', parent: f.frame },
+          f.kind === 'nut' ? hexG : cylG, FMAT[f.kind](), { parent: f.frame, pos, place: { rot }, explode: ex, kit: true, key: 'fast:' + f.label });
+        rec.mesh.scale.set(f.r, len, f.r);
+      }
+      kit = k;
+      return k;
+    })();
+    return kitBusy;
+  }
+  const KIT_GROUPS = ['Viewer body', 'Optics', 'Eyepieces', 'Lid', 'Ornament', 'Mount', 'Pedestal', 'Drawer', 'Fasteners'];
+  const ASSEMBLY = [
+    'Press the heat-set inserts in with a soldering iron: wall and board bottoms, the roof (crest), the floor (socket cap), the carcase bottoms and the boss core.',
+    'Viewer: drop the socket ring into the floor from above, magnets into the cap, and screw the cap down over the ring’s flange.',
+    'Dowel the lens board and end wall between the side walls, stand them on the floor and screw up from underneath.',
+    'Glue the septum into its slot. Drop the gate front, ground glass and gate back in from above; the walls trap them.',
+    'Pin the baffle to the roof, slide the cornice down over the walls, and set the roof on its six dowels. Leave it unglued so the interior stays reachable while you prototype.',
+    'Eyepieces: sleeve through the lens board, lock clip on from inside. Lens and retaining ring into the draw tube, then screw it in.',
+    'Pin the frame to the end wall, glue the medallions into their recesses, screw the crest to the roof. Magnets into roof and lid (mind the polarity), Sun into the lid pocket.',
+    'Pedestal: glue and dowel the plinth and top-board quarters. Dowel the carcase and screw it up through the plinth. Glue the top board on.',
+    'Stand the column on its two dowels. Thread the M8 rod up through board and column with a washer and nut underneath (reach in through the drawer opening).',
+    'Lay the two top-plate halves around the rod, drop the boss core onto it, run the nut into its hex trap and tighten: the core’s cone clamps the plate to the column.',
+    'Screw the lug ring over the core, magnets up. Epoxy the eight consoles.',
+    'Drawer: dowel the sides to the front, slide the bottom into its grooves, dowel the back on, screw the knob on from inside.'];
+  async function enterKit() {
+    controlsEl.innerHTML = `<h2>Prototype kit</h2><p class="hint" id="kit-status">Cutting joints…</p>`;
+    await ensureKit();
+    if (mode !== 'kit') return;
+    showKit(true);
+    renderKitPanel();
+    animateTo({ explode: 1, psi: REST_PSI, lift: 0 }, 1500, CAM.exploded);
+  }
+  function renderKitPanel() {
+    const hw = kit.hardware.map(h => `<tr><td class="num">${h.n} ×</td><td>${esc(h.label)}</td></tr>`).join('');
+    controlsEl.innerHTML = `<h2>Prototype kit</h2>
+      <p class="hint" style="color:var(--muted);margin-bottom:14px">Every part again, now with its joints cut: dowel holes, heat-set insert holes, counterbores, magnet pockets and grooves. Each joint stands alone, so print any group as one piece and skip its fasteners. Parts that would need support are split or reshaped, and the pedestal plates are divided to fit a 256 mm bed. Shown with every screw, pin and magnet in place.</p>
+      <div class="ctl">
+        <div class="ctl-row"><label for="k-exp">Separation <output id="o-kexp">100%</output></label>
+          <input type="range" id="k-exp" min="0" max="1" step="0.01" value="1"></div>
+        <div class="nav" style="margin-top:0"><button class="btn" id="dl-kit">Download kit</button></div>
+        <p class="hint" id="kitmsg" role="status"></p>
+      </div>
+      <div class="grp">Hardware to buy</div>
+      <table class="hw">${hw}</table>
+      <div id="kit-parts"></div>
+      <details style="margin-top:16px"><summary>Assembly order</summary><ol class="asm">${ASSEMBLY.map(a => `<li>${esc(a)}</li>`).join('')}</ol></details>
+      <details><summary>Printing</summary>
+        <p>Every STL is already laid out on its printing face. Nothing needs support, and the eyepiece threads print upright.</p>
+        <p>Holes are sized for FDM: 5.2 mm for the 4.9 mm dowels, 4.0 mm for M3 × 5.7 heat-set inserts, 3.4 mm clearance with 6.2 mm counterbores, and 6.2 mm pockets for 6 mm magnets. If your printer runs tight, scale the dowels to 98% rather than the parts.</p>
+        <p>Walls and plates print best at 3–4 perimeters and 15–20% infill. Print the Sun, medallions and consoles in resin, or in PLA at 0.08–0.12 mm layers, for the relief.</p></details>`;
+    const ex = $('#k-exp'), eo = $('#o-kexp');
+    ex.addEventListener('input', () => { stopAnims(); S.explode = +ex.value; eo.textContent = Math.round(ex.value * 100) + '%'; });
+    const host = $('#kit-parts');
+    KIT_GROUPS.forEach(g => {
+      const list = [...kitRows.values()].filter(r => r.part.group === g).sort((a, b) => (a.part.alt ? 1 : 0) - (b.part.alt ? 1 : 0));
+      if (!list.length) return;
+      const h = document.createElement('div'); h.className = 'grp'; h.textContent = g; host.appendChild(h);
+      list.forEach(r => {
+        const p = r.part, pf = printFrame(p._shells, p.print, p.down);
+        const size = pf.size.map(v => v.toFixed(v < 10 ? 1 : 0)).join(' × ') + ' mm';
+        const big = Math.max(pf.size[0], pf.size[1]) > 250 ? ' · needs a bed over 250 mm' : '';
+        const el = document.createElement('div');
+        el.className = 'row'; el.tabIndex = 0; el.setAttribute('role', 'button');
+        el.innerHTML = `<span class="sw" style="background:${SWATCH[p.mat]}"></span>
+          <div><div class="nm">${esc(p.name)}${(p.qty || 1) > 1 ? ` <span class="meta">×${p.qty}</span>` : ''}</div>
+          <div class="meta">${p.alt ? 'optional · ' : ''}${MATNAME[p.mat]} · ${size}${big}</div>
+          ${p.note ? `<div class="note">${esc(p.note)}</div>` : ''}</div><button class="dl" aria-label="Download ${esc(p.name)} STL">STL</button>`;
+        el.addEventListener('click', e => {
+          if (e.target.classList.contains('dl')) { e.stopPropagation(); const f = kitFile(p); offer(f.name.replace(/\.stl$/, '.zip'), [f], $('#kitmsg')); return; }
+          select(selKey === r.key ? null : r.key);
+        });
+        el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select(selKey === r.key ? null : r.key); } });
+        r.el = el; host.appendChild(el);
+      });
+    });
+    $('#dl-kit').addEventListener('click', async e => {
+      const btn = e.currentTarget; btn.disabled = true; btn.textContent = 'Preparing…';
+      await new Promise(r => setTimeout(r, 30));
+      const files = [...kitRows.values()].map(r => kitFile(r.part));
+      const lines = ['The Heliotrope stereoscope - prototype print kit (millimetres, Z up, each file laid out on its printing face).', '',
+        'PARTS', ...[...kitRows.values()].map(r => `${kitFile(r.part, true)}  x${r.part.qty || 1}  [${MATNAME[r.part.mat]}]  ${r.part.note || ''}`), '',
+        'HARDWARE', ...kit.hardware.map(h => `${h.n} x ${h.label}`), '',
+        'ASSEMBLY ORDER', ...ASSEMBLY.map((a, i) => `${i + 1}. ${a}`)];
+      files.push({ name: 'README.txt', data: new TextEncoder().encode(lines.join('\r\n')) });
+      await offer('heliotrope-prototype-kit.zip', files, $('#kitmsg'));
+      btn.disabled = false; btn.textContent = 'Download kit';
+    });
+  }
+  const kitFile = (p, nameOnly) => {
+    const name = 'heliotrope-kit-' + slug(p.name) + '.stl';
+    return nameOnly ? name : { name, data: stlBytes(p) };
+  };
+
   // ───────────────────────────── picking & parts list ──────────────────────
   let selKey = null;
   function select(key, scroll) {
     selKey = key;
     rows.forEach(r => r.el && r.el.classList.toggle('sel', r.key === key));
+    kitRows.forEach(r => r.el && r.el.classList.toggle('sel', r.key === key));
     const picked = $('#picked');
-    if (key) {
+    if (key && key.startsWith('fast:')) { picked.hidden = false; picked.innerHTML = `<b>${esc(key.slice(5))}</b>`; return; }
+    if (key && kitRows.has(key)) {
+      const r = kitRows.get(key), p = r.part;
+      picked.hidden = false;
+      picked.innerHTML = `<b>${esc(p.name)}</b> · ${MATNAME[p.mat]}${(p.qty || 1) > 1 ? ' · ×' + p.qty : ''}`;
+      if (scroll && r.el) r.el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      return;
+    }
+    if (key && rows.has(key)) {
       const r = rows.get(key), p = r.parts[0];
       picked.hidden = false;
       picked.innerHTML = `<b>${esc(rowName(r))}</b> · ${MATNAME[p.mat]}${rowQty(r) > 1 ? ' · ×' + rowQty(r) : ''}`;
@@ -623,24 +775,46 @@
     select(hits.length ? hits[0].object.userData.key : null, true);
   });
 
-  function printFrame(shells, mode) {
-    let mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9];
-    shells.forEach(s => { for (let i = 0; i < s.p.length; i += 3) for (let k = 0; k < 3; k++) { mn[k] = Math.min(mn[k], s.p[i + k]); mx[k] = Math.max(mx[k], s.p[i + k]); } });
+  // print orientation: Z up, sitting on the bed, centred. `down` names the face that goes on the bed.
+  function printFrame(shells, mode, downV) {
+    let pre = null;
+    if (downV) {
+      const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(...downV).normalize(), new THREE.Vector3(0, -1, 0));
+      // then turn it about the vertical so it sits square on the bed (smallest footprint)
+      const v = new THREE.Vector3(), pts = [];
+      shells.forEach(s => { const step = Math.max(3, Math.floor(s.p.length / 3 / 1500) * 3); for (let i = 0; i < s.p.length; i += step) { v.set(s.p[i], s.p[i + 1], s.p[i + 2]).applyQuaternion(q); pts.push([v.x, v.z]); } });
+      let best = 0, bestA = Infinity;
+      for (let d = 0; d < 180; d += 0.5) {
+        const a = d * PI / 180, c = Math.cos(a), sn = Math.sin(a);
+        let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+        for (const [x, z] of pts) { const u = x * c - z * sn, w = x * sn + z * c; if (u < x0) x0 = u; if (u > x1) x1 = u; if (w < z0) z0 = w; if (w > z1) z1 = w; }
+        const area = (x1 - x0) * (z1 - z0) + 1e-3 * (x1 - x0);
+        if (area < bestA - 1e-6) { bestA = area; best = a; }
+      }
+      q.premultiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -best));
+      pre = (x, y, z) => { v.set(x, y, z).applyQuaternion(q); return [v.x, v.y, v.z]; };
+    }
+    const mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9];
+    shells.forEach(s => { for (let i = 0; i < s.p.length; i += 3) { const w = pre ? pre(s.p[i], s.p[i + 1], s.p[i + 2]) : [s.p[i], s.p[i + 1], s.p[i + 2]]; for (let k = 0; k < 3; k++) { mn[k] = Math.min(mn[k], w[k]); mx[k] = Math.max(mx[k], w[k]); } } });
     const ext = mx.map((v, k) => v - mn[k]);
-    let map;   // returns [X,Y,Z] with Z up
+    let base;   // returns [X,Y,Z] with Z up
     let small = ext.indexOf(Math.min(...ext));
-    if (mode === 'axis') small = 1;
-    if (small === 1) map = (x, y, z) => [x, -z, y];
-    else if (small === 2) map = (x, y, z) => [x, y, z];
-    else map = (x, y, z) => [y, z, x];
-    const a = map(mn[0], mn[1], mn[2]), b = map(mx[0], mx[1], mx[2]);
-    const lo = a.map((v, k) => Math.min(v, b[k])), hi = a.map((v, k) => Math.max(v, b[k]));
+    if (mode === 'axis' || downV) small = 1;
+    if (mode === 'axisDown') base = (x, y, z) => [x, z, -y];
+    else if (small === 1) base = (x, y, z) => [x, -z, y];
+    else if (small === 2) base = (x, y, z) => [x, y, z];
+    else base = (x, y, z) => [y, z, x];
+    const map = pre ? (x, y, z) => { const w = pre(x, y, z); return base(w[0], w[1], w[2]); } : base;
+    const lo = [1e9, 1e9, 1e9], hi = [-1e9, -1e9, -1e9];
+    for (const x of [mn[0], mx[0]]) for (const y of [mn[1], mx[1]]) for (const z of [mn[2], mx[2]]) {
+      const w = base(x, y, z); for (let k = 0; k < 3; k++) { lo[k] = Math.min(lo[k], w[k]); hi[k] = Math.max(hi[k], w[k]); }
+    }
     const off = [-(lo[0] + hi[0]) / 2, -(lo[1] + hi[1]) / 2, -lo[2]];
     return { map, off, size: hi.map((v, k) => v - lo[k]) };
   }
   function stlBytes(p) {
     const shells = p._shells || p.shells();
-    const pf = printFrame(shells, p.print);
+    const pf = printFrame(shells, p.print, p.down);
     let n = 0; shells.forEach(s => n += s.p.length / 9);
     const buf = new ArrayBuffer(84 + n * 50), dv = new DataView(buf);
     const head = `Heliotrope stereoscope - ${p.name} - mm`;
@@ -695,8 +869,8 @@
   // downloads: the artifact viewer only saves via the downloads capability
   let dlCap;
   const dlReady = (window.claude && window.claude.use) ? window.claude.use('downloads').then(x => (dlCap = x)).catch(() => (dlCap = null)) : Promise.resolve(undefined);
-  const dlmsg = $('#dlmsg');
-  async function offer(zipName, files) {
+  async function offer(zipName, files, msgEl) {
+    const dlmsg = msgEl || $('#dlmsg');
     await dlReady;
     if (window.claude && window.claude.use) {
       if (!dlCap) { dlmsg.textContent = 'Downloads aren’t available in this view. Open the page in a browser where you’re signed in.'; return; }
@@ -735,7 +909,7 @@
       list.forEach(r => {
         const p = r.parts[0];
         let size = '';
-        if (p._shells) { const pf = printFrame(p._shells, p.print); size = pf.size.map(v => v.toFixed(v < 10 ? 1 : 0)).join(' × ') + ' mm'; }
+        if (p._shells) { const pf = printFrame(p._shells, p.print, p.down); size = pf.size.map(v => v.toFixed(v < 10 ? 1 : 0)).join(' × ') + ' mm'; }
         const el = document.createElement('div');
         el.className = 'row'; el.tabIndex = 0; el.setAttribute('role', 'button');
         const count = r.parts.length > 1 ? r.parts.length : (p.qty || 1);

@@ -118,6 +118,11 @@
   .tag { font: 500 11px var(--mono); color: var(--dim); border: 1px dashed var(--line); border-radius: 4px; padding: 4px 6px; white-space: nowrap; }
   #dlmsg { font-size: 14px; color: var(--muted); min-height: 1.2em; margin: 8px 0 0; }
 
+  table.hw { width: 100%; border-collapse: collapse; font-size: 15px; margin-bottom: 4px; }
+  table.hw td { padding: 5px 4px; border-top: 1px solid var(--line-soft); vertical-align: top; }
+  table.hw td.num { white-space: nowrap; color: var(--gilt-hi); width: 3.5em; font-variant-numeric: tabular-nums; }
+  ol.asm { margin: 0 0 12px; padding-left: 20px; }
+  ol.asm li { margin-bottom: 6px; }
   details { border-top: 1px solid var(--line-soft); }
   details:last-of-type { border-bottom: 1px solid var(--line-soft); }
   summary { cursor: pointer; padding: 11px 0; font: 400 19px var(--display); color: var(--text); list-style: none; display: flex; justify-content: space-between; }
@@ -162,6 +167,7 @@
       <button data-mode="exploded" aria-pressed="false">Exploded</button>
       <button data-mode="mount" aria-pressed="false">Bayonet mount</button>
       <button data-mode="ritual" aria-pressed="false">Using it</button>
+      <button data-mode="kit" aria-pressed="false">Prototype kit</button>
     </div>
     <div id="picked" hidden></div>
     <div id="caption" hidden></div>
@@ -190,7 +196,7 @@
         <h2 style="margin:0">Parts &amp; STL files</h2>
         <button class="btn" id="dl-all">Download all</button>
       </div>
-      <p class="hint">Millimetres, laid flat for printing. Each STL downloads inside a .zip. Click a part here or in the model to see where it goes.</p>
+      <p class="hint">The final design, in millimetres, laid out for printing. Each STL downloads inside a .zip. Click a part here or in the model to see where it goes. For a version with every joint cut for screws, dowels and magnets, open <strong>Prototype kit</strong>.</p>
       <p id="dlmsg" role="status"></p>
       <div id="parts"></div>
     </div>
@@ -229,7 +235,7 @@
         <summary>Making it</summary>
         <p><strong>Wood.</strong> The body is ½″ (12.7 mm) walnut. The walls taper 10.1° in plan, so the lens board and end wall have matching bevelled ends. The roof is two laminations, the lower one stepped back 4 mm to make the glass ledge. STLs for the wood parts are full-size templates.</p>
         <p><strong>Printed and gilt.</strong> Print the Sun, medallions, cornice, frame, crest, column, consoles and knob in resin, or in PLA at 0.1 mm. Then gesso, bole and water-gild, or use oil size and leaf. Print the eyepieces in PLA or PETG, upright. Their 3-start threads have <span class="num">0.4 mm</span> radial clearance and need no supports.</p>
-        <p><strong>Buy.</strong> Two panes of 2–2.5 mm ground glass (templates included), 10 mm silk ribbon, six 6 × 3 mm and eight 6 × 2 mm magnets, an M8 rod through the column, felt for the drawer runners.</p>
+        <p><strong>Buy.</strong> Two panes of 2–2.5 mm ground glass (templates included), 10 mm silk ribbon and felt for the drawer runners. The <strong>Prototype kit</strong> view lists the screws, heat-set inserts, magnets and M8 rod that hold everything together.</p>
       </details>
     </div>
   </aside>
@@ -239,4 +245,5 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/environments/RoomEnvironment.js"></script>
 <script src="geometry.js"></script>
+<script src="proto.js"></script>
 <script src="app.js"></script>
