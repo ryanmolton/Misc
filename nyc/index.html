@@ -106,6 +106,8 @@ button{font:inherit;color:inherit}
 .st-time{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-variant-numeric:tabular-nums;min-width:62px}
 .st-name{font-weight:500;font-size:15.5px;transition:color .15s}
 .stop.minor .st-name{font-weight:400;color:var(--ink-2);font-size:14.5px}
+.ph{font-size:12px;font-weight:500;color:var(--rose);text-decoration:none;border:1px solid color-mix(in srgb,var(--rose) 35%,transparent);border-radius:999px;padding:1px 8px;margin-left:auto}
+.ph:hover{background:var(--rose);color:#fff}
 .st-note{font-size:14px;color:var(--ink-2);margin-top:3px}
 .st-baby{font-size:13.5px;margin-top:6px;padding:7px 10px;border-radius:8px;background:var(--gold-soft);color:#5E4717}
 .st-baby b{font-weight:600}
@@ -773,7 +775,7 @@ function timeline(d){
     if(!minor && !home) n++;
     html += `<li class="stop ${minor?'minor':''} ${home?'home':''}" style="--c:${d.color}" data-day="${d.id}" data-i="${i}" tabindex="0">
       <span class="dot"></span>
-      <div><div class="st-top"><span class="st-time">${esc(s.t)}</span><span class="st-name">${!minor&&!home?n+'. ':''}${esc(pl[0])}</span></div>
+      <div><div class="st-top"><span class="st-time">${esc(s.t)}</span><span class="st-name">${!minor&&!home?n+'. ':''}${esc(pl[0])}</span>${minor?'':`<a class="ph" href="https://www.google.com/search?tbm=isch&q=${encodeURIComponent(pl[0]+' New York')}" target="_blank" rel="noopener">Photos ↗</a>`}</div>
       ${s.note?`<p class="st-note">${esc(s.note)}</p>`:''}
       ${s.baby?`<p class="st-baby"><b>For him:</b> ${esc(s.baby)}</p>`:''}</div></li>`;
   });
@@ -825,6 +827,7 @@ document.addEventListener('click',e=>{
     if(b.classList.contains('showbtn')) $('#map').scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth', block:'start'});
     return;
   }
+  if(e.target.closest('a')) return;
   const st=e.target.closest('.stop');
   if(st){
     const di=+st.dataset.day, i=+st.dataset.i;
