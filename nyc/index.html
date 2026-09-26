@@ -39,6 +39,18 @@ button{font:inherit;color:inherit}
 .tally b{font-family:var(--display);font-size:30px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.1}
 .tally span{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
 
+/* ---------- trip picker ---------- */
+.trips{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px}
+.trip{border:1px solid var(--line);background:var(--card);border-radius:18px;padding:14px 18px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:3px;transition:border-color .2s,background .2s,color .2s}
+.trip:hover{border-color:var(--ink)}
+.trip .pr{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--rose);font-weight:600}
+.trip b{font-family:var(--display);font-size:24px;font-weight:500;line-height:1.1}
+.trip span{font-size:13.5px;color:var(--ink-2)}
+.trip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#F4F1F7}
+.trip[aria-pressed="true"] span{color:rgba(244,241,247,.75)}
+.trip[aria-pressed="true"] .pr{color:#E8C979}
+@media (max-width:760px){.trips{grid-template-columns:1fr}.trip{padding:10px 14px}.trip b{font-size:20px}}
+
 /* ---------- map ---------- */
 .atlas{display:grid;grid-template-columns:minmax(0,1fr) 380px;background:var(--card);border-radius:22px;overflow:hidden;box-shadow:0 1px 0 var(--line),0 30px 60px -30px rgba(29,33,64,.35)}
 .stage{position:relative;height:clamp(460px,70vh,780px);background:linear-gradient(180deg,#5d6fa6 0%,#b99bb8 45%,#f0c3ae 75%,#f7d7b6 100%);overflow:hidden}
@@ -175,10 +187,12 @@ section.block{margin-top:72px}
       <h1>Our Little <em>New&nbsp;Yorker</em></h1>
     </div>
     <div>
-      <p class="lede">Four slow, beautiful days for the three of you. Tea under a stained-glass ceiling, his first carousel ride, the Guggenheim's spiral at stroller speed, and sunset twice: once from the 70th floor, once from the Brooklyn waterfront. Every leg is walkable or a subway ride, with times at an unhurried stroller pace.</p>
+      <p class="lede" id="lede"></p>
       <div class="tally" id="tally"></div>
     </div>
   </header>
+
+  <div class="trips" id="trips" role="group" aria-label="Choose a version of the trip"></div>
 
   <div class="atlas" id="map">
     <div class="stage" id="stage">
@@ -204,30 +218,7 @@ section.block{margin-top:72px}
       <h2>Where we'll stay</h2>
       <p>One home base for all five nights, so the crib gets set up once and every morning starts with a walk into the park.</p>
     </div>
-    <div class="stay">
-      <div class="stay-card">
-        <div class="eyebrow">Home base · Midtown, by Central Park</div>
-        <h3>The Whitby Hotel</h3>
-        <div class="addr">18 West 56th Street, between Fifth &amp; Sixth</div>
-        <ul>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><span>Six minutes to Central Park's southeast corner. Most mornings start with a stroll, not a commute.</span></li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 20V9l8-5 8 5v11"/><path d="M9 20v-6h6v6"/></svg><span>Designed by Kit Kemp: color, pattern and art in every room. It feels like a very chic friend's townhouse.</span></li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 10h11v4a5 5 0 01-5 5h-1a5 5 0 01-5-5z"/><path d="M16 11h1.5a2.5 2.5 0 010 5H16"/><path d="M8 3c0 2 2 2 2 4M12 3c0 2 2 2 2 4"/></svg><span>Afternoon tea in the hotel's own Orangery, a second tea for a rainy afternoon without leaving the building.</span></li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="3" width="14" height="14" rx="3"/><path d="M5 11h14M8 21l2-4M16 21l-2-4"/><circle cx="9" cy="14" r=".8" fill="currentColor"/><circle cx="15" cy="14" r=".8" fill="currentColor"/></svg><span>Near the F at 57 St and the B/D/F/M at Rockefeller Center, plus a flat walk to Grand Central for the airport train.</span></li>
-        </ul>
-      </div>
-      <div class="stay-side">
-        <div class="walkring" id="walkring"></div>
-        <div class="note-card">
-          <h4>When you book</h4>
-          <p>Ask for a crib and a high floor away from the elevator bank. Reserve afternoon tea at The Plaza and dinner at The River Café at the same time, since both book up.</p>
-        </div>
-        <div class="note-card">
-          <h4>If The Whitby is full</h4>
-          <p><b>The Lowell</b> on the Upper East Side is quieter and residential, a few blocks from the Met. <b>The Beekman</b> in Lower Manhattan puts you at the Brooklyn Bridge end of the plan, with a soaring Victorian atrium she'll love.</p>
-        </div>
-      </div>
-    </div>
+    <div class="stay" id="stayBox"></div>
   </section>
 
   <section class="block" id="itinerary">
@@ -245,19 +236,19 @@ section.block{margin-top:72px}
     </div>
     <div class="show">
       <div class="tip feature">
-        <div class="k">Plug into Day 3 morning</div>
+        <div class="k">Plug into any morning</div>
         <h3>New Victory Theater, 42nd Street</h3>
-        <p>New York's theater for kids and families sits right on the Broadway strip, a few doors from Times Square. It regularly programs short, gentle shows made for babies, with soft light, music, and floor seating where wiggling and babbling are part of the performance. Check the calendar for your dates and book the earliest show; it's a five-minute walk from the Times Sq–42 St stop on Day 3.</p>
+        <p>New York's theater for kids and families sits right on the Broadway strip, a few doors from Times Square. It regularly programs short, gentle shows made for babies, with soft light, music, and floor seating where wiggling and babbling are part of the performance. Check the calendar for your dates and book the earliest show. It's a five-minute walk from Times Sq–42 St, which every version of this trip passes through.</p>
       </div>
       <div class="tip">
         <div class="k">Free, every day</div>
         <h3>The bronze orchestra at the zoo</h3>
-        <p>The Delacorte Musical Clock above the Central Park Zoo gate plays nursery rhymes every half hour while a bear, a hippo, a goat and friends parade around it. Plan Day 1 so you're standing under it on the hour, when the song runs longest.</p>
+        <p>The Delacorte Musical Clock above the Central Park Zoo gate plays nursery rhymes every half hour while a bear, a hippo, a goat and friends parade around it. It's at the zoo entrance off Fifth Avenue at 65th Street. Be under it on the hour, when the song runs longest.</p>
       </div>
       <div class="tip">
         <div class="k">Every evening</div>
         <h3>A Broadway marquee walk</h3>
-        <p>Walk Shubert Alley and 44th and 45th Streets after dinner, when the marquees light up and the crowds go inside. It's two blocks off the Day 3 route and eight minutes from the hotel.</p>
+        <p>Walk Shubert Alley and 44th and 45th Streets after dinner, when the marquees light up and the crowds go inside. It's a short stroll from Times Square in any version of the trip.</p>
       </div>
       <div class="tip">
         <div class="k">If you're here July–August</div>
@@ -273,14 +264,14 @@ section.block{margin-top:72px}
       <p>No cabs or ride-shares with his car seat question hanging over them. Just your feet, a stroller, a carrier, and the subway.</p>
     </div>
     <div class="grid3">
-      <div class="tip"><div class="k">Arriving</div><h3>JFK by train</h3><p>AirTrain from your terminal to Jamaica, then the LIRR to Grand Central Madison, about an hour door to platform. Both have elevators the whole way, and the LIRR has room for a stroller and bags. Flying into Newark instead? AirTrain to NJ Transit to Penn Station takes about 35 minutes.</p></div>
-      <div class="tip"><div class="k">The key gear</div><h3>Stroller + carrier</h3><p>Many subway stations are stairs-only. The stations on this plan are ones with elevators, except York St on Day 4. Wear him in the carrier for those, fold the stroller, and it's easy. The carrier is also better for the Brooklyn Bridge and Top of the Rock.</p></div>
+      <div class="tip"><div class="k">Arriving</div><h3>JFK by train</h3><p>AirTrain from your terminal to Jamaica, then the LIRR to Grand Central Madison or Penn Station, about an hour door to platform. Both have elevators the whole way, and the LIRR has room for a stroller and bags. Flying into Newark instead? AirTrain to NJ Transit to Penn Station takes about 35 minutes.</p></div>
+      <div class="tip"><div class="k">The key gear</div><h3>Stroller + carrier</h3><p>Many subway stations are stairs-only. Most stations on these plans have elevators, and the stairs-only ones are called out in the notes. Wear him in the carrier for those, fold the stroller, and it's easy. The carrier is also better for the Brooklyn Bridge and Top of the Rock.</p></div>
       <div class="tip"><div class="k">Fares</div><h3>Tap and go</h3><p>Tap a phone or card at any turnstile (OMNY). He rides free: children under 44 inches don't pay. Use the wide service gate with the stroller, and stand by the doors where there's room.</p></div>
       <div class="tip"><div class="k">Timing trick</div><h3>Keep him on San Diego time</h3><p>A 7 pm bedtime at home is 10 pm here. For a short trip, letting him stay mostly on Pacific time means sunsets and early dinners fit naturally, and mornings start a little later.</p></div>
       <div class="tip"><div class="k">Pace</div><h3>How times are measured</h3><p>Walk times assume about 2.5 mph with a stroller and no stops. The longest single walk is the 35-minute Brooklyn Bridge crossing, and every day has a hotel break or a stroller-nap stretch built in.</p></div>
       <div class="tip"><div class="k">Changing &amp; feeding</div><h3>Where to pause</h3><p>The Met, the Guggenheim, Chelsea Market, and The Plaza all have clean restrooms. Bryant Park's are famously lovely, with fresh flowers and an attendant. Park benches along the Literary Walk and the High Line are good for a quiet feed.</p></div>
     </div>
-    <p class="fine">Hours, elevator service, show calendars and reservations change. Check the MTA's elevator status and each place's site the week before you fly. Walk times are estimates from the map, not from turn-by-turn routing.</p>
+    <p class="fine">Hotel prices are typical ranges and move a lot by season. Hours, elevator service, show calendars and reservations change. Check the MTA's elevator status and each place's site the week before you fly. Walk times are estimates from the map, not from turn-by-turn routing.</p>
   </section>
 </div>
 
@@ -333,12 +324,44 @@ const PL = {
   rc:['The River Café',40.7038,-73.9950],
   york:['York St',40.7014,-73.9866],
   f57:['57 St',40.7639,-73.9774],
-  paley:['Paley Park',40.7598,-73.9758]
+  paley:['Paley Park',40.7598,-73.9758],
+  knick:['The Knickerbocker',40.7558,-73.9866],
+  luc:['The Lucerne',40.7836,-73.9794],
+  fao:['FAO Schwarz',40.7586,-73.9790],
+  bpk:['Bryant Park',40.7536,-73.9832],
+  lions:['The library lions, Fifth Ave',40.7530,-73.9812],
+  tavern:['Tavern on the Green',40.7722,-73.9776],
+  sheep:['Sheep Meadow',40.7715,-73.9750],
+  cc:['59 St–Columbus Circle',40.7681,-73.9819],
+  tkts:['The red steps, Times Square',40.7590,-73.9851],
+  carmine:["Carmine's",40.7575,-73.9862],
+  q72:['72 St',40.7688,-73.9582],
+  joes:["Joe's Pizza, Carmine St",40.7306,-74.0025],
+  pa:['42 St–Port Authority',40.7573,-73.9898],
+  sfy:['South Ferry',40.7020,-74.0130],
+  sif:['Staten Island Ferry',40.7010,-74.0122],
+  bbent:['Brooklyn Bridge walkway',40.7123,-74.0036],
+  juliana:["Juliana's",40.7027,-73.9934],
+  bp42:['42 St–Bryant Park',40.7542,-73.9844],
+  penn:['34 St–Penn Station',40.7506,-73.9910],
+  s72:['72 St',40.7784,-73.9819],
+  riv:['Riverside Park at 79th',40.7846,-73.9852],
+  amnh:['American Museum of Natural History',40.7813,-73.9740],
+  belv:['Belvedere Castle',40.7794,-73.9691],
+  bow:['Bow Bridge',40.7757,-73.9718],
+  straw:['Strawberry Fields',40.7757,-73.9750],
+  dakota:['The Dakota',40.7766,-73.9764],
+  cafelux:['Café Luxembourg',40.7774,-73.9836],
+  levain:['Levain Bakery',40.7797,-73.9803],
+  clark:['Clark St',40.6975,-73.9931],
+  prom:['Brooklyn Heights Promenade',40.6957,-73.9975],
+  bbt:['Brooklyn Bridge, Brooklyn tower',40.7047,-73.9943],
+  sarabeth:["Sarabeth's",40.7849,-73.9779]
 };
 const BRIDGE_B = [[40.7112,-74.0024],[40.7022,-73.9912]];
 
 // Each stop: p=place, t=time, m=mode of the leg INTO this stop, min=minutes, via=waypoints, ln=line
-const DAYS = [
+const DAYS_A = [
  {id:0,short:'Arrive',label:'Day 0',title:'Touchdown, little one',sub:'Arrival evening',cvar:'--d0',
   moment:'His first look at New York: cathedral spires and golden windows at dusk, seen from the warm side of a baby carrier.',
   stops:[
@@ -473,9 +496,227 @@ const DAYS = [
   ]}
 ];
 
+
+const F_LINE=[[40.7138,-73.9900],[40.7185,-73.9880],[40.7254,-73.9962],[40.7322,-74.0005],[40.7378,-73.9965],[40.7496,-73.9876]];
+const R123=[[40.7681,-73.9819],[40.7557,-73.9870],[40.7506,-73.9910],[40.7378,-74.0003],[40.7283,-74.0053],[40.7153,-74.0093],[40.7094,-74.0065],[40.7040,-74.0040]];
+const DAYS_B = [
+ {id:0,short:'Arrive',label:'Day 0',title:'Touchdown, little one',sub:'Arrival evening',
+  moment:'String lights in Bryant Park and the library lions saying goodnight on his first night in New York.',
+  stops:[
+   {p:'gcm',t:'4:30 pm',m:'rail',min:60,ln:'AirTrain + LIRR',from:'jfk',chipT:.93,kind:'stn',
+     note:'The LIRR drops you right under Grand Central. Look up at the gold constellations on the Main Concourse ceiling on your way out.',
+     baby:'Feed him on the descent into JFK for his ears, then again on the train.'},
+   {p:'knick',t:'5:00 pm',m:'walk',min:12,kind:'home',note:'Straight along 42nd Street to the hotel. Check in, crib up, a warm bath.'},
+   {p:'bpk',t:'7:00 pm',m:'walk',min:7,note:'Bryant Park at dusk: the lawn, string lights, and the library\'s back terrace glowing.'},
+   {p:'lions',t:'7:20 pm',m:'walk',min:3,note:'Say goodnight to Patience and Fortitude, the marble lions guarding the library on Fifth Avenue.',
+     baby:'A short first outing. Let the lights do the work.'},
+   {p:'knick',t:'7:45 pm',m:'walk',min:10,kind:'home',note:'Room service and an early night.'}
+  ]},
+ {id:1,short:'FAO & park',label:'Day 1',title:'FAO Schwarz & Central Park',sub:'His first New York toy, then sea lions and stone bridges',
+  moment:'His feet on the giant piano at FAO Schwarz, then the bronze animals dancing on the zoo clock at noon.',
+  stops:[
+   {p:'knick',t:'9:30 am',kind:'home'},
+   {p:'fao',t:'10:00 am',m:'walk',min:12,via:[[40.7575,-73.9840]],
+     note:'The giant floor piano from Big, toy soldiers at the door, and a whole baby section. Pick out his first New York toy.',
+     baby:'Lay him on the piano keys for the photo. The staff are used to it.'},
+   {p:'stpat',t:'11:00 am',m:'walk',min:4,note:'Neo-Gothic spires across Fifth Avenue. Step inside for a quiet minute under the rose window.'},
+   {p:'pond',t:'11:30 am',m:'walk',min:14,via:[[40.7622,-73.9743],[40.7646,-73.9728]],note:'Gapstow Bridge with the skyline rising behind it. The family photo of the trip.'},
+   {p:'zoo',t:'11:45 am',m:'walk',min:6,note:'Sea lions and penguins, then the Delacorte Clock at noon: bronze animals parade and play nursery rhymes.',
+     baby:'Sea-lion feedings are the happiest noise in the park. He will stare.'},
+   {p:'beth',t:'1:00 pm',m:'walk',min:12,via:[[40.7712,-73.9722]],note:'Up the elm-lined Mall, then down through the arcade and its Minton-tile ceiling to the Angel of the Waters fountain.'},
+   {p:'tavern',t:'1:30 pm',m:'walk',min:10,via:[[40.7735,-73.9745]],note:'Lunch in the courtyard at Tavern on the Green, under trees strung with lanterns.'},
+   {p:'sheep',t:'2:45 pm',m:'walk',min:5,note:'Fifteen acres of lawn with the skyline around the edges. Spread a blanket.',
+     baby:'Tummy time on the grass, then a stroller nap.'},
+   {p:'cc',t:'3:30 pm',m:'walk',min:12,via:[[40.7700,-73.9790]],kind:'stn',note:'Elevator station.'},
+   {p:'knick',t:'3:45 pm',m:'sub',min:6,ln:'1',kind:'home',note:'Two stops to Times Sq–42 St, which comes up at the hotel door. Nap for everyone.'},
+   {p:'tkts',t:'7:30 pm',m:'walk',min:4,note:'Sit on the red steps above the TKTS booth and watch Times Square light up.'},
+   {p:'knick',t:'8:00 pm',m:'walk',min:4,kind:'home'}
+  ]},
+ {id:2,short:'The Met',label:'Day 2',title:'A morning at the Met',sub:'Temple of Dendur, then Alice in Wonderland',
+  moment:'The Temple of Dendur glowing by its wall of windows, then his photo on Alice\'s bronze mushroom.',
+  stops:[
+   {p:'knick',t:'9:15 am',kind:'home'},
+   {p:'q86',t:'9:35 am',m:'sub',min:15,ln:'Q',via:[[40.7648,-73.9807],[40.7642,-73.9742],[40.7649,-73.9662],[40.7686,-73.9582]],kind:'stn',note:'From the station under the hotel. Both ends have elevators.'},
+   {p:'met',t:'10:00 am',m:'walk',min:18,via:[[40.7792,-73.9560]],
+     note:'Go straight to the Temple of Dendur and its glass-walled hall, then the American Wing courtyard and the Arms and Armor knights.',
+     baby:'Arrive at opening, when the galleries are wide and empty. The museum cafeteria is easy for lunch.'},
+   {p:'alice',t:'1:30 pm',m:'walk',min:8,via:[[40.7765,-73.9642]],note:'Model sailboats on Conservatory Water and the bronze Alice in Wonderland statue.',
+     baby:'Sit him on Alice\'s giant mushroom for a photo you\'ll frame.'},
+   {p:'q72',t:'2:30 pm',m:'walk',min:15,via:[[40.7720,-73.9630]],kind:'stn',note:'Elevator station on the Second Avenue line.',baby:'The walk east is a good stroller nap.'},
+   {p:'knick',t:'2:55 pm',m:'sub',min:12,ln:'Q',via:[[40.7686,-73.9582],[40.7649,-73.9662],[40.7642,-73.9742],[40.7648,-73.9807]],kind:'home',note:'Straight back to the hotel. Rest.'},
+   {p:'carmine',t:'5:30 pm',m:'walk',min:3,note:'Family-style Italian in the Theater District: huge platters, loud and happy, and nobody minds a baby.'},
+   {p:'knick',t:'7:00 pm',m:'walk',min:3,kind:'home'}
+  ]},
+ {id:3,short:'High Line',label:'Day 3',title:'The High Line & the Village',sub:'A garden in the sky, a slice on Carmine St',
+  moment:'A garden on an old railway, a park floating on concrete tulips, then a slice on Carmine Street.',
+  stops:[
+   {p:'knick',t:'9:30 am',kind:'home'},
+   {p:'hy',t:'9:45 am',m:'sub',min:5,ln:'7',kind:'stn',note:'From the station under the hotel, one stop west to an all-elevator station.'},
+   {p:'vessel',t:'10:00 am',m:'walk',min:3,note:'Look up into the copper honeycomb of the Vessel.'},
+   {p:'hl30',t:'10:15 am',m:'walk',min:4,note:'Up the elevator onto the High Line: wildflowers, old rail tracks, river views.'},
+   {p:'cm',t:'11:45 am',m:'walk',min:32,via:[[40.7497,-74.0045],[40.7470,-74.0052],[40.7440,-74.0066],[40.7410,-74.0080]],
+     note:'Walk the High Line south and take the 14th St elevator down. Graze through Chelsea Market for lunch.',baby:'Changing tables in the market restrooms.'},
+   {p:'li',t:'1:15 pm',m:'walk',min:8,via:[[40.7411,-74.0085]],note:'A park floating on 132 concrete tulips over the Hudson.'},
+   {p:'mag',t:'2:30 pm',m:'walk',min:10,via:[[40.7392,-74.0090]],note:'Banana pudding on the brownstone stoops of Perry and Charles Streets.'},
+   {p:'joes',t:'4:30 pm',m:'walk',min:9,via:[[40.7330,-74.0035]],note:'A classic New York slice, folded, eaten on the sidewalk.'},
+   {p:'wsq',t:'5:30 pm',m:'walk',min:6,note:'The marble arch with the Empire State Building lined up behind it up Fifth Avenue.'},
+   {p:'w4',t:'6:15 pm',m:'walk',min:4,kind:'stn',note:'Elevator station.'},
+   {p:'pa',t:'6:30 pm',m:'sub',min:8,ln:'A/C/E',via:[[40.7404,-74.0020],[40.7527,-73.9935]],kind:'stn',note:'Elevator station.'},
+   {p:'knick',t:'6:40 pm',m:'walk',min:5,kind:'home'}
+  ]},
+ {id:4,short:'Harbor',label:'Day 4',title:'Lady Liberty & the Brooklyn Bridge',sub:'The free ferry, a bridge walk, pizza by the river',
+  moment:'Lady Liberty from the ferry rail with the harbor breeze on his face, then the Brooklyn Bridge on foot.',
+  stops:[
+   {p:'knick',t:'9:00 am',kind:'home'},
+   {p:'sfy',t:'9:25 am',m:'sub',min:22,ln:'1',via:[[40.7506,-73.9910],[40.7378,-74.0003],[40.7283,-74.0053],[40.7153,-74.0093],[40.7075,-74.0138]],kind:'stn',note:'From the station under the hotel. South Ferry has elevators.'},
+   {p:'sif',t:'9:30 am',m:'walk',min:3,
+     note:'The free Staten Island Ferry: the Statue of Liberty from the rail, then the whole downtown skyline on the way back. Walk off at St. George and straight back on. About an hour round trip.',
+     baby:'Sit on the right side going out for the Statue. Strollers roll right on.'},
+   {p:'bbent',t:'11:00 am',m:'walk',min:22,via:[[40.7075,-74.0095],[40.7110,-74.0060]],note:'Through the Financial District to the bridge walkway.'},
+   {p:'tom',t:'12:00 pm',m:'walk',min:30,via:[BRIDGE_B[0],BRIDGE_B[1],[40.7026,-73.9905]],
+     note:'Walk the Brooklyn Bridge: Gothic stone arches and the web of cables. Lunch at the Time Out Market rooftop.',baby:'Carrier recommended. The walkway is busy.'},
+   {p:'jane',t:'1:45 pm',m:'walk',min:5,note:'A restored 1922 carousel inside a glass pavilion by Jean Nouvel, right on the river.'},
+   {p:'wash',t:'2:15 pm',m:'walk',min:5,note:'The Manhattan Bridge framed between warehouses, the Empire State Building in the arch.'},
+   {p:'pier1',t:'3:00 pm',m:'walk',min:9,via:[[40.7030,-73.9930]],note:'Lawns facing the downtown skyline.',baby:'Blanket, tummy time, and a nap.'},
+   {p:'juliana',t:'5:00 pm',m:'walk',min:6,note:'Coal-oven pizza under the bridge. Go early to beat the line.'},
+   {p:'york',t:'6:30 pm',m:'walk',min:10,via:[[40.7030,-73.9905]],kind:'stn',note:'Stairs only here. Carrier on, stroller folded.'},
+   {p:'bp42',t:'6:55 pm',m:'sub',min:22,ln:'F',via:F_LINE,kind:'stn'},
+   {p:'knick',t:'7:05 pm',m:'walk',min:6,kind:'home'}
+  ]},
+ {id:5,short:'Farewell',label:'Day 5',title:'A library goodbye',sub:'Carousel, reading room, then home',
+  moment:'A last carousel spin in Bryant Park and one last look up at the library\'s painted-cloud ceiling.',
+  stops:[
+   {p:'knick',t:'9:00 am',kind:'home'},
+   {p:'bp',t:'9:30 am',m:'walk',min:7,note:'Le Carrousel spins to French cabaret music under the plane trees.',baby:'His first carousel. Ride the bench together.'},
+   {p:'nypl',t:'10:00 am',m:'walk',min:3,note:'The Rose Main Reading Room: Beaux-Arts grandeur and painted clouds on a 52-foot ceiling.'},
+   {p:'knick',t:'10:45 am',m:'walk',min:8,kind:'home',note:'Check out.'},
+   {p:'gcm',t:'11:15 am',m:'walk',min:12,kind:'stn'},
+   {p:'jfk',t:'12:15 pm',m:'rail',min:60,ln:'LIRR + AirTrain',kind:'stn',far:true,chipT:.07,note:'Back to JFK, then a feed on takeoff.'}
+  ]}
+];
+
+const DAYS_C = [
+ {id:0,short:'Arrive',label:'Day 0',title:'Touchdown, little one',sub:'Arrival evening',
+  moment:'The sun going down over the Hudson from Riverside Park on his very first evening.',
+  stops:[
+   {p:'penn',t:'4:30 pm',m:'rail',min:55,ln:'AirTrain + LIRR',from:'jfk',chipT:.93,kind:'stn',
+     note:'The LIRR into Penn Station, then follow signs to the uptown 1/2/3.',baby:'Feed him on the descent into JFK for his ears.'},
+   {p:'s72',t:'5:00 pm',m:'sub',min:8,ln:'2/3',via:[[40.7557,-73.9870],[40.7681,-73.9819]],kind:'stn',note:'Express, two stops. Elevator station.'},
+   {p:'luc',t:'5:15 pm',m:'walk',min:9,via:[[40.7830,-73.9800]],kind:'home',note:'Up Broadway to the hotel. Check in, crib up, a warm bath.'},
+   {p:'riv',t:'7:00 pm',m:'walk',min:6,note:'Riverside Park at 79th: the sun setting over the Hudson and the boats in the basin.',baby:'A short first outing in the river breeze.'},
+   {p:'luc',t:'7:40 pm',m:'walk',min:6,kind:'home'}
+  ]},
+ {id:1,short:'Museum & park',label:'Day 1',title:'Whales & castles',sub:'Natural History, Belvedere Castle, Bow Bridge',
+  moment:'Lying back under the blue whale together, then Bow Bridge on a slow afternoon.',
+  stops:[
+   {p:'luc',t:'9:40 am',kind:'home'},
+   {p:'amnh',t:'10:00 am',m:'walk',min:6,
+     note:'Enter through the Gilder Center on Columbus Avenue, Studio Gang\'s flowing, canyon-like atrium. Then the 94-foot blue whale and the Rose Center\'s glowing sphere.',
+     baby:'The Hall of Ocean Life is dim, cool and hushed under the whale. A perfect spot to feed.'},
+   {p:'belv',t:'1:30 pm',m:'walk',min:12,via:[[40.7803,-73.9722]],note:'A little stone castle on Vista Rock above Turtle Pond.',baby:'The stroller stays below; a few steps up to the terrace.'},
+   {p:'bow',t:'2:15 pm',m:'walk',min:10,via:[[40.7778,-73.9700]],note:'Cast-iron Bow Bridge over the Lake, the most romantic spot in the park.'},
+   {p:'beth',t:'2:35 pm',m:'walk',min:6,note:'Down through the arcade and its Minton-tile ceiling to the Angel of the Waters fountain.'},
+   {p:'straw',t:'3:15 pm',m:'walk',min:10,via:[[40.7745,-73.9730]],note:'The Imagine mosaic in Strawberry Fields.'},
+   {p:'dakota',t:'3:30 pm',m:'walk',min:3,note:'The Dakota\'s gables and dormers, built in 1884, across Central Park West.'},
+   {p:'luc',t:'4:00 pm',m:'walk',min:16,via:[[40.7790,-73.9790]],kind:'home',note:'Nap for everyone.'},
+   {p:'cafelux',t:'6:00 pm',m:'walk',min:12,via:[[40.7784,-73.9819]],note:'Dinner at Café Luxembourg, a glowing Parisian-style bistro on West 70th. Book the early table.'},
+   {p:'luc',t:'7:30 pm',m:'walk',min:12,via:[[40.7784,-73.9819]],kind:'home'}
+  ]},
+ {id:2,short:'The Met',label:'Day 2',title:'The Met & the spiral',sub:'Across the Great Lawn to Museum Mile',
+  moment:'Walking across Central Park to the Met, then rolling down the Guggenheim\'s spiral with him staring up at the skylight.',
+  stops:[
+   {p:'luc',t:'9:30 am',kind:'home'},
+   {p:'met',t:'10:00 am',m:'walk',min:28,via:[[40.7812,-73.9725],[40.7812,-73.9660]],
+     note:'Straight across Central Park past the Great Lawn. Start with the Temple of Dendur, then the American Wing courtyard. Lunch in the museum cafeteria.',
+     baby:'Arrive at opening, before the crowds.'},
+   {p:'gugg',t:'1:30 pm',m:'walk',min:12,via:[[40.7826,-73.9582]],note:'Take the elevator to the top and roll down Frank Lloyd Wright\'s continuous ramp under the skylight.'},
+   {p:'res',t:'3:00 pm',m:'walk',min:5,via:[[40.7847,-73.9585]],note:'In at Engineers\' Gate: the skyline reflected across the Reservoir.'},
+   {p:'luc',t:'3:45 pm',m:'walk',min:25,via:[[40.7870,-73.9680],[40.7850,-73.9745]],kind:'home',note:'Back across the park.',baby:'He\'ll probably nap the whole way.'},
+   {p:'levain',t:'6:30 pm',m:'walk',min:7,note:'Warm, gooey Levain cookies, the neighborhood\'s famous treat.'},
+   {p:'luc',t:'7:00 pm',m:'walk',min:7,kind:'home'}
+  ]},
+ {id:3,short:'FAO & Midtown',label:'Day 3',title:'Midtown classics',sub:'FAO Schwarz, the library, Grand Central',
+  moment:'His first toy at FAO Schwarz and a whisper across Grand Central\'s tiled arches.',
+  stops:[
+   {p:'luc',t:'9:30 am',kind:'home'},
+   {p:'s72',t:'9:40 am',m:'walk',min:9,via:[[40.7815,-73.9805]],kind:'stn',note:'Elevator station.'},
+   {p:'ts',t:'9:55 am',m:'sub',min:8,ln:'2/3',via:[[40.7681,-73.9819]],kind:'stn',note:'Elevator station.'},
+   {p:'fao',t:'10:15 am',m:'walk',min:10,via:[[40.7575,-73.9840]],note:'The giant floor piano from Big, toy soldiers, a whole baby section. Pick out his first New York toy.',baby:'Lay him on the piano keys for the photo.'},
+   {p:'stpat',t:'11:15 am',m:'walk',min:4,note:'Neo-Gothic spires and the rose window.'},
+   {p:'nypl',t:'12:00 pm',m:'walk',min:14,via:[[40.7545,-73.9805]],note:'The Rose Main Reading Room: painted clouds on a 52-foot ceiling.'},
+   {p:'bp',t:'12:45 pm',m:'walk',min:3,note:'Lunch from the Bryant Park kiosks, then Le Carrousel.',baby:'His first carousel. The park restrooms are the city\'s nicest.'},
+   {p:'gct',t:'2:00 pm',m:'walk',min:8,via:[[40.7530,-73.9808]],note:'The Whispering Gallery outside the Oyster Bar: stand in opposite corners and whisper to each other.'},
+   {p:'ts',t:'2:30 pm',m:'walk',min:14,kind:'stn',note:'Back along 42nd Street.'},
+   {p:'s72',t:'2:45 pm',m:'sub',min:8,ln:'2/3',via:[[40.7681,-73.9819]],kind:'stn'},
+   {p:'luc',t:'3:00 pm',m:'walk',min:9,via:[[40.7815,-73.9805]],kind:'home',note:'Afternoon nap, then a quiet evening in the neighborhood.'}
+  ]},
+ {id:4,short:'Brooklyn',label:'Day 4',title:'Brooklyn Heights & DUMBO',sub:'The Promenade, a river carousel, pizza under the bridge',
+  moment:'The whole harbor from the Promenade, a carousel by the river, and pizza under the bridge at sunset.',
+  stops:[
+   {p:'luc',t:'9:30 am',kind:'home'},
+   {p:'s72',t:'9:40 am',m:'walk',min:9,via:[[40.7815,-73.9805]],kind:'stn'},
+   {p:'clark',t:'10:15 am',m:'sub',min:30,ln:'2/3',via:R123,kind:'stn',note:'Street access here is by elevator only. One seat from the Upper West Side to Brooklyn.'},
+   {p:'prom',t:'10:30 am',m:'walk',min:6,note:'The Brooklyn Heights Promenade: brownstones on one side, the harbor and skyline on the other.'},
+   {p:'jane',t:'11:45 am',m:'walk',min:15,via:[[40.6990,-73.9960],[40.7020,-73.9938]],note:'A restored 1922 carousel inside a glass pavilion by Jean Nouvel, right on the river.',baby:'His first carousel ride, on your lap.'},
+   {p:'wash',t:'12:15 pm',m:'walk',min:5,note:'The Manhattan Bridge framed between warehouses, the Empire State Building in the arch.'},
+   {p:'tom',t:'12:30 pm',m:'walk',min:3,note:'Lunch on the Time Out Market rooftop, skyline straight ahead.'},
+   {p:'bbt',t:'2:00 pm',m:'walk',min:12,via:[BRIDGE_B[1]],note:'Walk up onto the Brooklyn Bridge as far as the first stone tower, then back down.',baby:'Carrier recommended. The walkway is busy.'},
+   {p:'juliana',t:'4:45 pm',m:'walk',min:12,via:[BRIDGE_B[1]],note:'Early dinner: coal-oven pizza under the bridge. Go early to beat the line.'},
+   {p:'pier1',t:'6:00 pm',m:'walk',min:6,note:'Golden hour on the lawns, facing the whole downtown skyline.'},
+   {p:'clark',t:'7:15 pm',m:'walk',min:12,via:[[40.6990,-73.9960]],kind:'stn'},
+   {p:'s72',t:'7:50 pm',m:'sub',min:30,ln:'2/3',via:R123.slice().reverse(),kind:'stn'},
+   {p:'luc',t:'8:00 pm',m:'walk',min:9,via:[[40.7815,-73.9805]],kind:'home'}
+  ]},
+ {id:5,short:'Farewell',label:'Day 5',title:'Pancakes & home',sub:'A slow Upper West Side morning',
+  moment:'Sarabeth\'s pancakes and one last walk down Amsterdam Avenue.',
+  stops:[
+   {p:'luc',t:'8:30 am',kind:'home'},
+   {p:'sarabeth',t:'8:45 am',m:'walk',min:3,note:'Pancakes and famous jams at Sarabeth\'s.'},
+   {p:'luc',t:'9:45 am',m:'walk',min:3,kind:'home',note:'Check out.'},
+   {p:'s72',t:'10:30 am',m:'walk',min:9,via:[[40.7815,-73.9805]],kind:'stn'},
+   {p:'penn',t:'10:45 am',m:'sub',min:8,ln:'2/3',via:[[40.7681,-73.9819],[40.7557,-73.9870]],kind:'stn'},
+   {p:'jfk',t:'11:15 am',m:'rail',min:55,ln:'LIRR + AirTrain',kind:'stn',far:true,chipT:.07,note:'Back to JFK, then a feed on takeoff.'}
+  ]}
+];
+
+const SI={
+ star:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg>',
+ home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 20V9l8-5 8 5v11"/><path d="M9 20v-6h6v6"/></svg>',
+ cup:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 10h11v4a5 5 0 01-5 5h-1a5 5 0 01-5-5z"/><path d="M16 11h1.5a2.5 2.5 0 010 5H16"/><path d="M8 3c0 2 2 2 2 4M12 3c0 2 2 2 2 4"/></svg>',
+ train:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="3" width="14" height="14" rx="3"/><path d="M5 11h14M8 21l2-4M16 21l-2-4"/><circle cx="9" cy="14" r=".8" fill="currentColor"/><circle cx="15" cy="14" r=".8" fill="currentColor"/></svg>'
+};
+const TRIPS=[
+ {key:'grand',name:'The Grand Tour',price:'Splurge',hotelKey:'hotel',
+  lede:'Four slow, beautiful days for the three of you. Tea under a stained-glass ceiling, his first carousel ride, the Guggenheim\'s spiral at stroller speed, and sunset twice: once from the 70th floor, once from the Brooklyn waterfront. Every leg is walkable or a subway ride, with times at an unhurried stroller pace.',
+  hotel:{name:'The Whitby Hotel',eyebrow:'Home base · Midtown, by Central Park',addr:'18 West 56th Street, between Fifth & Sixth',
+   bullets:[['star','Six minutes to Central Park\'s southeast corner. Most mornings start with a stroll, not a commute.'],['home','Designed by Kit Kemp: color, pattern and art in every room. It feels like a very chic friend\'s townhouse.'],['cup','Afternoon tea in the hotel\'s own Orangery, a second tea for a rainy afternoon without leaving the building.'],['train','Near the F at 57 St and the B/D/F/M at Rockefeller Center, plus a flat walk to Grand Central for the airport train.']],
+   near:[['6 min','to Central Park'],['8 min','to Top of the Rock'],['12 min','to the Library & Bryant Park'],['30 min','up Fifth Ave to the Met']],
+   book:'Ask for a crib and a high floor away from the elevator bank. Reserve afternoon tea at The Plaza and dinner at The River Café at the same time, since both book up.',
+   alt:'<b>The Lowell</b> on the Upper East Side is quieter and residential, a few blocks from the Met. <b>The Beekman</b> in Lower Manhattan puts you at the Brooklyn Bridge end of the plan, with a soaring Victorian atrium she\'ll love.'},
+  days:DAYS_A},
+ {key:'classic',name:'Classic Midtown',price:'Around $500 a night',hotelKey:'knick',
+  lede:'A classic New York week from a landmark hotel on Times Square. His first toy at FAO Schwarz, sea lions and the musical clock in Central Park, a whole morning at the Met, the Statue of Liberty from the free ferry, and pizza under the Brooklyn Bridge. Every leg is walkable or a subway ride, with times at an unhurried stroller pace.',
+  hotel:{name:'The Knickerbocker',eyebrow:'Home base · Times Square',addr:'6 Times Square, at 42nd Street & Broadway',
+   bullets:[['train','The Times Sq–42 St subway, with elevators and a dozen lines, is right at the door. Nearly every ride on this plan starts downstairs.'],['home','A 1906 Beaux-Arts landmark built by John Jacob Astor IV, with a copper mansard roof. Architecture she\'ll notice every time you come home.'],['star','Rooms sit well above the street, so Times Square is a view, not a noise. Ask for a high floor.'],['cup','Seven minutes to Bryant Park, twelve to FAO Schwarz, and Broadway\'s marquees right outside.']],
+   near:[['1 min','to the subway'],['7 min','to Bryant Park'],['12 min','to FAO Schwarz'],['15 min','to the Met by Q train']],
+   book:'Ask for a crib and a high floor. Reserve lunch at Tavern on the Green for Day 1. FAO Schwarz and the Staten Island Ferry need no booking.',
+   alt:'<b>The Evelyn</b> in NoMad is a smaller Beaux-Arts hotel at a similar price. <b>Arlo Midtown</b> near Hudson Yards costs less, with smaller rooms.'},
+  days:DAYS_B},
+ {key:'uws',name:'Upper West Side',price:'About $350–500 a night',hotelKey:'luc',
+  lede:'Live like locals on the Upper West Side, between Central Park and the Hudson. The blue whale two blocks from the hotel, a castle and Bow Bridge in the park, the Met across the Great Lawn, FAO Schwarz, and a Brooklyn Heights sunset. Every leg is walkable or a subway ride, with times at an unhurried stroller pace.',
+  hotel:{name:'The Lucerne',eyebrow:'Home base · Upper West Side',addr:'201 West 79th Street, at Amsterdam Avenue',
+   bullets:[['star','Two blocks from the Museum of Natural History and five from Central Park, on a leafy residential street.'],['home','A 1904 landmark with a carved-stone entrance, in a neighborhood of brownstones and prewar apartment houses.'],['cup','Zabar\'s, Levain Bakery and Sarabeth\'s are around the corner, so breakfast, cookies and picnic supplies are sorted.'],['train','Nine minutes to the 72 St express station (1/2/3) for Times Square, Penn Station and Brooklyn.']],
+   near:[['6 min','to Natural History'],['6 min','to Riverside Park'],['8 min','to Central Park'],['28 min','across the park to the Met']],
+   book:'Ask for a crib and a room away from Amsterdam Avenue. Book timed tickets for Natural History and reserve Café Luxembourg for Day 1.',
+   alt:'<b>The Excelsior</b> faces the museum on West 81st. <b>Hotel Belleclaire</b> on Broadway is simpler and costs less.'},
+  days:DAYS_C}
+];
+let trip=0;
+let DAYS=TRIPS[0].days;
+
 /* ================= helpers ================= */
 const css = getComputedStyle(document.documentElement);
-DAYS.forEach(d=>{ d.color = css.getPropertyValue(d.cvar).trim(); });
+TRIPS.forEach(T=>T.days.forEach((d,i)=>{ d.color = css.getPropertyValue('--d'+i).trim(); }));
 const $ = s=>document.querySelector(s);
 const esc = s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const ICON = {
@@ -496,14 +737,29 @@ function stats(d){
 }
 function fmtMin(m){ const h=Math.floor(m/60), r=m%60; return h? (h+'h '+(r?r+'m':'')).trim() : m+' min'; }
 
-/* ================= tally + walkring ================= */
-(function(){
+/* ================= trip-level renders ================= */
+function renderTally(){
   let walk=0,rides=0; DAYS.forEach(d=>{const s=stats(d); walk+=s.walk; rides+=s.rides;});
   $('#tally').innerHTML =
     `<div><b>4</b><span>full days</span></div><div><b>${(walk/60).toFixed(1)}</b><span>hours of strolling</span></div><div><b>${rides}</b><span>subway rides</span></div><div><b>0</b><span>car rides</span></div>`;
-  const near=[['6 min','to Central Park'],['8 min','to Top of the Rock'],['12 min','to the Library & Bryant Park'],['30 min','up Fifth Ave to the Met']];
-  $('#walkring').innerHTML = near.map(n=>`<div><b>${n[0]}</b><span>${n[1]}</span></div>`).join('');
-})();
+}
+function renderTrips(){
+  $('#trips').innerHTML = TRIPS.map((T,i)=>`<button class="trip" data-trip="${i}" aria-pressed="${i===trip}"><span class="pr">${esc(T.price)}</span><b>${esc(T.name)}</b><span>${esc(T.hotel.name)} · ${esc(T.hotel.eyebrow.replace('Home base · ',''))}</span></button>`).join('');
+}
+function renderStay(){
+  const h=TRIPS[trip].hotel;
+  $('#stayBox').innerHTML = `<div class="stay-card">
+        <div class="eyebrow">${esc(h.eyebrow)} · ${esc(TRIPS[trip].price)}</div>
+        <h3>${esc(h.name)}</h3>
+        <div class="addr">${esc(h.addr)}</div>
+        <ul>${h.bullets.map(b=>`<li>${SI[b[0]]}<span>${esc(b[1])}</span></li>`).join('')}</ul>
+      </div>
+      <div class="stay-side">
+        <div class="walkring">${h.near.map(n=>`<div><b>${n[0]}</b><span>${n[1]}</span></div>`).join('')}</div>
+        <div class="note-card"><h4>When you book</h4><p>${esc(h.book)}</p></div>
+        <div class="note-card"><h4>If ${esc(h.name)} is full</h4><p>${h.alt}</p></div>
+      </div>`;
+}
 
 /* ================= timeline render ================= */
 function timeline(d){
@@ -525,7 +781,7 @@ function timeline(d){
 }
 
 /* ================= day sections ================= */
-$('#days').innerHTML = DAYS.map(d=>{
+function renderDays(){ $('#days').innerHTML = DAYS.map(d=>{
   const st=stats(d);
   return `<article class="day" style="--c:${d.color}" id="day-${d.id}">
     <div class="day-side">
@@ -538,14 +794,14 @@ $('#days').innerHTML = DAYS.map(d=>{
     </div>
     <div>${timeline(d)}</div>
   </article>`;
-}).join('');
+}).join(''); }
 
 /* ================= panel ================= */
 let current = -1;
 function renderPanel(){
   const head=$('#phead'), body=$('#pbody');
   if(current<0){
-    head.innerHTML = `<div class="eyebrow">The whole week</div><h2>Five nights, one home base</h2><p>Pick a day to fly to its route. Every walk starts and ends at The Whitby.</p>`;
+    head.innerHTML = `<div class="eyebrow">The whole week</div><h2>Five nights, one home base</h2><p>Pick a day to fly to its route. Every walk starts and ends at ${esc(TRIPS[trip].hotel.name)}.</p>`;
     body.innerHTML = DAYS.map(d=>{const s=stats(d);return `<button class="dayrow" style="--c:${d.color}" data-show="${d.id}"><span class="n">${d.id}</span><span><h3>${esc(d.title)}</h3><p>${esc(d.sub)} · ${fmtMin(s.walk)} on foot</p></span></button>`}).join('');
   } else {
     const d=DAYS[current], s=stats(d);
@@ -560,6 +816,8 @@ function renderTabs(){
 }
 
 document.addEventListener('click',e=>{
+  const tb=e.target.closest('[data-trip]');
+  if(tb){ selectTrip(+tb.dataset.trip); return; }
   const b=e.target.closest('[data-show]');
   if(b){
     const id=+b.dataset.show;
@@ -579,10 +837,17 @@ document.addEventListener('keydown',e=>{
 });
 
 /* hooks the 3D layer fills in */
-let onSelect = ()=>{}, onFocusStop = ()=>{};
+let onSelect = ()=>{}, onFocusStop = ()=>{}, onTrip = ()=>{};
 function selectDay(id){ current=id; renderTabs(); renderPanel(); onSelect(id); }
 function focusStop(di,i){ onFocusStop(di,i); }
-renderTabs(); renderPanel();
+function selectTrip(t){
+  trip=t; DAYS=TRIPS[t].days; current=-1;
+  $('#lede').textContent=TRIPS[t].lede;
+  renderTrips(); renderTally(); renderStay(); renderDays(); renderTabs(); renderPanel();
+  onTrip(t); onSelect(-1);
+}
+$('#lede').textContent=TRIPS[0].lede;
+renderTrips(); renderTally(); renderStay(); renderDays(); renderTabs(); renderPanel();
 
 /* ================= 3D ================= */
 if(typeof THREE==='undefined' || !THREE.OrbitControls){ $('#nogl').hidden=false; return; }
@@ -691,7 +956,7 @@ const g2=(x,z,cx,cz,s)=>Math.exp(-(((x-cx)**2+(z-cz)**2)/(s*s)));
 /* buildings */
 const B=[]; // {x,z,w,d,h,rot,col}
 const avoid=[]; // landmark footprints
-const LM={}; ['esb:40.7484,-73.9857','chr:40.7516,-73.9755','wtc:40.7130,-74.0132','rock:40.7593,-73.9794','plaza:40.7645,-73.9744','gugg:40.7830,-73.9590','met:40.7794,-73.9632','nypl:40.7532,-73.9822','gct:40.7527,-73.9772','stpat:40.7585,-73.9760','bp:40.7538,-73.9845','wsq:40.7308,-73.9973','paley:40.7598,-73.9758','cm:40.7424,-74.0061','hotel:40.7626,-73.9764']
+const LM={}; ['esb:40.7484,-73.9857','chr:40.7516,-73.9755','wtc:40.7130,-74.0132','rock:40.7593,-73.9794','plaza:40.7645,-73.9744','gugg:40.7830,-73.9590','met:40.7794,-73.9632','nypl:40.7532,-73.9822','gct:40.7527,-73.9772','stpat:40.7585,-73.9760','bp:40.7538,-73.9845','wsq:40.7308,-73.9973','paley:40.7598,-73.9758','cm:40.7424,-74.0061','hotel:40.7626,-73.9764','knick:40.7558,-73.9866','luc:40.7836,-73.9794']
   .forEach(s=>{const [k,ll]=s.split(':');const [a,b]=ll.split(',').map(Number);LM[k]=V(a,b);avoid.push([LM[k].x,LM[k].z,k==='bp'?1.4:k==='wsq'?1.1:k==='met'?1.3:0.75]);});
 const PAL=['#ebe7e1','#e7e2db','#eeeae4','#e4dfd8','#e9e4de','#e5e1dc'];
 function nearAvoid(x,z){for(const a of avoid){if((x-a[0])**2+(z-a[1])**2<a[2]*a[2])return true;}return false;}
@@ -842,6 +1107,10 @@ put(bx(0.9,0.75*H,0.7),new THREE.MeshStandardMaterial({color:'#f3ede2',roughness
 put(new THREE.CylinderGeometry(0.28,0.5,0.25,4).translate(0,.125,0),VERD,LM.plaza,0.75*H,Math.PI/4-A);
 // Hotel (The Whitby)
 put(bx(0.55,1.4*H,0.45),new THREE.MeshStandardMaterial({color:'#e7d9c3',roughness:.8}),LM.hotel,0);
+put(bx(0.5,1.4*H,0.4),new THREE.MeshStandardMaterial({color:'#e7d9c3',roughness:.8}),LM.knick,0);
+put(new THREE.CylinderGeometry(0.2,0.33,0.2,4).translate(0,.1,0),VERD,LM.knick,1.4*H,Math.PI/4-A);
+put(bx(0.6,1.3*H,0.5),new THREE.MeshStandardMaterial({color:'#e2cfb8',roughness:.8}),LM.luc,0);
+const HOTEL_TOP={hotel:1.4*H,knick:1.6*H,luc:1.3*H};
 // Guggenheim spiral
 for(let i=0;i<5;i++) put(new THREE.CylinderGeometry(0.34+i*0.06,0.3+i*0.06,0.09,28).translate(0,.045,0),WHITE,LM.gugg,0.05+i*0.1,0);
 // The Met
@@ -914,13 +1183,13 @@ ferry([[40.6880,-74.0330],[40.6960,-74.0190],[40.7010,-74.0100]],0.02,0.7);
 /* ================= routes ================= */
 const labelsEl=$('#labels');
 const RY=0.34;
-const routeGroups=[], dayLabels=[];
 function mkMat(color,op){return new THREE.MeshBasicMaterial({color,transparent:true,opacity:op,depthTest:false,depthWrite:false});}
 function haloSprite(color,s){const m=new THREE.SpriteMaterial({map:DOT,color,transparent:true,depthTest:false,depthWrite:false,blending:THREE.AdditiveBlending});const sp=new THREE.Sprite(m);sp.scale.set(s,s,s);sp.renderOrder=12;return sp;}
 function placeLL(key){const p=PL[key];return [p[1],p[2]];}
 
-DAYS.forEach(d=>{
-  const g=new THREE.Group(); g.visible=true; scene.add(g);
+TRIPS.forEach((T,ti)=>{ T.groups=[]; T.labels=[];
+T.days.forEach(d=>{
+  const g=new THREE.Group(); g.visible=(ti===0); scene.add(g);
   const colr=new THREE.Color(d.color);
   const mats=[]; const pathPts=[]; const labels=[]; const stopPos=[];
   let num=0;
@@ -988,9 +1257,10 @@ DAYS.forEach(d=>{
   const dot=haloSprite(colr,1.2); g.add(dot);
   const core=haloSprite(new THREE.Color('#ffffff'),0.45); g.add(core);
   const totalLen=pathPts.length;
-  routeGroups.push({g,mats,dot,core,pathPts,d});
-  dayLabels.push(labels);
+  T.groups.push({g,mats,dot,core,pathPts,d});
+  T.labels.push(labels);
   d._stopPos=stopPos;
+});
 });
 
 /* permanent labels */
@@ -999,7 +1269,7 @@ const perm=[];
   const h=document.createElement('button'); h.className='lbl badge home'; h.setAttribute('aria-label','The Whitby Hotel, home base');
   h.innerHTML=ICON.home+'<span class="nm">The Whitby · home base</span>';
   labelsEl.appendChild(h); perm.push({el:h,pos:LM.hotel.clone().setY(2.2),kind:'badge',prio:0});
-  h.addEventListener('click',()=>{const v=LM.hotel;flyTo(new THREE.Vector3(v.x,0,v.z),8);});
+  h.addEventListener('click',()=>{const v=LM[TRIPS[trip].hotelKey];flyTo(new THREE.Vector3(v.x,0,v.z),8);});
   [['Central Park',40.7830,-73.9690,''],['Hudson River',40.7470,-74.0170,'water'],['East River',40.7290,-73.9665,'water'],['Brooklyn',40.6950,-73.9860,''],['New Jersey',40.7400,-74.0450,''],['Queens',40.7500,-73.9380,''],['Midtown',40.7505,-73.9930,''],['West Village',40.7350,-74.0080,''],['Upper East Side',40.7720,-73.9530,''],['DUMBO',40.7040,-73.9870,''],['Lower Manhattan',40.7090,-74.0080,''],['Statue of Liberty',40.6893,-74.0447,''],['Upper West Side',40.7870,-73.9780,'']].forEach(a=>{
     const el=document.createElement('div'); el.className='lbl area '+a[3]; el.textContent=a[0];
     labelsEl.appendChild(el); perm.push({el,pos:V(a[1],a[2],0.3),kind:'area'});
@@ -1008,7 +1278,8 @@ const perm=[];
 
 /* hotel beacon */
 const beacon=new THREE.Mesh(new THREE.OctahedronGeometry(0.28,0),new THREE.MeshStandardMaterial({color:'#e2b64f',emissive:'#8a5f10',metalness:.6,roughness:.3}));
-beacon.position.copy(LM.hotel).setY(1.9*H+0.6); scene.add(beacon);
+let beaconY=HOTEL_TOP.hotel+0.9;
+beacon.position.copy(LM.hotel).setY(beaconY); scene.add(beacon);
 const beaconHalo=haloSprite(new THREE.Color('#ffcf6a'),2.2); beaconHalo.position.copy(beacon.position); scene.add(beaconHalo);
 
 /* ================= camera / selection ================= */
@@ -1022,7 +1293,11 @@ function flyTo(target,dist,dirOverride){
 }
 controls.addEventListener('start',()=>{fly=null;});
 function frameDay(id){
-  if(id<0){ flyTo(V(40.7360,-73.9880),78); return; }
+  if(id<0){
+    const b=new THREE.Box3(); DAYS.forEach(d=>d.stops.forEach(s=>{if(s.far)return;const ll=placeLL(s.p);b.expandByPoint(V(ll[0],ll[1]));}));
+    const c=b.getCenter(new THREE.Vector3()), z=b.getSize(new THREE.Vector3());
+    flyTo(new THREE.Vector3(c.x,0,c.z+4),Math.min(95,Math.max(55,Math.max(z.x,z.z)*0.85+8))); return;
+  }
   const d=DAYS[id], box=new THREE.Box3();
   d.stops.forEach(s=>{if(s.far)return;const ll=placeLL(s.p);box.expandByPoint(V(ll[0],ll[1]));});
   const c=box.getCenter(new THREE.Vector3()), sz=box.getSize(new THREE.Vector3());
@@ -1032,13 +1307,21 @@ function frameDay(id){
 }
 let hiStop=null;
 onSelect=id=>{
-  routeGroups.forEach((r,i)=>{
+  TRIPS.forEach((T,ti)=>T.groups.forEach((r,i)=>{
+    r.g.visible = ti===trip;
     const on = id<0 || i===id;
     r.mats.forEach(m=>{ if(m.userData.base===undefined) m.userData.base=m.opacity; m.opacity = on? m.userData.base : m.userData.base*0.12; });
     r.dot.visible=r.core.visible= on;
-  });
+  }));
   hiStop=null;
   frameDay(id);
+};
+onTrip=t=>{
+  const k=TRIPS[t].hotelKey, v=LM[k];
+  beaconY=HOTEL_TOP[k]+0.9; beacon.position.set(v.x,beaconY,v.z); beaconHalo.position.copy(beacon.position);
+  perm[0].pos=v.clone().setY(HOTEL_TOP[k]+0.6);
+  perm[0].el.querySelector('.nm').textContent=TRIPS[t].hotel.name+' · home base';
+  perm[0].el.setAttribute('aria-label',TRIPS[t].hotel.name+', home base');
 };
 onFocusStop=(di,i)=>{
   if(current!==di){ current=di; renderTabs(); renderPanel(); onSelect(di); }
@@ -1074,24 +1357,24 @@ function place(list,visible,placed){
 function updateLabels(){
   const placed=[];
   const badges=[],chips=[],areas=[];
-  dayLabels.forEach((ls,di)=>{
-    const vis = di===current;
+  TRIPS.forEach((T,ti)=>T.labels.forEach((ls,di)=>{
+    const vis = ti===trip && di===current;
     ls.forEach(L=>{ (L.kind==='badge'?badges:chips).push([L,vis]); });
-  });
+  }));
   place([perm[0]],true,placed);
   badges.forEach(([L,v])=>place([L],v,placed));
   chips.forEach(([L,v])=>place([L],v,placed));
   const farOut=camera.position.distanceTo(controls.target);
   place(perm.slice(1),true,placed);
   // highlight badge
-  dayLabels.forEach((ls,di)=>ls.forEach(L=>{ if(L.kind==='badge') L.el.classList.toggle('on', !!hiStop && hiStop.di===di && hiStop.i===L.i); }));
+  TRIPS[trip].labels.forEach((ls,di)=>ls.forEach(L=>{ if(L.kind==='badge') L.el.classList.toggle('on', !!hiStop && hiStop.di===di && hiStop.i===L.i); }));
 }
 
 /* ================= loop ================= */
 function resize(){
   const r=stage.getBoundingClientRect(); W=r.width; Hh=r.height;
   renderer.setSize(W,Hh,false); camera.aspect=W/Hh; camera.updateProjectionMatrix();
-  dayLabels.flat().concat(perm).forEach(L=>{L.w=0;});
+  TRIPS.flatMap(T=>T.labels.flat()).concat(perm).forEach(L=>{L.w=0;});
 }
 new ResizeObserver(resize).observe(stage); resize();
 
@@ -1117,10 +1400,10 @@ function tick(){
   const sc_=sun.shadow.camera; if(Math.abs(sc_.right-span)>2){sc_.left=-span;sc_.right=span;sc_.top=span;sc_.bottom=-span;sc_.updateProjectionMatrix();}
   if(!REDUCED){
     waterMat.uniforms.time.value=t;
-    beacon.rotation.y=t*0.8; beacon.position.y=1.9*H+0.6+Math.sin(t*1.6)*0.12; beaconHalo.position.copy(beacon.position);
+    beacon.rotation.y=t*0.8; beacon.position.y=beaconY+Math.sin(t*1.6)*0.12; beaconHalo.position.copy(beacon.position);
     ferries.forEach(f=>{const u=(Math.sin((t*f.speed+f.phase)*Math.PI*2)*.5+.5);const p=f.curve.getPointAt(u);const p2=f.curve.getPointAt(Math.min(1,Math.max(0,u+(Math.cos((t*f.speed+f.phase)*Math.PI*2)>0?0.01:-0.01))));f.g.position.set(p.x,-0.24,p.z);f.g.lookAt(p2.x,-0.24,p2.z);f.g.rotateY(Math.PI);});
   }
-  routeGroups.forEach((r,i)=>{
+  TRIPS[trip].groups.forEach((r,i)=>{
     if(!r.dot.visible||!r.pathPts.length) return;
     const n=r.pathPts.length; const f=REDUCED?0:((t*0.07+i*0.17)%1);
     const p=r.pathPts[Math.floor(f*(n-1))];
