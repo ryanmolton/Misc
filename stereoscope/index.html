@@ -1,0 +1,224 @@
+<title>Heliotrope Stereoscope</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=IM+Fell+English:ital@0;1&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    color-scheme: dark;
+    --ink: #110e0c;
+    --velvet: #1b1512;
+    --panel: #171311;
+    --panel-2: #211b17;
+    --line: #3a2f27;
+    --line-soft: #2a221d;
+    --gilt: #d4a851;
+    --gilt-hi: #f1d38b;
+    --gilt-lo: #8d6a2c;
+    --text: #efe5d2;
+    --muted: #a7977f;
+    --dim: #7b6d5b;
+    --walnut: #6a4428;
+    --ok: #9fb77a;
+    --display: "IM Fell English SC", "IM Fell English", Garamond, "Times New Roman", serif;
+    --serif: "IM Fell English", Garamond, "Times New Roman", serif;
+    --sans: "Alegreya Sans", "Gill Sans", "Segoe UI", system-ui, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--ink); color: var(--text); font: 16px/1.5 var(--sans); }
+  #app { display: grid; grid-template-columns: minmax(0, 1fr) 400px; height: 100%; }
+  #stage { position: relative; min-height: 0; overflow: hidden;
+    background: radial-gradient(120% 90% at 50% 38%, #2c221c 0%, #1a1411 48%, #0c0a09 100%); }
+  #c { display: block; width: 100%; height: 100%; touch-action: none; outline: none; }
+  #panel { background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto; min-height: 0; }
+  .pad { padding: 22px 24px; }
+
+  /* stage overlays */
+  .modes { position: absolute; top: 16px; left: 16px; display: flex; gap: 2px; padding: 3px; border-radius: 999px;
+    background: rgba(17, 14, 12, .72); border: 1px solid var(--line); backdrop-filter: blur(6px); flex-wrap: wrap; }
+  .modes button { font: 500 14px/1 var(--sans); letter-spacing: .06em; color: var(--muted); background: none; border: 0;
+    padding: 9px 14px; border-radius: 999px; cursor: pointer; }
+  .modes button:hover { color: var(--text); }
+  .modes button[aria-pressed="true"] { background: linear-gradient(180deg, var(--gilt-hi), var(--gilt)); color: #231a0c; }
+  .modes button:focus-visible, .btn:focus-visible, .seg button:focus-visible, .row:focus-visible, summary:focus-visible { outline: 2px solid var(--gilt-hi); outline-offset: 2px; }
+  #caption { position: absolute; left: 16px; right: 16px; bottom: 16px; max-width: 560px; padding: 14px 18px;
+    background: rgba(17, 14, 12, .82); border: 1px solid var(--line); border-radius: 6px; backdrop-filter: blur(6px); }
+  #caption h3 { margin: 0 0 4px; font: 400 21px/1.2 var(--display); color: var(--gilt-hi); letter-spacing: .02em; }
+  #caption p { margin: 0; color: var(--text); font-size: 15px; }
+  #caption .k { font: 500 12px/1 var(--mono); color: var(--dim); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; display: block; }
+  #picked { position: absolute; top: 16px; right: 16px; padding: 8px 12px; font-size: 14px; color: var(--text);
+    background: rgba(17, 14, 12, .78); border: 1px solid var(--line); border-radius: 6px; max-width: 46%; }
+  #picked b { color: var(--gilt-hi); font-weight: 500; }
+  #loading { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: var(--muted); font: 20px var(--serif); font-style: italic; }
+  #loading .bar { width: 180px; height: 2px; background: var(--line); margin: 12px auto 0; }
+  #loading .bar i { display: block; height: 100%; width: 0; background: var(--gilt); transition: width .2s; }
+  #eyeview { position: absolute; right: 16px; bottom: 16px; width: min(360px, 44%); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: #000; }
+  #eyeview canvas { display: block; width: 100%; height: auto; }
+  #eyeview span { position: absolute; left: 10px; top: 8px; font: 500 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--gilt-hi); }
+
+  /* panel */
+  .eyebrow { font: 500 12px/1.3 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--gilt); margin: 0 0 10px; }
+  h1 { font: 400 46px/1 var(--display); margin: 0 0 12px; letter-spacing: .01em; color: var(--text); text-wrap: balance; }
+  h1 em { font-family: var(--serif); font-style: italic; color: var(--gilt-hi); }
+  .lede { margin: 0; color: var(--muted); font-size: 16px; max-width: 60ch; }
+  h2 { font: 400 22px/1.2 var(--display); margin: 0 0 12px; color: var(--gilt-hi); letter-spacing: .02em; text-wrap: balance; }
+  hr.orn { border: 0; height: 12px; margin: 0; background:
+    radial-gradient(circle at 50% 50%, var(--gilt) 0 2.4px, transparent 3px) center / 12px 12px no-repeat,
+    linear-gradient(var(--line), var(--line)) center / 100% 1px no-repeat; }
+  .specs { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 18px 0 0; font-size: 15px; }
+  .specs dt { color: var(--dim); font: 500 12px/1.9 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+  .specs dd { margin: 0; font-variant-numeric: tabular-nums; }
+  .ctl { display: grid; gap: 14px; }
+  .ctl-row { display: grid; gap: 6px; }
+  .ctl-row > label, .ctl-row > .lab { font: 500 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--dim); display: flex; justify-content: space-between; gap: 8px; }
+  .ctl-row output { color: var(--gilt-hi); text-transform: none; letter-spacing: 0; }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .seg button { flex: 1; font: 500 14px var(--sans); color: var(--muted); background: var(--panel-2); border: 0; padding: 9px 8px; cursor: pointer; }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button[aria-pressed="true"] { color: #231a0c; background: var(--gilt); }
+  input[type=range] { width: 100%; accent-color: var(--gilt); }
+  .btn { font: 500 15px var(--sans); color: #231a0c; background: linear-gradient(180deg, var(--gilt-hi), var(--gilt)); border: 0;
+    border-radius: 6px; padding: 10px 16px; cursor: pointer; }
+  .btn.ghost { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); }
+  .btn[disabled] { opacity: .5; cursor: progress; }
+  .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; counter-reset: s; }
+  .steps li button { width: 100%; text-align: left; display: grid; grid-template-columns: 26px 1fr; gap: 8px; align-items: baseline;
+    background: none; border: 0; color: var(--muted); font: 16px var(--sans); padding: 7px 8px; border-radius: 5px; cursor: pointer; }
+  .steps li button b { font: 400 17px var(--display); color: var(--dim); }
+  .steps li button[aria-current="step"] { background: var(--panel-2); color: var(--text); }
+  .steps li button[aria-current="step"] b { color: var(--gilt-hi); }
+  .steps li button:hover { color: var(--text); }
+  .nav { display: flex; gap: 8px; margin-top: 10px; }
+  .hint { color: var(--dim); font-size: 14px; margin: 0; }
+
+  .parts-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+  .grp { font: 500 12px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--gilt); margin: 16px 0 4px; }
+  .row { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 7px 6px;
+    border-radius: 5px; border-top: 1px solid var(--line-soft); cursor: pointer; }
+  .row:hover, .row.sel { background: var(--panel-2); }
+  .row.sel .nm { color: var(--gilt-hi); }
+  .sw { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .15); }
+  .nm { font-size: 15px; line-height: 1.25; }
+  .meta { font: 12px var(--mono); color: var(--dim); font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .note { font-size: 14px; color: var(--muted); margin-top: 4px; display: none; }
+  .row.sel .note { display: block; }
+  .dl { font: 500 12px var(--mono); letter-spacing: .06em; color: var(--gilt-hi); background: none; border: 1px solid var(--gilt-lo);
+    border-radius: 4px; padding: 5px 8px; cursor: pointer; white-space: nowrap; }
+  .dl:hover { background: var(--gilt); color: #231a0c; }
+  .tag { font: 500 11px var(--mono); color: var(--dim); border: 1px dashed var(--line); border-radius: 4px; padding: 4px 6px; white-space: nowrap; }
+  #dlmsg { font-size: 14px; color: var(--muted); min-height: 1.2em; margin: 8px 0 0; }
+
+  details { border-top: 1px solid var(--line-soft); }
+  details:last-of-type { border-bottom: 1px solid var(--line-soft); }
+  summary { cursor: pointer; padding: 11px 0; font: 400 19px var(--display); color: var(--text); list-style: none; display: flex; justify-content: space-between; }
+  summary::after { content: "+"; color: var(--gilt); font-family: var(--mono); }
+  details[open] summary::after { content: "–"; }
+  details p, details li { color: var(--muted); font-size: 15px; max-width: 62ch; }
+  details p { margin: 0 0 10px; }
+  details ul { margin: 0 0 12px; padding-left: 18px; }
+  details strong { color: var(--text); font-weight: 500; }
+  .num { font-family: var(--mono); font-size: 13px; color: var(--text); }
+
+  @media (max-width: 860px) {
+    #app { grid-template-columns: 1fr; grid-template-rows: 58vh auto; height: auto; }
+    #stage { height: 58vh; }
+    #panel { border-left: 0; border-top: 1px solid var(--line); overflow: visible; }
+    h1 { font-size: 38px; }
+    .pad { padding: 18px 16px; }
+    #caption { bottom: 10px; left: 10px; right: 10px; padding: 10px 12px; }
+    #caption p { font-size: 14px; }
+    .modes { top: 10px; left: 10px; right: 10px; justify-content: center; }
+    .modes button { padding: 8px 10px; font-size: 13px; }
+    #picked { display: none; }
+    #eyeview { top: 56px; bottom: auto; right: 10px; width: 46%; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div id="app">
+  <div id="stage">
+    <canvas id="c" tabindex="0" aria-label="3D model of the Heliotrope stereoscope. Drag to orbit, scroll to zoom, click a part to identify it."></canvas>
+    <div class="modes" role="group" aria-label="View">
+      <button data-mode="assembled" aria-pressed="true">Assembled</button>
+      <button data-mode="exploded" aria-pressed="false">Exploded</button>
+      <button data-mode="mount" aria-pressed="false">Bayonet mount</button>
+      <button data-mode="ritual" aria-pressed="false">Using it</button>
+    </div>
+    <div id="picked" hidden></div>
+    <div id="caption" hidden></div>
+    <div id="eyeview" hidden><canvas width="720" height="440"></canvas><span>Through the eyepieces</span></div>
+    <div id="loading"><div>Gilding the column…<div class="bar"><i id="lbar"></i></div></div></div>
+  </div>
+
+  <aside id="panel">
+    <div class="pad">
+      <p class="eyebrow">Brewster-type stereoscope · front-lit cards</p>
+      <h1>The <em>Heliotrope</em></h1>
+      <p class="lede">A walnut viewer for 7 × 3½ in stereographs. A gilt Sun covers a ground-glass skylight; lift it away and daylight falls on the card. The viewer twists onto a gilt pedestal whose drawer holds the collection.</p>
+      <dl class="specs">
+        <dt>Cards</dt><dd>178 × 89 mm, dropped in from the top</dd>
+        <dt>Lenses</dt><dd>2 × 38 mm ⌀, f 150 mm, on 76 mm centres</dd>
+        <dt>Focus</dt><dd>Helicoid eyepieces, −8 to +15 mm</dd>
+        <dt>Viewer</dt><dd>252 × 231 × 123 mm, ½″ walnut</dd>
+        <dt>Pedestal</dt><dd>254 mm (10″) with card drawer</dd>
+      </dl>
+    </div>
+    <hr class="orn">
+    <div class="pad" id="controls"></div>
+    <hr class="orn">
+    <div class="pad">
+      <div class="parts-head">
+        <h2 style="margin:0">Parts &amp; STL files</h2>
+        <button class="btn" id="dl-all">Download all</button>
+      </div>
+      <p class="hint">Millimetres, laid flat for printing. Each STL downloads inside a .zip. Click a part here or in the model to see where it goes.</p>
+      <p id="dlmsg" role="status"></p>
+      <div id="parts"></div>
+    </div>
+    <hr class="orn">
+    <div class="pad" id="notes">
+      <h2>Design notes</h2>
+      <details open>
+        <summary>Using it</summary>
+        <ul>
+          <li><strong>Choose.</strong> Pull the drawer. Cards stand on their long edge facing you, like a card catalogue, held upright by a sliding follower; dividers take handwritten labels.</li>
+          <li><strong>Raise the Sun.</strong> Lift the cover off with both hands, tip it toward you until it stands, and drop its lower edge into the gilt crest at the back. The Sun now faces you, upright, and the skylight is open.</li>
+          <li><strong>Set the card.</strong> Drop it picture-first into the slot just in front of the crest. It falls onto a silk ribbon and stops on the gate sill, exactly on the optical axis.</li>
+          <li><strong>Focus.</strong> Turn each eyecup's knurled ring. Three turns cover the whole range; each eye focuses separately.</li>
+          <li><strong>Put away.</strong> Pull a ribbon loop and the card rises out of the slot. Cover goes back on; four magnets seat it.</li>
+          <li><strong>Moving it.</strong> Hold the body under the cornice, turn a twelfth anticlockwise and lift. It stands flat on any table.</li>
+        </ul>
+      </details>
+      <details>
+        <summary>Optics</summary>
+        <p>Your 38 mm, f 150 mm biconvex lenses work as simple magnifiers. With the card exactly one focal length away, each picture appears at infinity, so the eyes relax as if looking at a distant view.</p>
+        <p>The two pictures on a standard card sit about <span class="num">76 mm</span> apart centre to centre, while eyes are usually <span class="num">58–70 mm</span> apart. Brewster cut his lenses in half to add prism. Here the whole lenses sit on <span class="num">76 mm</span> centres instead. Light from a point at the focal plane leaves the lens parallel to the line through the lens centre, so direction depends only on where the lens is, not where the eye is. With lens centres over picture centres, both eyes look straight ahead. Each eye looks through the inner part of its lens; at the <span class="num">~50 mm</span> eye relief the field still covers the full <span class="num">±14°</span> picture.</p>
+        <p>The helicoid moves the lens from <span class="num">158</span> to <span class="num">135 mm</span> from the card: about <span class="num">+0.3 D</span> to <span class="num">−0.7 D</span>, plus whatever the eye accommodates. A septum stops each eye seeing the other picture.</p>
+      </details>
+      <details>
+        <summary>Light</summary>
+        <p>The skylight is <span class="num">105 mm</span> long and runs from <span class="num">27 mm</span> behind the lens board to <span class="num">10 mm</span> in front of the card. Light from its front end reaches the card only <span class="num">~25°</span> off normal, so an overhead lamp or window lights the picture evenly without glare off the card's gloss.</p>
+        <p>Paint the card chamber matte white and the front half matte black. The glare baffle under the roof keeps the bright glass out of the lenses' view without clipping the picture.</p>
+        <p>The end ground glass sits <span class="num">4 mm</span> behind the card, one focal length from the lenses. With the slot empty, the lenses act as a camera obscura and throw two small upside-down images of the room onto it.</p>
+      </details>
+      <details>
+        <summary>The bayonet mount</summary>
+        <p>A brass boss on the pedestal carries three lugs. The socket under the viewer has three matching notches, a gallery the lugs turn into, and a solid stop at the end of the 30° turn. Set the viewer down turned 30° anticlockwise, let it drop the <span class="num">9.5 mm</span> onto the boss, and turn it clockwise until it stops square.</p>
+        <p>In the locked position the lugs sit under a <span class="num">5 mm</span> lip, so the viewer can't lift, slide or tip off. Three pairs of 6 × 3 mm magnets hold it at the square position so it won't wander. Nothing needs adjusting and nothing can wear loose.</p>
+      </details>
+      <details>
+        <summary>Making it</summary>
+        <p><strong>Wood.</strong> The body is ½″ (12.7 mm) walnut. The walls taper 10.1° in plan, so the lens board and end wall have matching bevelled ends. The roof is two laminations, the lower one stepped back 4 mm to make the glass ledge. STLs for the wood parts are full-size templates.</p>
+        <p><strong>Printed and gilt.</strong> Print the Sun, medallions, cornice, frame, crest, column, consoles and knob in resin, or in PLA at 0.1 mm. Then gesso, bole and water-gild, or use oil size and leaf. Print the eyepieces in PLA or PETG, upright. Their 3-start threads have <span class="num">0.4 mm</span> radial clearance and need no supports.</p>
+        <p><strong>Buy.</strong> Two panes of 2–2.5 mm ground glass (templates included), 10 mm silk ribbon, six 6 × 3 mm and eight 6 × 2 mm magnets, an M8 rod through the column, felt for the drawer runners.</p>
+      </details>
+    </div>
+  </aside>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/environments/RoomEnvironment.js"></script>
+<script src="geometry.js"></script>
+<script src="app.js"></script>
