@@ -17,6 +17,9 @@ if MODEL_FOLDER not in folder_paths.folder_names_and_paths:
     folder_paths.add_model_folder_path(MODEL_FOLDER, _default_dir, is_default=True)
 
 _PIPE_CACHE = {}
+# StereoSpace misbehaves (wrong-eye / duplicated content) at tiny baselines that are
+# far outside its training data; below this we render here and scale parallax in the lift.
+MIN_BASELINE = 0.04
 
 
 def _log(msg):
@@ -160,31 +163,51 @@ class StereoForgeGenerateView:
             probe_steps = min(steps, 20) if baseline_mode == "auto_comfort" else steps
             total = probe_steps + (steps if baseline_mode == "auto_comfort" else 0)
             pbar = comfy.utils.ProgressBar(total)
-            b = baseline_m
-            gen = self._gen(pipe, src_lr, sign * b, focal, probe_steps, guidance, seed, pbar, 0, total)
+            b = max(baseline_m, MIN_BASELINE)
+            scale = 1.0
+
+            def measure(view):
+                s_c, g_c = (src_lr, view) if sign > 0 else (_mirror(src_lr), _mirror(view))
+                g_c = sc.fit_color(g_c.float().to(device), s_c.to(device), torch.ones_like(s_c[:, :1]).to(device))
+                d, v = sc.estimate_disparity_lr(s_c.to(device), g_c, device=device)
+                return sc.disparity_stats(d, v, pw)
+
+            def render(base, n_steps, done, what):
+                # StereoSpace occasionally renders the wrong eye / a broken view; the
+                # measured parallax must point the right way, else retry with a new seed
+                for attempt in range(3):
+                    view = self._gen(pipe, src_lr, sign * base, focal, n_steps, guidance, seed + attempt,
+                                     pbar, done, total)
+                    st = measure(view)
+                    if st is not None and st["p50"] > -0.5 / pw:
+                        return view, st
+                    info.append(f"{what}: parallax points the wrong way (seed {seed + attempt}), retrying")
+                return view, st
+
+            gen, st = render(b, probe_steps, 0, "probe" if baseline_mode == "auto_comfort" else "render")
             if baseline_mode == "auto_comfort":
-                s_c, g_c = (src_lr, gen) if sign > 0 else (_mirror(src_lr), _mirror(gen))
-                d, v = sc.estimate_disparity_lr(s_c.to(device), sc.fit_color(g_c.float(), s_c, torch.ones_like(s_c[:, :1])).to(device), device=device)
-                st = sc.disparity_stats(d, v, pw)
                 if st is None or st["p98"] <= 1e-4:
                     info.append("auto_comfort: disparity not measurable, keeping baseline")
                     new_b = b
                 else:
-                    new_b = float(np.clip(b * (target_max_disparity_pct / 100.0) / st["p98"], 0.01, 0.6))
+                    want = b * (target_max_disparity_pct / 100.0) / st["p98"]
+                    new_b = float(np.clip(want, MIN_BASELINE, 0.6))
+                    scale = float(np.clip(want / new_b, 0.1, 1.0))
                     info.append(
                         f"probe baseline {b:.3f} m -> max parallax {100*st['p98']:.2f}% ; "
-                        f"new baseline {new_b:.3f} m"
+                        f"render baseline {new_b:.3f} m" + (f", lift parallax x{scale:.2f}" if scale < 1 else "")
                     )
-                gen = self._gen(pipe, src_lr, sign * new_b, focal, steps, guidance, seed, pbar, probe_steps, total)
+                gen, st = render(new_b, steps, probe_steps, "final")
                 b = new_b
         finally:
             if offload_after:
                 pipe.to("cpu")
                 mm.soft_empty_cache()
         gen = gen.float().cpu()
-        info.append(f"final baseline {b:.3f} m ({generate_eye} eye)")
+        info.append(f"final baseline {b:.3f} m ({generate_eye} eye), parallax scale {scale:.2f}"
+                    + (f", measured max parallax {100 * st['p98'] * scale:.2f}%" if st else ""))
         payload = dict(src_lr=src_lr.cpu(), gen_lr=gen, eye=generate_eye, baseline=b, fov=fov_deg,
-                       size=(H, W))
+                       size=(H, W), parallax_scale=scale)
         text = "\n".join(info)
         _log(text)
         return (payload, sc.to_bhwc(gen), text)
@@ -230,6 +253,7 @@ class StereoForgeLiftToFullRes:
             return sc.lift_to_full_resolution(
                 src_hr, src_lr, gen_lr, gen_hr_hint=hint, sensitivity=view_dependent_sensitivity,
                 sharpen_match=match_sharpness, hole_dilate_px=hole_dilate_px, device=dev,
+                parallax_scale=g.get("parallax_scale", 1.0),
             )
 
         dev = mm.get_torch_device()

@@ -317,8 +317,10 @@ def upsample_disparity(d_lr: torch.Tensor, guide_hr: torch.Tensor, scale_x: floa
     return torch.where(band > 0.5, snapped, gf)
 
 
-def splat_disparity(d_src: torch.Tensor):
+def splat_disparity(d_src: torch.Tensor, shift: torch.Tensor = None):
     """
+    (`shift` overrides the horizontal displacement, target x = x - shift, while the
+    z-order still comes from d_src; used to re-project the generated view.)
     Z-buffered forward splat of source-grid disparity to the target (right) grid.
     Each source pixel covers [x-d-0.5, x-d+0.5] -> both neighbouring integer pixels.
     The largest disparity (nearest surface) wins.  Returns target-grid disparity and
@@ -328,7 +330,7 @@ def splat_disparity(d_src: torch.Tensor):
     assert B == 1
     d = d_src[0, 0]
     xs = torch.arange(W, device=d.device, dtype=d.dtype)[None, :].expand(H, W)
-    xt = xs - d
+    xt = xs - (d if shift is None else shift[0, 0])
     base = torch.floor(xt)
     rows = torch.arange(H, device=d.device)[:, None].expand(H, W) * W
     out = torch.full((H * W,), -1e9, device=d.device, dtype=d.dtype)
@@ -474,6 +476,7 @@ def lift_to_full_resolution(
     sharpen_match: bool = True,
     hole_dilate_px: int = 2,
     device: torch.device = torch.device("cpu"),
+    parallax_scale: float = 1.0,
 ):
     H, W = source_hr.shape[-2:]
     h, w = source_lr.shape[-2:]
@@ -490,6 +493,16 @@ def lift_to_full_resolution(
     d_lr, v_lr = estimate_disparity_lr(source_lr, g0, device=device)
     d_lr, v_lr = d_lr.to(device), v_lr.to(device)
     d_lr_full, occ_lr = complete_disparity(d_lr, v_lr, source_lr)
+    if parallax_scale < 0.999:
+        # The generator rendered at a larger (in-distribution) baseline than the
+        # scene needs.  Build the intermediate viewpoint a = parallax_scale: the
+        # source is warped by a*d below, and the generated view is re-projected
+        # towards the source by (1-a)*d so every later comparison happens at a.
+        a = float(parallax_scale)
+        d_g, _ = splat_disparity(d_lr_full)  # disparity on the generated grid
+        d_a, _ = splat_disparity(d_g, shift=-(1 - a) * d_g)
+        gen_lr, _ = backward_sample(gen_lr, -(1 - a) * d_a)
+        d_lr_full = d_lr_full * a
     dbg["disp_lr"] = d_lr_full
     dbg["valid_lr"] = v_lr
 
