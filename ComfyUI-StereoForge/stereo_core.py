@@ -187,7 +187,7 @@ def estimate_disparity_lr(src_lr: torch.Tensor, gen_lr: torch.Tensor, device=Non
     err = torch.sqrt((fx + bw_at[:, 0:1]) ** 2 + (fy + bw_at[:, 1:2]) ** 2)
     mag = torch.sqrt(fx ** 2 + fy ** 2)
     xs = torch.arange(w, device=fx.device, dtype=fx.dtype).view(1, 1, 1, w)
-    valid = (err < 0.75 + 0.05 * mag) & (fy.abs() < 1.5) & ((xs + fx) >= 0) & ((xs + fx) <= w - 1)
+    valid = (err < 0.75 + 0.05 * mag) & (fy.abs() < 1.0) & ((xs + fx) >= 0) & ((xs + fx) <= w - 1)
     disp = (-fx).clamp_min(-2.0)
     return disp.cpu(), valid.float().cpu()
 
@@ -515,6 +515,7 @@ def lift_to_full_resolution(
     # 4) compare the warped full-res view with the generated view at generator scale
     warped_lr = resize(warped, h, w, "area")
     valid_lr_t = resize(valid_hr, h, w, "area")
+    v_lr_t_src = resize(v_tgt, h, w, "area")  # RAFT-validated source pixels, seen from target
     g = fit_color(gen_lr, warped_lr, (valid_lr_t > 0.95).float())
     blur_s = 1.0
     a = gaussian_blur(warped_lr, blur_s)
@@ -529,11 +530,20 @@ def lift_to_full_resolution(
     # morphological opening: drop isolated specks (generator noise) that would only
     # punch soft patches into the sharp warped view
     replace_lr = dilate(erode(replace_lr, 1), 1)
+    # Only trust a disagreeing generator where its pixels are binocularly explainable
+    # (forward/backward-consistent, epipolar-aligned correspondence).  Content with no
+    # valid horizontal match is a generator hallucination, not a view-dependent effect:
+    # keep the original pixels there.  Disocclusions are handled separately below.
+    explainable = erode((valid_lr_t > 0.5).float() * (v_lr_t_src > 0.5).float(), 1)
+    dbg["hallucination"] = F.interpolate(((replace_lr > 0.3).float() * (1 - explainable)),
+                                         size=(H, W), mode="nearest")
+    replace_lr = replace_lr * explainable
     replace_lr = gaussian_blur(dilate(replace_lr, 1), 1.0).clamp(0, 1)
     # mild, smooth appearance differences (moving highlights, reflections' tint,
     # transparency) -> transfer as a low-frequency residual on top of full-res detail
     resid = gaussian_blur(g - warped_lr, 2.0)
     tint = smoothstep(gaussian_blur((g - warped_lr).abs().mean(1, keepdim=True), 2.0), 0.02 / sens, 0.06 / sens)
+    tint = tint * gaussian_blur(explainable, 2.0)
 
     up = lambda t: F.interpolate(t, size=(H, W), mode="bicubic", align_corners=False)
     replace_hr = up(replace_lr).clamp(0, 1)
