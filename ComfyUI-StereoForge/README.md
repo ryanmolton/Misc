@@ -75,7 +75,7 @@ Then drag `workflows/StereoForge_SBS.json` into ComfyUI, choose an image in **Lo
   - `fixed` uses `baseline_m` directly (0.065 m is human eye separation, i.e. orthostereo).
   - `fov_deg` is the assumed field of view across the long side. A wider FOV gives less disparity for the same baseline.
 - **Convergence:** the pair is a parallel rig, so infinity is at zero parallax and everything else appears in front of the screen plane. This is the correct geometry for VR headsets and parallel free-viewing. For 3D TVs, move the convergence in your player (horizontal image translation) so the source eye is not resampled.
-- **`view_dependent_sensitivity`:** raise it (1.5–2.5) for glass, mirrors and shop windows so more of the generator's view-dependent rendering is used. Lower it (0.5–0.8) for matte scenes to keep even more original detail.
+- **`view_dependent_sensitivity`:** at 1.0 (the default) original pixels are kept wherever they can be warped. Only disocclusions come from the generator, plus a clipped low-frequency tint for moving highlights. Values between 1 and 2 increasingly let the generated view replace warped pixels where they disagree. Use this for mirror- or glass-heavy scenes, and check the result: on real test photos the generator's disagreements were often hallucinations (copied lens flares, erased kerbs) rather than true view-dependent effects.
 - **Bypassing the refine** (select the node, Ctrl+B): the pipeline still works and runs faster. Filled regions stay slightly soft because they are upscaled from about 0.6 MP.
 - **Other refiners:** the refine node accepts any MODEL / VAE / conditioning. For SDXL, remove FluxGuidance and use cfg 4–6 with a real negative prompt.
 

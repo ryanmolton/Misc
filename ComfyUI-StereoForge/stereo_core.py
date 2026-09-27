@@ -551,10 +551,16 @@ def lift_to_full_resolution(
     dbg["hallucination"] = F.interpolate(((replace_lr > 0.3).float() * (1 - explainable)),
                                          size=(H, W), mode="nearest")
     replace_lr = replace_lr * explainable
+    # Replacing warped source pixels with generated ones is opt-in: on real photos the
+    # generator's "view-dependent" differences were more often hallucinations (copied
+    # flares, erased kerbs) than genuine effects.  sensitivity 1 -> off, 2 -> full.
+    replace_lr = replace_lr * float(np.clip(sensitivity - 1.0, 0.0, 1.0))
     replace_lr = gaussian_blur(dilate(replace_lr, 1), 1.0).clamp(0, 1)
     # mild, smooth appearance differences (moving highlights, reflections' tint,
     # transparency) -> transfer as a low-frequency residual on top of full-res detail
-    resid = gaussian_blur(g - warped_lr, 2.0)
+    # low-frequency appearance transfer, clipped so it can shift a highlight or tint
+    # glass but never paint new structure
+    resid = gaussian_blur(g - warped_lr, 2.0).clamp(-0.08 * sens, 0.08 * sens)
     tint = smoothstep(gaussian_blur((g - warped_lr).abs().mean(1, keepdim=True), 2.0), 0.02 / sens, 0.06 / sens)
     tint = tint * gaussian_blur(explainable, 2.0)
 

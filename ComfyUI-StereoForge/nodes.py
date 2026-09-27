@@ -199,6 +199,10 @@ class StereoForgeGenerateView:
                     )
                 gen, st = render(new_b, steps, probe_steps, "final")
                 b = new_b
+                # the generator's parallax is not exactly linear in the baseline:
+                # set the lift-side scale from what the final render actually shows
+                if st is not None and st["p98"] > 1e-4:
+                    scale = float(np.clip((target_max_disparity_pct / 100.0) / st["p98"], 0.1, 1.0))
         finally:
             if offload_after:
                 pipe.to("cpu")
@@ -222,7 +226,7 @@ class StereoForgeLiftToFullRes:
                 "image": ("IMAGE", {"tooltip": "The full-resolution working image (same one given to Generate View)."}),
                 "stereo_gen": ("STEREO_GEN",),
                 "view_dependent_sensitivity": ("FLOAT", {"default": 1.0, "min": 0.25, "max": 4.0, "step": 0.05,
-                                                         "tooltip": "Higher = trust the generated view more where it disagrees with the warped source (reflections, glass, speculars)."}),
+                                                         "tooltip": "1 = keep the original pixels wherever they can be warped (safest). 1-2 = increasingly replace them with the generated view where it disagrees (reflections, glass) - can import generator hallucinations."}),
                 "match_sharpness": ("BOOLEAN", {"default": True}),
                 "hole_dilate_px": ("INT", {"default": 2, "min": 0, "max": 16}),
             },
