@@ -55,7 +55,7 @@ class StereoForgeLoadModel:
     RETURN_TYPES = ("STEREOSPACE",)
     RETURN_NAMES = ("stereo_model",)
     FUNCTION = "load"
-    CATEGORY = "StereoForge"
+    CATEGORY = "StereoForge/legacy (StereoSpace)"
     DESCRIPTION = "Loads StereoSpace (prs-eth/stereospace-v1-0, MIT). Downloads ~11 GB into models/stereospace on first use."
 
     def load(self, precision):
@@ -89,7 +89,7 @@ class StereoForgePrepareInput:
     RETURN_TYPES = ("IMAGE",)
     RETURN_NAMES = ("working_image",)
     FUNCTION = "run"
-    CATEGORY = "StereoForge"
+    CATEGORY = "StereoForge/legacy (StereoSpace)"
 
     def run(self, image, downscale, max_long_side):
         image = image[..., :3]
@@ -134,7 +134,7 @@ class StereoForgeGenerateView:
     RETURN_TYPES = ("STEREO_GEN", "IMAGE", "STRING")
     RETURN_NAMES = ("stereo_gen", "generated_lowres", "info")
     FUNCTION = "run"
-    CATEGORY = "StereoForge"
+    CATEGORY = "StereoForge/legacy (StereoSpace)"
 
     def _gen(self, pipe, src_lr, baseline, focal, steps, guidance, seed, pbar, done, total):
         def cb(i, n):
@@ -238,7 +238,7 @@ class StereoForgeLiftToFullRes:
     RETURN_TYPES = ("IMAGE", "MASK", "IMAGE", "MASK")
     RETURN_NAMES = ("target_eye", "refine_mask", "disparity_vis", "resynth_mask")
     FUNCTION = "run"
-    CATEGORY = "StereoForge"
+    CATEGORY = "StereoForge/legacy (StereoSpace)"
 
     def run(self, image, stereo_gen, view_dependent_sensitivity, match_sharpness, hole_dilate_px, generated_upscaled=None):
         g = stereo_gen
@@ -313,7 +313,7 @@ class StereoForgeTiledMaskedRefine:
 
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "run"
-    CATEGORY = "StereoForge"
+    CATEGORY = "StereoForge/legacy (StereoSpace)"
 
     def run(self, image, mask, model, positive, negative, vae, seed, steps, cfg, sampler_name, scheduler,
             denoise, tile_size, overlap, mask_threshold):
@@ -390,7 +390,7 @@ class StereoForgeCompose:
     RETURN_TYPES = ("IMAGE", "IMAGE", "IMAGE", "IMAGE", "IMAGE")
     RETURN_NAMES = ("side_by_side", "left_eye", "right_eye", "anaglyph_preview", "generated_eye")
     FUNCTION = "run"
-    CATEGORY = "StereoForge"
+    CATEGORY = "StereoForge/legacy (StereoSpace)"
 
     def run(self, source, target_eye, stereo_gen, layout, grain_match, seed, mask=None):
         src = source[:1, ..., :3]

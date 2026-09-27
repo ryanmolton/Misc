@@ -348,7 +348,7 @@ def splat_disparity(d_src: torch.Tensor, shift: torch.Tensor = None):
     return filled[None, None], hit[None, None].float()
 
 
-def backward_sample(img: torch.Tensor, d_tgt: torch.Tensor, mode: str = "bicubic"):
+def backward_sample(img: torch.Tensor, d_tgt: torch.Tensor, mode: str = "bicubic", padding: str = "border"):
     """target(x) = source(x + d)."""
     B, C, H, W = img.shape
     ys, xs = torch.meshgrid(
@@ -360,7 +360,7 @@ def backward_sample(img: torch.Tensor, d_tgt: torch.Tensor, mode: str = "bicubic
     gx = (xsrc + 0.5) / W * 2 - 1
     gy = (ys[None].expand_as(gx) + 0.5) / H * 2 - 1
     grid = torch.stack([gx, gy], -1)
-    out = F.grid_sample(img, grid, mode=mode, padding_mode="border", align_corners=False)
+    out = F.grid_sample(img, grid, mode=mode, padding_mode=padding, align_corners=False)
     inframe = ((xsrc >= -0.5) & (xsrc <= W - 0.5)).float()[:, None]
     return out.clamp(0, 1), inframe
 
