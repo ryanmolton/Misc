@@ -1,0 +1,7 @@
+diffusers>=0.27
+transformers>=4.38
+einops
+jaxtyping
+omegaconf
+huggingface_hub
+opencv-python-headless
