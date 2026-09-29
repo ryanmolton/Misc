@@ -112,6 +112,51 @@ def test_soft_fringe_moves_with_foreground():
         assert final[ghost_zone].mean() < 0.35
 
 
+def test_narrow_gaps_skip_generative_fill():
+    img, disp, m = _disc_scene(blur=2.0)
+    W = disp.shape[1]
+    # 4 px of parallax -> 4 px gaps: below the threshold, no diffusion needed
+    p = core.StereoParams(budget_pct=4 / W * 100, convergence=0.0, stereo_window=False, min_fill_px=8)
+    r = core.render_opposite_eye(img, disp, p)
+    assert r.hole.any() and not (r.inpaint_mask > 0.5).any()
+    # 30 px gaps: inpainted
+    p = core.StereoParams(budget_pct=30 / W * 100, convergence=0.0, stereo_window=False, min_fill_px=8)
+    r = core.render_opposite_eye(img, disp, p)
+    assert ((r.inpaint_mask > 0.5) & r.hole).sum() >= 0.9 * r.hole.sum()
+
+
+def test_crop_planner_covers_every_gap_pixel():
+    g = torch.Generator().manual_seed(3)
+    H, W = 1300, 2100
+    mask = torch.zeros(H, W, dtype=torch.bool)
+    for _ in range(40):  # thin vertical slivers like disocclusions
+        y, x = int(torch.randint(0, H - 200, (1,), generator=g)), int(torch.randint(0, W - 30, (1,), generator=g))
+        mask[y:y + 200, x:x + 12] = True
+    mask[:, -40:] = True  # frame-edge strip
+    tile, ctx = 1024, 64
+    max_h, max_w = min(tile, H // 16 * 16), min(tile, W // 16 * 16)
+    ch, cw = max_h - 2 * ctx, max_w - 2 * ctx
+    rem, area = mask.clone(), 0
+    for y in range(0, H, ch):
+        for x in range(0, W, cw):
+            cell = (y, min(H, y + ch), x, min(W, x + cw))
+            owned = torch.zeros_like(rem)
+            owned[cell[0]:cell[1], cell[2]:cell[3]] = rem[cell[0]:cell[1], cell[2]:cell[3]]
+            c = core.plan_crop(owned, cell, H, W, max_h, max_w, ctx, 384)
+            if c is None:
+                continue
+            y0, y1, x0, x1 = c
+            assert 0 <= y0 < y1 <= H and 0 <= x0 < x1 <= W
+            assert (y1 - y0) % 16 == 0 and (x1 - x0) % 16 == 0
+            assert y1 - y0 <= max_h and x1 - x0 <= max_w
+            assert owned[y0:y1, x0:x1].sum() == owned.sum()
+            rem[y0:y1, x0:x1] &= ~owned[y0:y1, x0:x1]
+            area += (y1 - y0) * (x1 - x0)
+    assert not rem.any()
+    # the previous fixed grid (1024 px tiles, 256 overlap) processed 3 x 2 full tiles here
+    assert area < 0.8 * 6 * max_h * max_w
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

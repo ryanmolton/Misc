@@ -72,10 +72,13 @@ image ─┬─► geometry (MoGe-3, native) ─► 1/z disparity ─┐
    pixels just outside each occlusion edge. The de-contaminated strands then
    move with the foreground as a matte, instead of staying behind as a ghost
    outline.
-7. **Generative fill.** Only the true disocclusions (plus the image-side strips
-   that come into frame) are regenerated. **FLUX.1 Fill [dev]** works on
-   **1:1-pixel tiles** (1024 px by default), so the new pixels have native
-   resolution and grain. Tiles own disjoint pixels and later tiles see earlier
+7. **Generative fill.** Only disocclusions wide enough to need new content
+   (plus the image-side strips that come into frame) are regenerated. Slivers
+   narrower than about 0.25 % of the width keep the background-mirrored fill,
+   which looks the same at that size and costs nothing. **FLUX.1 Fill [dev]**
+   works at **1:1 pixel scale** on crops sized to the gaps plus a context
+   margin (never larger than 1024 px), so the new pixels have native
+   resolution and grain. Crops own disjoint pixels and later crops see earlier
    results as context, so there are no tile seams.
 8. **Keeping the inpainter to background.** A guard band hides the foreground
    next to each hole from the inpainter, so it continues the *background*
@@ -144,7 +147,7 @@ The `*.api.json` files are the same graphs in API format, for scripted use.
 | **Disparity from Depth Image** | Use any other depth node (Marigold, DepthCrafter…). Choose the encoding. |
 | **Flatten Regions to Plane** | Optional. Give it a mask of pictures, screens, posters or signs (for example from SAM) and each masked region becomes the plane of its surroundings. |
 | **Render Opposite Eye** | The full-resolution geometric renderer described above. |
-| **Tiled Inpaint (native res)** | Works with any inpainting model. FLUX Fill: cfg 1, FluxGuidance 30, 28 steps, euler/simple. SD1.5/SDXL inpainting: tile 512/1024 with normal cfg. |
+| **Tiled Inpaint (native res)** | Works with any inpainting model. FLUX Fill: cfg 1, FluxGuidance 30, 20 steps, euler/simple. SD1.5/SDXL inpainting: tile 512/1024 with normal cfg. |
 | **Compose Side-by-Side** | Parallel (L\|R) or cross-eyed (R\|L), plus the generated eye alone and a red/cyan anaglyph for quick checks. |
 
 **Comfort and composition** (Render node):
@@ -161,9 +164,12 @@ The `*.api.json` files are the same graphs in API format, for scripted use.
 * `border_fill`: `inpaint` regenerates the thin strip that comes into view at
   the side edges; `black` gives a classic floating window instead.
 * `source_eye`: `left` (default) or `right`.
-* Advanced (all have automatic, resolution-scaled defaults): `soft_edge_px`
-  (hair and fur matte width), `fg_guard_px`, `edge_band_px`, `edge_slope`,
-  `edge_refine_px`.
+* `min_fill_px` (advanced, default auto ≈ 0.25 % of width): gaps thinner
+  than this skip the inpainting model. Raise it for speed, or set it to 0 to
+  inpaint every gap.
+* Other advanced settings (all have automatic, resolution-scaled defaults):
+  `soft_edge_px` (hair and fur matte width), `fg_guard_px`, `edge_band_px`,
+  `edge_slope`, `edge_refine_px`.
 
 ---
 
@@ -196,10 +202,15 @@ top of this render, not a replacement for it.
 * Large disocclusions (a big near object in front of a detailed background,
   or high `depth_budget_pct`) depend on FLUX Fill's plausibility. The content
   will be plausible, not the hidden truth.
-* Time: the fill dominates and scales with the number of 1024 px tiles that
-  contain holes. I estimate (not measured) roughly 10–30 tiles for a 24 MP
-  image at 3 %, at the usual FLUX Fill cost per 1 MP image each. On CPU,
-  the 2370×964 test render took well under a minute; the GPU should be much faster.
+* Time: the FLUX fill dominates. Its cost is the total crop area times the
+  step count. When gaps outline a large subject, crop area stays around the
+  image's own area: roughly one FLUX pass per megapixel. On an RTX 3090 (about
+  1.4 s per step at 1 MP), expect roughly 30 s per megapixel at 20 steps. To
+  go faster: lower `steps` (try 16; check results on your own images), raise `min_fill_px`, set
+  `border_fill` to black, or run without the fill entirely (disconnect
+  `inpainted` from the Compose node). That last option is near-instant but
+  uses the mirrored fill in wide gaps too. Everything before the fill takes
+  seconds on a GPU.
 
 ## 6. Validation done in development
 

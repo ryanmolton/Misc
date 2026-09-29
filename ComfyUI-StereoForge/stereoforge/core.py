@@ -179,6 +179,7 @@ class StereoParams:
     fg_dilate: int = 0               # extra px of edge pixels that move fully opaque with the foreground
     soft_band: int = -1              # soft-boundary (hair/fur) band width, -1 = auto, 0 = off
     fg_guard: int = -1               # foreground band hidden from the inpainter, -1 = auto, 0 = off
+    min_fill_px: int = -1            # gaps narrower than this keep the geometric fill (no diffusion), -1 = auto
     edge_band: int = 0               # 0 = auto
     jump_px: float = 1.5             # disparity steps below this are rendered as stretch, not holes
     max_stretch: float = 2.0         # max target span of one source pixel before it counts as a hole
@@ -567,6 +568,57 @@ class RenderResult:
         return (self.fringe_color + (1 - a) * self.view).clamp(0, 1)
 
 
+def wide_holes(hole: torch.Tensor, min_width: int) -> torch.Tensor:
+    """Hole regions that are at least ``min_width`` px thick somewhere.
+
+    Thickness is the diameter of the largest disc that fits inside the region
+    (from a Euclidean distance transform), so long thin slivers along
+    near-horizontal edges are not mistaken for wide gaps.
+    """
+    if min_width <= 1 or not bool(hole.any()):
+        return hole
+    from scipy import ndimage
+    h_np = hole.cpu().numpy()
+    thick = 2.0 * ndimage.distance_transform_edt(h_np)
+    lab, n = ndimage.label(h_np, structure=[[1, 1, 1], [1, 1, 1], [1, 1, 1]])
+    if n == 0:
+        return hole
+    mx = ndimage.maximum(thick, lab, index=range(1, n + 1))
+    keep = torch.zeros(n + 1, dtype=torch.bool)
+    keep[1:] = torch.from_numpy(mx >= min_width)
+    return keep[torch.from_numpy(lab).long()].to(hole.device)
+
+
+def plan_crop(owned: torch.Tensor, cell: tuple[int, int, int, int], H: int, W: int, max_h: int, max_w: int,
+              ctx: int, min_dim: int, mult: int = 16) -> tuple[int, int, int, int] | None:
+    """Crop (y0, y1, x0, x1) covering the owned mask pixels of one cell plus ``ctx`` px of context.
+
+    ``owned`` is the (H, W) bool mask of pixels this cell still has to fill.
+    The crop is at most (max_h, max_w), at least ``min_dim`` per side, a
+    multiple of ``mult``, and lies fully inside the image.
+    """
+    cy0, cy1, cx0, cx1 = cell
+    sub = owned[cy0:cy1, cx0:cx1]
+    if not bool(sub.any()):
+        return None
+    ys = torch.nonzero(sub.any(1)).flatten()
+    xs = torch.nonzero(sub.any(0)).flatten()
+    by0, by1 = cy0 + int(ys[0]), cy0 + int(ys[-1]) + 1
+    bx0, bx1 = cx0 + int(xs[0]), cx0 + int(xs[-1]) + 1
+
+    def span(b0, b1, size, cap):
+        want = (b1 - b0) + 2 * ctx
+        want = max(want, min(min_dim, cap))
+        want = min(cap, ((want + mult - 1) // mult) * mult)
+        c = (b0 + b1) // 2
+        a = min(max(0, c - want // 2), size - want)
+        return a, a + want
+
+    y0, y1 = span(by0, by1, H, max_h)
+    x0, x1 = span(bx0, bx1, W, max_w)
+    return y0, y1, x0, x1
+
+
 def render_opposite_eye(image: torch.Tensor, disp: torch.Tensor, p: StereoParams) -> RenderResult:
     H, W, C = image.shape
     md = max(H, W)
@@ -601,7 +653,12 @@ def render_opposite_eye(image: torch.Tensor, disp: torch.Tensor, p: StereoParams
     filled = torch.where(black.unsqueeze(-1), torch.zeros_like(filled), filled)
     f_a = torch.where(black, torch.zeros_like(f_a), f_a)
     f_col = torch.where(black.unsqueeze(-1), torch.zeros_like(f_col), f_col)
-    inpaint = max_filter((hole & ~black).float(), band + 2)
+    # Only gaps wide enough to need new content go to the (expensive) generative
+    # fill; slivers behind hair, whiskers and small edges keep the background
+    # mirror pre-fill, which is indistinguishable at that width.
+    min_fill = p.min_fill_px if p.min_fill_px >= 0 else max(6, int(round(W / 400)))
+    gen = wide_holes(hole & ~black, min_fill)
+    inpaint = max_filter(gen.float(), band + 2)
     guard_px = p.fg_guard if p.fg_guard >= 0 else auto_px(md, 60, 16)
     R = max(guard_px, 4 * band)
     thr = max(3.0, 2 * p.jump_px)
@@ -615,7 +672,8 @@ def render_opposite_eye(image: torch.Tensor, disp: torch.Tensor, p: StereoParams
         # continues the *background* instead of extending the foreground into the
         # hole. Those pixels are restored from the exact render (alpha = 1) at
         # composite time; only their soft edge blends with the new background.
-        guard = fg_side & (max_filter(hz, guard_px) > float("-inf"))
+        hz_gen = torch.where(gen, z_t, torch.full_like(z_t, float("-inf")))
+        guard = fg_side & (max_filter(hz_gen, guard_px) > float("-inf"))
         inpaint = torch.maximum(inpaint, guard.float())
     # colour references for the post-fill "foreground bleed" check
     fg_ref, _ = _norm_conv(filled, fg_side, R)

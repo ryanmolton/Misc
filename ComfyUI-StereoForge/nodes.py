@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import math
 
 import torch
@@ -235,6 +236,9 @@ class SF_StereoRender:
                 "soft_edge_px": ("INT", {"default": -1, "min": -1, "max": 128,
                                          "tooltip": "Width of the soft-boundary zone (hair, fur, whiskers, defocus) that is matted and moved "
                                                     "with the foreground. -1 = auto (~0.33% of the long side), 0 = off."}),
+                "min_fill_px": ("INT", {"default": -1, "min": -1, "max": 512,
+                                        "tooltip": "Gaps narrower than this (px, horizontally) keep the fast geometric fill instead of "
+                                                   "going to the inpainting model. -1 = auto (~0.25% of width), 0 = inpaint every gap."}),
                 "fg_guard_px": ("INT", {"default": -1, "min": -1, "max": 512,
                                         "tooltip": "Foreground pixels next to each disocclusion that are hidden from the inpainter so it "
                                                    "continues the background instead of extending the foreground. -1 = auto, 0 = off."}),
@@ -246,11 +250,11 @@ class SF_StereoRender:
     CATEGORY = CATEGORY
 
     def run(self, image, disparity, source_eye, depth_budget_pct, convergence, stereo_window, border_fill,
-            edge_refine_px=-1, fg_dilate_px=0, edge_band_px=0, edge_slope=0.35, soft_edge_px=-1, fg_guard_px=-1):
+            edge_refine_px=-1, fg_dilate_px=0, edge_band_px=0, edge_slope=0.35, soft_edge_px=-1, fg_guard_px=-1, min_fill_px=-1):
         dev = _device()
         p = core.StereoParams(budget_pct=depth_budget_pct, convergence=convergence, stereo_window=stereo_window,
                               source_eye=source_eye, fg_dilate=fg_dilate_px, edge_band=edge_band_px,
-                              grad_thr=edge_slope, soft_band=soft_edge_px, fg_guard=fg_guard_px, black_borders=border_fill.startswith("black"))
+                              grad_thr=edge_slope, soft_band=soft_edge_px, fg_guard=fg_guard_px, min_fill_px=min_fill_px, black_borders=border_fill.startswith("black"))
         views, masks, alphas, prevs, holes, planes, blacks, fcols, fas, frefs, brefs = [], [], [], [], [], [], [], [], [], [], []
         pbar = comfy.utils.ProgressBar(image.shape[0])
         for i in range(image.shape[0]):
@@ -296,11 +300,13 @@ class SF_TiledInpaint:
     """Regenerate masked regions at 1:1 pixel scale in overlapping tiles.
 
     Disocclusions are thin slivers spread over the whole frame, so cropping to
-    the mask's bounding box would force a downscale; instead every tile that
-    contains mask is inpainted at native resolution (so the new pixels have the
-    same acuity as the rest of the eye). Tiles run in raster order and each
-    masked pixel is owned by exactly one tile; later tiles see earlier results
-    as fixed context, which keeps fills coherent across tile boundaries.
+    the mask's bounding box would force a downscale. Instead the image is
+    partitioned into cells; each cell's remaining gaps are inpainted at native
+    resolution in a crop sized to those gaps plus a context margin (at most
+    tile_size), so the new pixels have the same acuity as the rest of the eye
+    and narrow gaps cost far less than a full tile. Cells run in raster order
+    and later crops see earlier results as fixed context, which keeps fills
+    coherent across cell boundaries.
     Works with FLUX.1 Fill (recommended), SD/SDXL inpainting checkpoints, or
     any model (plain noise-mask inpainting)."""
 
@@ -315,14 +321,16 @@ class SF_TiledInpaint:
             "image": ("IMAGE",),
             "mask": ("MASK",),
             "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff, "control_after_generate": True}),
-            "steps": ("INT", {"default": 28, "min": 1, "max": 200}),
+            "steps": ("INT", {"default": 20, "min": 1, "max": 200}),
             "cfg": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 30.0, "step": 0.1}),
             "sampler_name": (comfy.samplers.KSampler.SAMPLERS, {"default": "euler"}),
             "scheduler": (comfy.samplers.KSampler.SCHEDULERS, {"default": "simple"}),
             "denoise": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.01}),
             "tile_size": ("INT", {"default": 1024, "min": 256, "max": 2048, "step": 64,
                                   "tooltip": "Tile edge in pixels, processed at 1:1 scale. ~1024 for FLUX/SDXL, 512 for SD1.5."}),
-            "tile_overlap": ("INT", {"default": 256, "min": 0, "max": 1024, "step": 16}),
+            "tile_overlap": ("INT", {"default": 128, "min": 0, "max": 1024, "step": 16,
+                                     "tooltip": "Context around the gaps is half of this on each side. Crops are sized to the gaps "
+                                                "(never larger than tile_size), so narrow gaps cost much less than a full tile."}),
             "mask_grow_px": ("INT", {"default": 4, "min": 0, "max": 64,
                                      "tooltip": "Extra pixels the sampler may repaint around the mask to blend seams."}),
         }}
@@ -345,43 +353,41 @@ class SF_TiledInpaint:
         if min(H, W) < 64:
             raise ValueError("Image too small for tiled inpainting.")
         out = image.clone().float().cpu()
-        th = min(tile_size, H // 16 * 16)
-        tw = min(tile_size, W // 16 * 16)
-        ov = min(tile_overlap, max(0, min(th, tw) - 16))
-        ys, xs = _tile_starts(H, th, ov), _tile_starts(W, tw, ov)
-        # ownership: each pixel belongs to the tile whose centre is nearest (per axis)
-        cy = torch.tensor([y + th / 2 for y in ys])
-        cx = torch.tensor([x + tw / 2 for x in xs])
-        own_y = (torch.arange(H)[:, None].float() - cy[None]).abs().argmin(1)
-        own_x = (torch.arange(W)[:, None].float() - cx[None]).abs().argmin(1)
+        max_h = min(tile_size, H // 16 * 16)
+        max_w = min(tile_size, W // 16 * 16)
+        # context margin around the gaps inside each crop (half the old overlap)
+        ctx = max(0, min(tile_overlap // 2, (min(max_h, max_w) - 64) // 2))
+        min_dim = min(384, max_h, max_w)
+        # ownership cells partition the image; every cell's gaps + context fit in one crop
+        cell_h, cell_w = max(16, max_h - 2 * ctx), max(16, max_w - 2 * ctx)
+        cells = [(y, min(H, y + cell_h), x, min(W, x + cell_w))
+                 for y in range(0, H, cell_h) for x in range(0, W, cell_w)]
 
-        work = []
+        rems = []
         for b in range(B):
             m = mask[min(b, mask.shape[0] - 1)].float().cpu()
             if m.shape != (H, W):
                 m = F.interpolate(m[None, None], size=(H, W), mode="bilinear")[0, 0]
-            rem = m > 0.5
-            for iy, y0 in enumerate(ys):
-                for ix, x0 in enumerate(xs):
-                    if rem[y0:y0 + th, x0:x0 + tw].any():
-                        work.append((b, iy, ix, y0, x0))
+            rems.append(m > 0.5)
+        work = [(b, c) for b in range(B) for c in cells if bool(rems[b][c[0]:c[1], c[2]:c[3]].any())]
+        total_px = sum(int(r.sum()) for r in rems)
+        logging.info(f"[StereoForge] inpainting {total_px} px in up to {len(work)} crops "
+                     f"(max {max_w}x{max_h}, context {ctx}px)")
         pbar = comfy.utils.ProgressBar(max(1, len(work)))
-        rems = {}
-        for n, (b, iy, ix, y0, x0) in enumerate(work):
+        for n, (b, cell) in enumerate(work):
             mm.throw_exception_if_processing_interrupted()
-            if b not in rems:
-                m = mask[min(b, mask.shape[0] - 1)].float().cpu()
-                if m.shape != (H, W):
-                    m = F.interpolate(m[None, None], size=(H, W), mode="bilinear")[0, 0]
-                rems[b] = m > 0.5
             rem = rems[b]
-            sub = rem[y0:y0 + th, x0:x0 + tw]
-            if not sub.any():
+            owned = torch.zeros_like(rem)
+            owned[cell[0]:cell[1], cell[2]:cell[3]] = rem[cell[0]:cell[1], cell[2]:cell[3]]
+            crop = core.plan_crop(owned, cell, H, W, max_h, max_w, ctx, min_dim)
+            if crop is None:
                 pbar.update(1)
                 continue
-            own = (own_y[y0:y0 + th, None] == iy) & (own_x[None, x0:x0 + tw] == ix)
+            y0, y1, x0, x1 = crop
+            logging.info(f"[StereoForge] crop {n + 1}/{len(work)}: {x1 - x0}x{y1 - y0} at ({x0},{y0})")
+            sub = rem[y0:y1, x0:x1]
             samp = core.max_filter(sub.float(), mask_grow_px)
-            pix = out[b:b + 1, y0:y0 + th, x0:x0 + tw, :3]
+            pix = out[b:b + 1, y0:y1, x0:x1, :3]
             smask = samp[None, None]
             masked = (pix - 0.5) * (1.0 - smask.round()).squeeze(1).unsqueeze(-1) + 0.5
             concat = vae.encode(masked)
@@ -392,15 +398,14 @@ class SF_TiledInpaint:
             res = comfy_nodes.common_ksampler(model, seed + n, steps, cfg, sampler_name, scheduler, pos, neg,
                                               latent, denoise=denoise)[0]
             dec = self._decode(vae, res["samples"])[0]
-            if dec.shape[:2] != (th, tw):
-                dec = F.interpolate(dec.permute(2, 0, 1)[None], size=(th, tw), mode="bicubic")[0].permute(1, 2, 0)
-            # paste: owned masked pixels; unowned pixels that later tiles will
-            # redo also get the result now so they act as coherent context
-            paste = sub
-            region = out[b, y0:y0 + th, x0:x0 + tw, :3]
-            region[paste] = dec[paste].clamp(0, 1)
-            done = sub & own
-            rem[y0:y0 + th, x0:x0 + tw] = sub & ~done
+            if dec.shape[:2] != (y1 - y0, x1 - x0):
+                dec = F.interpolate(dec.permute(2, 0, 1)[None], size=(y1 - y0, x1 - x0),
+                                    mode="bicubic")[0].permute(1, 2, 0)
+            # paste every still-open gap pixel in the crop (neighbouring cells'
+            # gaps then act as coherent context), but only this cell's become final
+            region = out[b, y0:y1, x0:x1, :3]
+            region[sub] = dec[sub].clamp(0, 1)
+            rem[y0:y1, x0:x1] = sub & ~owned[y0:y1, x0:x1]
             pbar.update(1)
         return (out,)
 

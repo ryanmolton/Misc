@@ -127,13 +127,13 @@ def build(depth: str = "moge", test: bool = False, image_name: str = "example.pn
                    title="Disparity (white = near)", api_widgets={})
     g.link(dg, 1, dprev, "images")
 
-    rw = ["left", 3.0, 0.25, True, "inpaint", -1, 0, 0, 0.35, -1, -1]
+    rw = ["left", 3.0, 0.25, True, "inpaint", -1, 0, 0, 0.35, -1, -1, -1]
     ren = g.node("SF_StereoRender", (760, 40), rw, inputs=[("image", "IMAGE"), ("disparity", "MASK")],
                  outputs=[("stereo", "SF_STEREO"), ("rendered_view", "IMAGE"), ("inpaint_mask", "MASK"),
                           ("disparity_preview", "IMAGE"), ("hole_mask", "MASK")], size=(340, 330),
                  api_widgets={"source_eye": "left", "depth_budget_pct": 3.0, "convergence": 0.25,
                               "stereo_window": True, "border_fill": "inpaint", "edge_refine_px": -1,
-                              "fg_dilate_px": 0, "edge_band_px": 0, "edge_slope": 0.35, "soft_edge_px": -1, "fg_guard_px": -1})
+                              "fg_dilate_px": 0, "edge_band_px": 0, "edge_slope": 0.35, "soft_edge_px": -1, "min_fill_px": -1, "fg_guard_px": -1})
     g.link(down, 0, ren, "image")
     g.link(dg, 0, ren, "disparity")
     pprev = g.node("PreviewImage", (760, 420), [], inputs=[("images", "IMAGE")], size=(340, 260),
@@ -173,14 +173,14 @@ def build(depth: str = "moge", test: bool = False, image_name: str = "example.pn
                 outputs=[("CONDITIONING", "CONDITIONING")], api_widgets={})
     g.link(te, 0, zo, "conditioning")
 
-    steps, cfg, tile, sched = (3, 4.0, 512, "normal") if test else (28, 1.0, 1024, "simple")
+    steps, cfg, tile, sched = (3, 4.0, 512, "normal") if test else (20, 1.0, 1024, "simple")
     ti = g.node("SF_TiledInpaint", (1540, 40),
-                [0, "fixed", steps, cfg, "euler", sched, 1.0, tile, 256 if not test else 128, 4],
+                [0, "fixed", steps, cfg, "euler", sched, 1.0, tile, 128, 4],
                 inputs=[("model", "MODEL"), ("positive", "CONDITIONING"), ("negative", "CONDITIONING"),
                         ("vae", "VAE"), ("image", "IMAGE"), ("mask", "MASK")],
                 outputs=[("image", "IMAGE")], size=(340, 360),
                 api_widgets={"seed": 0, "steps": steps, "cfg": cfg, "sampler_name": "euler", "scheduler": sched,
-                             "denoise": 1.0, "tile_size": tile, "tile_overlap": 256 if not test else 128,
+                             "denoise": 1.0, "tile_size": tile, "tile_overlap": 128,
                              "mask_grow_px": 4})
     g.link(*model_src, ti, "model")
     g.link(*pos_src, ti, "positive")
