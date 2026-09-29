@@ -1,0 +1,1057 @@
+{
+ "last_node_id": 19,
+ "last_link_id": 22,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "Note",
+   "pos": [
+    -420,
+    40
+   ],
+   "size": [
+    400,
+    560
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "Note"
+   },
+   "widgets_values": [
+    "StereoForge - single image -> side-by-side stereograph (2W x H)\n\n1. Load your image (left). The source becomes the LEFT eye pixel-for-pixel\n   (set source_eye = right on the Render node to make it the right eye).\n2. Downscale is OFF by default (bit-exact pass-through).\n3. Depth: MoGe-3 (native ComfyUI >= 0.37) -> 1/z disparity.\n4. Render Opposite Eye: full-res z-buffered rendering, depth-aware Lanczos\n   resampling, soft-edge (hair/fur) matting; only disocclusions are left.\n5. Tiled Inpaint: FLUX.1 Fill regenerates just those regions at 1:1 pixel\n   scale (1024 px tiles).\n6. Compose: source eye untouched + generated eye -> side-by-side PNG.\n\nComfort: depth_budget_pct 2-3 (screens) / 3-5 (VR). stereo_window keeps\nframe-edge objects behind the screen. Check the anaglyph preview with\nred/cyan glasses or view the SBS cross/parallel."
+   ],
+   "title": "READ ME"
+  },
+  {
+   "id": 2,
+   "type": "LoadImage",
+   "pos": [
+    0,
+    40
+   ],
+   "size": [
+    320,
+    380
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      1
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "MASK",
+     "type": "MASK",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadImage"
+   },
+   "widgets_values": [
+    "example.png",
+    "image"
+   ]
+  },
+  {
+   "id": 3,
+   "type": "SF_OptionalDownscale",
+   "pos": [
+    0,
+    470
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "link": 1
+    }
+   ],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      3,
+      6,
+      19
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SF_OptionalDownscale"
+   },
+   "widgets_values": [
+    false,
+    3840
+   ]
+  },
+  {
+   "id": 4,
+   "type": "LoadMoGeModel",
+   "pos": [
+    380,
+    40
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "MOGE_MODEL",
+     "type": "MOGE_MODEL",
+     "links": [
+      2
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadMoGeModel",
+    "models": [
+     {
+      "name": "moge_3_vitg_fp16.safetensors",
+      "url": "https://huggingface.co/Comfy-Org/MoGe/resolve/main/geometry_estimation/moge_3_vitg_fp16.safetensors",
+      "directory": "geometry_estimation"
+     }
+    ]
+   },
+   "widgets_values": [
+    "moge_3_vitg_fp16.safetensors"
+   ]
+  },
+  {
+   "id": 5,
+   "type": "MoGeInference",
+   "pos": [
+    380,
+    170
+   ],
+   "size": [
+    320,
+    220
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "moge_model",
+     "type": "MOGE_MODEL",
+     "link": 2
+    },
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "link": 3
+    }
+   ],
+   "outputs": [
+    {
+     "name": "moge_geometry",
+     "type": "MOGE_GEOMETRY",
+     "links": [
+      4
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "MoGeInference"
+   },
+   "widgets_values": [
+    9,
+    0.0,
+    1,
+    true,
+    true,
+    3
+   ]
+  },
+  {
+   "id": 6,
+   "type": "SF_DisparityFromGeometry",
+   "pos": [
+    380,
+    440
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "moge_geometry",
+     "type": "MOGE_GEOMETRY",
+     "link": 4
+    },
+    {
+     "name": "da3_geometry",
+     "type": "DA3_GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "disparity",
+     "type": "MASK",
+     "links": [
+      7
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [
+      5
+     ],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SF_DisparityFromGeometry"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 7,
+   "type": "PreviewImage",
+   "pos": [
+    380,
+    600
+   ],
+   "size": [
+    320,
+    260
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 5
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "Disparity (white = near)"
+  },
+  {
+   "id": 8,
+   "type": "SF_StereoRender",
+   "pos": [
+    760,
+    40
+   ],
+   "size": [
+    340,
+    330
+   ],
+   "flags": {},
+   "order": 7,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "link": 6
+    },
+    {
+     "name": "disparity",
+     "type": "MASK",
+     "link": 7
+    }
+   ],
+   "outputs": [
+    {
+     "name": "stereo",
+     "type": "SF_STEREO",
+     "links": [
+      18
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "rendered_view",
+     "type": "IMAGE",
+     "links": [
+      16
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "inpaint_mask",
+     "type": "MASK",
+     "links": [
+      17
+     ],
+     "slot_index": 2
+    },
+    {
+     "name": "disparity_preview",
+     "type": "IMAGE",
+     "links": [
+      8
+     ],
+     "slot_index": 3
+    },
+    {
+     "name": "hole_mask",
+     "type": "MASK",
+     "links": [],
+     "slot_index": 4
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SF_StereoRender"
+   },
+   "widgets_values": [
+    "left",
+    3.0,
+    0.25,
+    true,
+    "inpaint",
+    -1,
+    0,
+    0,
+    0.35,
+    -1,
+    -1
+   ]
+  },
+  {
+   "id": 9,
+   "type": "PreviewImage",
+   "pos": [
+    760,
+    420
+   ],
+   "size": [
+    340,
+    260
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 8
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "Parallax (red = in front of screen, blue = behind)"
+  },
+  {
+   "id": 10,
+   "type": "UNETLoader",
+   "pos": [
+    1160,
+    40
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 9,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      12
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "UNETLoader",
+    "models": [
+     {
+      "name": "flux1-fill-dev.safetensors",
+      "url": "https://huggingface.co/Comfy-Org/flux1-dev/resolve/main/split_files/diffusion_models/flux1-fill-dev.safetensors",
+      "directory": "diffusion_models"
+     }
+    ]
+   },
+   "widgets_values": [
+    "flux1-fill-dev.safetensors",
+    "default"
+   ]
+  },
+  {
+   "id": 11,
+   "type": "DualCLIPLoader",
+   "pos": [
+    1160,
+    170
+   ],
+   "size": [
+    320,
+    130
+   ],
+   "flags": {},
+   "order": 10,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "CLIP",
+     "type": "CLIP",
+     "links": [
+      9
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "DualCLIPLoader",
+    "models": [
+     {
+      "name": "clip_l.safetensors",
+      "url": "https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/clip_l.safetensors",
+      "directory": "text_encoders"
+     },
+     {
+      "name": "t5xxl_fp8_e4m3fn_scaled.safetensors",
+      "url": "https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp8_e4m3fn_scaled.safetensors",
+      "directory": "text_encoders"
+     }
+    ]
+   },
+   "widgets_values": [
+    "clip_l.safetensors",
+    "t5xxl_fp8_e4m3fn_scaled.safetensors",
+    "flux",
+    "default"
+   ]
+  },
+  {
+   "id": 12,
+   "type": "VAELoader",
+   "pos": [
+    1160,
+    330
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 11,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "VAE",
+     "type": "VAE",
+     "links": [
+      15
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAELoader",
+    "models": [
+     {
+      "name": "ae.safetensors",
+      "url": "https://huggingface.co/Comfy-Org/Lumina_Image_2.0_Repackaged/resolve/main/split_files/vae/ae.safetensors",
+      "directory": "vae"
+     }
+    ]
+   },
+   "widgets_values": [
+    "ae.safetensors"
+   ]
+  },
+  {
+   "id": 13,
+   "type": "CLIPTextEncode",
+   "pos": [
+    1160,
+    440
+   ],
+   "size": [
+    320,
+    140
+   ],
+   "flags": {},
+   "order": 12,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": 9
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      10,
+      11
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPTextEncode"
+   },
+   "widgets_values": [
+    "The same photograph, with the background seamlessly continued behind the foreground: matching surfaces, texture, lighting, grain, focus and perspective. No new objects."
+   ]
+  },
+  {
+   "id": 14,
+   "type": "FluxGuidance",
+   "pos": [
+    1160,
+    620
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 13,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "conditioning",
+     "type": "CONDITIONING",
+     "link": 10
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      13
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "FluxGuidance"
+   },
+   "widgets_values": [
+    30.0
+   ]
+  },
+  {
+   "id": 15,
+   "type": "ConditioningZeroOut",
+   "pos": [
+    1160,
+    720
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 14,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "conditioning",
+     "type": "CONDITIONING",
+     "link": 11
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      14
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ConditioningZeroOut"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 16,
+   "type": "SF_TiledInpaint",
+   "pos": [
+    1540,
+    40
+   ],
+   "size": [
+    340,
+    360
+   ],
+   "flags": {},
+   "order": 15,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 12
+    },
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 13
+    },
+    {
+     "name": "negative",
+     "type": "CONDITIONING",
+     "link": 14
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 15
+    },
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "link": 16
+    },
+    {
+     "name": "mask",
+     "type": "MASK",
+     "link": 17
+    }
+   ],
+   "outputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "links": [
+      20
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SF_TiledInpaint"
+   },
+   "widgets_values": [
+    0,
+    "fixed",
+    28,
+    1.0,
+    "euler",
+    "simple",
+    1.0,
+    1024,
+    256,
+    4
+   ]
+  },
+  {
+   "id": 17,
+   "type": "SF_StereoCompose",
+   "pos": [
+    1920,
+    40
+   ],
+   "size": [
+    340,
+    130
+   ],
+   "flags": {},
+   "order": 16,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "stereo",
+     "type": "SF_STEREO",
+     "link": 18
+    },
+    {
+     "name": "source_image",
+     "type": "IMAGE",
+     "link": 19
+    },
+    {
+     "name": "inpainted",
+     "type": "IMAGE",
+     "link": 20
+    }
+   ],
+   "outputs": [
+    {
+     "name": "side_by_side",
+     "type": "IMAGE",
+     "links": [
+      21
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "generated_eye",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    },
+    {
+     "name": "anaglyph_preview",
+     "type": "IMAGE",
+     "links": [
+      22
+     ],
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SF_StereoCompose"
+   },
+   "widgets_values": [
+    "parallel (left | right)",
+    true
+   ]
+  },
+  {
+   "id": 18,
+   "type": "SaveImage",
+   "pos": [
+    1920,
+    220
+   ],
+   "size": [
+    520,
+    360
+   ],
+   "flags": {},
+   "order": 17,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 21
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "SaveImage"
+   },
+   "widgets_values": [
+    "StereoForge/sbs"
+   ]
+  },
+  {
+   "id": 19,
+   "type": "PreviewImage",
+   "pos": [
+    1920,
+    620
+   ],
+   "size": [
+    520,
+    360
+   ],
+   "flags": {},
+   "order": 18,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 22
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "Anaglyph check (red/cyan)"
+  }
+ ],
+ "links": [
+  [
+   1,
+   2,
+   0,
+   3,
+   0,
+   "IMAGE"
+  ],
+  [
+   2,
+   4,
+   0,
+   5,
+   0,
+   "MOGE_MODEL"
+  ],
+  [
+   3,
+   3,
+   0,
+   5,
+   1,
+   "IMAGE"
+  ],
+  [
+   4,
+   5,
+   0,
+   6,
+   0,
+   "MOGE_GEOMETRY"
+  ],
+  [
+   5,
+   6,
+   1,
+   7,
+   0,
+   "IMAGE"
+  ],
+  [
+   6,
+   3,
+   0,
+   8,
+   0,
+   "IMAGE"
+  ],
+  [
+   7,
+   6,
+   0,
+   8,
+   1,
+   "MASK"
+  ],
+  [
+   8,
+   8,
+   3,
+   9,
+   0,
+   "IMAGE"
+  ],
+  [
+   9,
+   11,
+   0,
+   13,
+   0,
+   "CLIP"
+  ],
+  [
+   10,
+   13,
+   0,
+   14,
+   0,
+   "CONDITIONING"
+  ],
+  [
+   11,
+   13,
+   0,
+   15,
+   0,
+   "CONDITIONING"
+  ],
+  [
+   12,
+   10,
+   0,
+   16,
+   0,
+   "MODEL"
+  ],
+  [
+   13,
+   14,
+   0,
+   16,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   14,
+   15,
+   0,
+   16,
+   2,
+   "CONDITIONING"
+  ],
+  [
+   15,
+   12,
+   0,
+   16,
+   3,
+   "VAE"
+  ],
+  [
+   16,
+   8,
+   1,
+   16,
+   4,
+   "IMAGE"
+  ],
+  [
+   17,
+   8,
+   2,
+   16,
+   5,
+   "MASK"
+  ],
+  [
+   18,
+   8,
+   0,
+   17,
+   0,
+   "SF_STEREO"
+  ],
+  [
+   19,
+   3,
+   0,
+   17,
+   1,
+   "IMAGE"
+  ],
+  [
+   20,
+   16,
+   0,
+   17,
+   2,
+   "IMAGE"
+  ],
+  [
+   21,
+   17,
+   0,
+   18,
+   0,
+   "IMAGE"
+  ],
+  [
+   22,
+   17,
+   2,
+   19,
+   0,
+   "IMAGE"
+  ]
+ ],
+ "groups": [
+  {
+   "title": "1. Input",
+   "bounding": [
+    -20,
+    -30,
+    360,
+    700
+   ],
+   "color": "#3f789e"
+  },
+  {
+   "title": "2. Geometry",
+   "bounding": [
+    360,
+    -30,
+    360,
+    900
+   ],
+   "color": "#8A8"
+  },
+  {
+   "title": "3. Render opposite eye (full res)",
+   "bounding": [
+    740,
+    -30,
+    380,
+    730
+   ],
+   "color": "#a1309b"
+  },
+  {
+   "title": "4. Generative fill of disocclusions (1:1 tiles)",
+   "bounding": [
+    1140,
+    -30,
+    760,
+    860
+   ],
+   "color": "#b58b2a"
+  },
+  {
+   "title": "5. Side-by-side output",
+   "bounding": [
+    1900,
+    -30,
+    560,
+    1030
+   ],
+   "color": "#3f789e"
+  }
+ ],
+ "config": {},
+ "extra": {
+  "ds": {
+   "scale": 0.75,
+   "offset": [
+    0,
+    0
+   ]
+  }
+ },
+ "version": 0.4
+}

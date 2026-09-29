@@ -1,0 +1,2 @@
+# No extra dependencies: StereoForge only uses packages that ComfyUI already
+# requires (torch, scipy, transformers, numpy, pillow).
