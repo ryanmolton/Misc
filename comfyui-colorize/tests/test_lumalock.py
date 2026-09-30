@@ -49,6 +49,12 @@ def deltaE_ab(a, b):
 
 def main():
     torch.manual_seed(0)
+    # ComfyUI executes nodes under inference mode; the aligner must work there
+    with torch.inference_mode(), torch.no_grad():
+        g0 = photo("chelsea", 600)
+        out = N.LumaLockMerge().run(N.LumaLockToGray().run(g0)[0], simulate_model(g0), "affine", 0.6, 2, 0.001, 1.0)[0]
+        assert out.shape == g0.shape
+    print("merge with alignment works under torch.inference_mode()")
     results = []
     for name, size in [("astronaut", 2400), ("coffee", 3000), ("chelsea", 1800)]:
         gt = photo(name, size)

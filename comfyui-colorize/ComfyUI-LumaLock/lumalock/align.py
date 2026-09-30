@@ -42,19 +42,22 @@ def estimate(ref_L, mov_L, mode="affine", max_side=512, iters=80):
     """ref_L, mov_L: (1,1,H,W) L channels at the same resolution.
     Returns (theta (1,2,3), improvement ratio). theta is identity if the fit
     does not clearly improve on no alignment."""
-    ref_L = ref_L.float()
-    mov_L = mov_L.float()
-    h, w = ref_L.shape[-2:]
-    s = min(1.0, max_side / max(h, w))
-    H, W = max(16, round(h * s)), max(16, round(w * s))
-    ref = _normalise(resize(ref_L, H, W, "area"))
-    mov = _normalise(resize(mov_L, H, W, "area"))
+    # ComfyUI runs nodes under torch.inference_mode(), where autograd is off and
+    # enable_grad() alone cannot turn it back on. Leave inference mode and work
+    # on ordinary copies of the inputs.
+    with torch.inference_mode(False), torch.enable_grad():
+        ref_L = ref_L.detach().clone().float()
+        mov_L = mov_L.detach().clone().float()
+        h, w = ref_L.shape[-2:]
+        s = min(1.0, max_side / max(h, w))
+        H, W = max(16, round(h * s)), max(16, round(w * s))
+        ref = _normalise(resize(ref_L, H, W, "area"))
+        mov = _normalise(resize(mov_L, H, W, "area"))
 
-    n = 4 if mode == "shift+scale" else 6
-    params = torch.zeros(n, device=ref.device, requires_grad=True)
-    identity = _theta(torch.zeros(n, device=ref.device), mode).detach()
+        n = 4 if mode == "shift+scale" else 6
+        params = torch.zeros(n, device=ref.device, requires_grad=True)
+        identity = _theta(torch.zeros(n, device=ref.device), mode).detach()
 
-    with torch.enable_grad():
         for level in (4, 2, 1):
             r = F.avg_pool2d(ref, level) if level > 1 else ref
             m = F.avg_pool2d(mov, level) if level > 1 else mov
@@ -65,10 +68,10 @@ def estimate(ref_L, mov_L, mode="affine", max_side=512, iters=80):
                 loss.backward()
                 opt.step()
 
-    with torch.no_grad():
-        theta = _theta(params.detach(), mode)
-        base = _loss(ref, mov, identity).item()
-        fitted = _loss(ref, mov, theta).item()
+        with torch.no_grad():
+            theta = _theta(params.detach(), mode)
+            base = _loss(ref, mov, identity).item()
+            fitted = _loss(ref, mov, theta).item()
     if fitted < base * 0.98:
         return theta, base / max(fitted, 1e-8)
     return identity, 1.0
