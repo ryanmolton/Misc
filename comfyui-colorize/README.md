@@ -131,7 +131,7 @@ The full-quality bf16 model (14.2 GB) fits in the 3090's 24 GB. ComfyUI loads th
 
 | File | Folder | Used for |
 |---|---|---|
-| [scunet_color_real_psnr.pth](https://github.com/cszn/KAIR/releases/download/v1.0/scunet_color_real_psnr.pth) | `models\upscale_models` | Grain and noise removal |
+| [scunet_color_real_psnr.pth](https://huggingface.co/deepinv/scunet/resolve/main/scunet_color_real_psnr.pth) | `models\upscale_models` | Grain and noise removal |
 | [big-lama.pt](https://github.com/Sanster/models/releases/download/add_big_lama/big-lama.pt) | `models\inpaint` (create the folder) | Filling tears or large damage (optional; "fast fill" needs no model) |
 
 ---

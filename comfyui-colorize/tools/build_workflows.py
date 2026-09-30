@@ -28,7 +28,7 @@ MODELS = {
     "qwen_2.5_vl_7b_fp8_scaled.safetensors": ("https://huggingface.co/Comfy-Org/HunyuanVideo_1.5_repackaged/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors", "text_encoders"),
     "qwen_image_vae.safetensors": ("https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors", "vae"),
     "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors": ("https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning/resolve/main/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors", "loras"),
-    "scunet_color_real_psnr.pth": ("https://github.com/cszn/KAIR/releases/download/v1.0/scunet_color_real_psnr.pth", "upscale_models"),
+    "scunet_color_real_psnr.pth": ("https://huggingface.co/deepinv/scunet/resolve/main/scunet_color_real_psnr.pth", "upscale_models"),
 }
 
 COLORS = {"input": "#335", "restore": "#533", "prep": "#353", "model": "#3f3f5f", "finish": "#543", "hint": "#454"}

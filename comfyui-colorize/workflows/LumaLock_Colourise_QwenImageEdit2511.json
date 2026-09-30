@@ -78,7 +78,7 @@
     "models": [
      {
       "name": "scunet_color_real_psnr.pth",
-      "url": "https://github.com/cszn/KAIR/releases/download/v1.0/scunet_color_real_psnr.pth",
+      "url": "https://huggingface.co/deepinv/scunet/resolve/main/scunet_color_real_psnr.pth",
       "directory": "upscale_models"
      }
     ]
