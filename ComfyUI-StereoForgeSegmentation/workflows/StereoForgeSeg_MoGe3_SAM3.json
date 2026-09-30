@@ -1,0 +1,1546 @@
+{
+ "last_node_id": 28,
+ "last_link_id": 32,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "Note",
+   "pos": [
+    -460,
+    0
+   ],
+   "size": [
+    430,
+    760
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "Note"
+   },
+   "widgets_values": [
+    "StereoForge Segmentation - clean-edged stereo pairs\n\nHOW IT WORKS\nEdges come from object masks + a matting network, not from the depth map.\nEverything the new eye sees that the photo does not contain is invented ONCE\nas a flat \"clean plate\" you can inspect and fix. If the mattes and plates look\nright as flat images, the stereo pair is clean.\n\n1. Load your photo (Load Image, top left). It stays the LEFT eye, bit-exact.\n2. Objects: SAM 3 finds what you type in \"Objects to find\". Add :N for up\n   to N of each (default \"person:4\"); several kinds, e.g.\n   \"person:4, dog, gift box:3\". Check 'Objects' preview. Wrong/missing?\n   - drop bad ones by number in Collect Object Masks > drop\n   - paint a missing object: un-mute 'Paint extra object', load the SAME\n     photo, right-click > Open in MaskEditor, paint it, connect to mask_1.\n3. Run. Check 'Mattes' (edges) and 'Plate review' (outlined = invented).\n4. A plate looks wrong? Either\n   a) un-bypass 'Refine Plates (diffusion)' to redo it with FLUX Fill\n      (paint 'only_here' to redo just one spot), or\n   b) open the saved plate PNG (output/StereoForgeSeg/plates_*) in any\n      editor, fix it, load it in 'Edited plate', un-bypass 'Apply Plate\n      Edit' and set its layer number.\n5. 'Stereo review': cyan = invented content visible in the new eye,\n   magenta = auto-filled (depth edges with no mask - add a mask there if it\n   matters). The side-by-side is saved to output/StereoForgeSeg/."
+   ],
+   "title": "READ ME"
+  },
+  {
+   "id": 2,
+   "type": "LoadImage",
+   "pos": [
+    0,
+    0
+   ],
+   "size": [
+    320,
+    360
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      1
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "MASK",
+     "type": "MASK",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadImage"
+   },
+   "widgets_values": [
+    "example.png",
+    "image"
+   ],
+   "title": "Photo"
+  },
+  {
+   "id": 3,
+   "type": "SFS_OptionalDownscale",
+   "pos": [
+    0,
+    400
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "link": 1
+    }
+   ],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      3,
+      7,
+      9,
+      13,
+      30
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SFS_OptionalDownscale"
+   },
+   "widgets_values": [
+    false,
+    3840
+   ]
+  },
+  {
+   "id": 4,
+   "type": "LoadImage",
+   "pos": [
+    0,
+    560
+   ],
+   "size": [
+    320,
+    360
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 2,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 0
+    },
+    {
+     "name": "MASK",
+     "type": "MASK",
+     "links": [
+      11
+     ],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadImage"
+   },
+   "widgets_values": [
+    "example.png",
+    "image"
+   ],
+   "title": "Paint extra object (optional)"
+  },
+  {
+   "id": 5,
+   "type": "LoadMoGeModel",
+   "pos": [
+    380,
+    0
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "MOGE_MODEL",
+     "type": "MOGE_MODEL",
+     "links": [
+      2
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadMoGeModel",
+    "models": [
+     {
+      "name": "moge_3_vitg_fp16.safetensors",
+      "url": "https://huggingface.co/Comfy-Org/MoGe/resolve/main/geometry_estimation/moge_3_vitg_fp16.safetensors",
+      "directory": "geometry_estimation"
+     }
+    ]
+   },
+   "widgets_values": [
+    "moge_3_vitg_fp16.safetensors"
+   ]
+  },
+  {
+   "id": 6,
+   "type": "MoGeInference",
+   "pos": [
+    380,
+    120
+   ],
+   "size": [
+    320,
+    220
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "moge_model",
+     "type": "MOGE_MODEL",
+     "link": 2
+    },
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "link": 3
+    }
+   ],
+   "outputs": [
+    {
+     "name": "moge_geometry",
+     "type": "MOGE_GEOMETRY",
+     "links": [
+      4
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "MoGeInference"
+   },
+   "widgets_values": [
+    9,
+    0.0,
+    1,
+    true,
+    true,
+    3
+   ]
+  },
+  {
+   "id": 7,
+   "type": "SFS_DisparityFromGeometry",
+   "pos": [
+    380,
+    380
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "moge_geometry",
+     "type": "MOGE_GEOMETRY",
+     "link": 4
+    },
+    {
+     "name": "da3_geometry",
+     "type": "DA3_GEOMETRY",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "disparity",
+     "type": "MASK",
+     "links": [
+      14
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SFS_DisparityFromGeometry"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 8,
+   "type": "CheckpointLoaderSimple",
+   "pos": [
+    380,
+    520
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 7,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      6
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "CLIP",
+     "type": "CLIP",
+     "links": [
+      5
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "VAE",
+     "type": "VAE",
+     "links": [],
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CheckpointLoaderSimple",
+    "models": [
+     {
+      "name": "sam3.1_multiplex_fp16.safetensors",
+      "url": "https://huggingface.co/Comfy-Org/sam3.1/resolve/main/checkpoints/sam3.1_multiplex_fp16.safetensors",
+      "directory": "checkpoints"
+     }
+    ]
+   },
+   "widgets_values": [
+    "sam3.1_multiplex_fp16.safetensors"
+   ],
+   "title": "SAM 3.1"
+  },
+  {
+   "id": 9,
+   "type": "CLIPTextEncode",
+   "pos": [
+    380,
+    660
+   ],
+   "size": [
+    320,
+    100
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": 5
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      8
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPTextEncode"
+   },
+   "widgets_values": [
+    "person:4"
+   ],
+   "title": "Objects to find"
+  },
+  {
+   "id": 10,
+   "type": "SAM3_Detect",
+   "pos": [
+    380,
+    800
+   ],
+   "size": [
+    320,
+    150
+   ],
+   "flags": {},
+   "order": 9,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 6
+    },
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "link": 7
+    },
+    {
+     "name": "conditioning",
+     "type": "CONDITIONING",
+     "link": 8
+    }
+   ],
+   "outputs": [
+    {
+     "name": "masks",
+     "type": "MASK",
+     "links": [
+      10
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "bboxes",
+     "type": "BOUNDING_BOX",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SAM3_Detect"
+   },
+   "widgets_values": [
+    0.5,
+    2,
+    true
+   ]
+  },
+  {
+   "id": 11,
+   "type": "SFS_CollectObjects",
+   "pos": [
+    760,
+    0
+   ],
+   "size": [
+    320,
+    200
+   ],
+   "flags": {},
+   "order": 10,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "link": 9
+    },
+    {
+     "name": "detected",
+     "type": "MASK",
+     "link": 10
+    },
+    {
+     "name": "mask_1",
+     "type": "MASK",
+     "link": 11
+    },
+    {
+     "name": "mask_2",
+     "type": "MASK",
+     "link": null
+    },
+    {
+     "name": "mask_3",
+     "type": "MASK",
+     "link": null
+    },
+    {
+     "name": "mask_4",
+     "type": "MASK",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "objects",
+     "type": "MASK",
+     "links": [
+      15
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [
+      12
+     ],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SFS_CollectObjects"
+   },
+   "widgets_values": [
+    "",
+    0.05
+   ]
+  },
+  {
+   "id": 12,
+   "type": "PreviewImage",
+   "pos": [
+    760,
+    240
+   ],
+   "size": [
+    320,
+    260
+   ],
+   "flags": {},
+   "order": 11,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 12
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "Objects"
+  },
+  {
+   "id": 13,
+   "type": "SFS_BuildLayers",
+   "pos": [
+    1120,
+    0
+   ],
+   "size": [
+    340,
+    280
+   ],
+   "flags": {},
+   "order": 12,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "link": 13
+    },
+    {
+     "name": "disparity",
+     "type": "MASK",
+     "link": 14
+    },
+    {
+     "name": "objects",
+     "type": "MASK",
+     "link": 15
+    }
+   ],
+   "outputs": [
+    {
+     "name": "layers",
+     "type": "SFS_LAYERS",
+     "links": [
+      22
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "matte_preview",
+     "type": "IMAGE",
+     "links": [
+      16
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "plate_review",
+     "type": "IMAGE",
+     "links": [
+      17
+     ],
+     "slot_index": 2
+    },
+    {
+     "name": "plates",
+     "type": "IMAGE",
+     "links": [
+      18
+     ],
+     "slot_index": 3
+    },
+    {
+     "name": "plate_masks",
+     "type": "MASK",
+     "links": [],
+     "slot_index": 4
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SFS_BuildLayers"
+   },
+   "widgets_values": [
+    "left",
+    3.0,
+    0.25,
+    true,
+    "ViTMatte-Base",
+    0,
+    0.0
+   ]
+  },
+  {
+   "id": 14,
+   "type": "PreviewImage",
+   "pos": [
+    1120,
+    320
+   ],
+   "size": [
+    340,
+    260
+   ],
+   "flags": {},
+   "order": 13,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 16
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "Mattes"
+  },
+  {
+   "id": 15,
+   "type": "PreviewImage",
+   "pos": [
+    1120,
+    620
+   ],
+   "size": [
+    340,
+    260
+   ],
+   "flags": {},
+   "order": 14,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 17
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "Plate review (outlined = invented)"
+  },
+  {
+   "id": 16,
+   "type": "SaveImage",
+   "pos": [
+    1120,
+    920
+   ],
+   "size": [
+    340,
+    260
+   ],
+   "flags": {},
+   "order": 15,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 18
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "SaveImage"
+   },
+   "widgets_values": [
+    "StereoForgeSeg/plates"
+   ],
+   "title": "Plates (edit these if needed)"
+  },
+  {
+   "id": 17,
+   "type": "LoadImage",
+   "pos": [
+    1500,
+    620
+   ],
+   "size": [
+    320,
+    320
+   ],
+   "flags": {},
+   "order": 16,
+   "mode": 2,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      28
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "MASK",
+     "type": "MASK",
+     "links": [],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadImage"
+   },
+   "widgets_values": [
+    "example.png",
+    "image"
+   ],
+   "title": "Edited plate (optional)"
+  },
+  {
+   "id": 18,
+   "type": "UNETLoader",
+   "pos": [
+    1860,
+    620
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 17,
+   "mode": 2,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      23
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "UNETLoader",
+    "models": [
+     {
+      "name": "flux1-fill-dev.safetensors",
+      "url": "https://huggingface.co/Comfy-Org/flux1-dev/resolve/main/split_files/diffusion_models/flux1-fill-dev.safetensors",
+      "directory": "diffusion_models"
+     }
+    ]
+   },
+   "widgets_values": [
+    "flux1-fill-dev.safetensors",
+    "default"
+   ]
+  },
+  {
+   "id": 19,
+   "type": "DualCLIPLoader",
+   "pos": [
+    1860,
+    730
+   ],
+   "size": [
+    320,
+    130
+   ],
+   "flags": {},
+   "order": 18,
+   "mode": 2,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "CLIP",
+     "type": "CLIP",
+     "links": [
+      19
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "DualCLIPLoader",
+    "models": [
+     {
+      "name": "clip_l.safetensors",
+      "url": "https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/clip_l.safetensors",
+      "directory": "text_encoders"
+     },
+     {
+      "name": "t5xxl_fp8_e4m3fn_scaled.safetensors",
+      "url": "https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp8_e4m3fn_scaled.safetensors",
+      "directory": "text_encoders"
+     }
+    ]
+   },
+   "widgets_values": [
+    "clip_l.safetensors",
+    "t5xxl_fp8_e4m3fn_scaled.safetensors",
+    "flux",
+    "default"
+   ]
+  },
+  {
+   "id": 20,
+   "type": "VAELoader",
+   "pos": [
+    1860,
+    890
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 19,
+   "mode": 2,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "VAE",
+     "type": "VAE",
+     "links": [
+      26
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAELoader",
+    "models": [
+     {
+      "name": "ae.safetensors",
+      "url": "https://huggingface.co/Comfy-Org/Lumina_Image_2.0_Repackaged/resolve/main/split_files/vae/ae.safetensors",
+      "directory": "vae"
+     }
+    ]
+   },
+   "widgets_values": [
+    "ae.safetensors"
+   ]
+  },
+  {
+   "id": 21,
+   "type": "CLIPTextEncode",
+   "pos": [
+    1860,
+    1000
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 20,
+   "mode": 2,
+   "inputs": [
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": 19
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      20,
+      21
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPTextEncode"
+   },
+   "widgets_values": [
+    "The background behind the people, continued naturally: same surfaces, shadows, texture, grain and lighting. No people, no new objects."
+   ]
+  },
+  {
+   "id": 22,
+   "type": "FluxGuidance",
+   "pos": [
+    1860,
+    1150
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 21,
+   "mode": 2,
+   "inputs": [
+    {
+     "name": "conditioning",
+     "type": "CONDITIONING",
+     "link": 20
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      24
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "FluxGuidance"
+   },
+   "widgets_values": [
+    30.0
+   ]
+  },
+  {
+   "id": 23,
+   "type": "ConditioningZeroOut",
+   "pos": [
+    1860,
+    1250
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 22,
+   "mode": 2,
+   "inputs": [
+    {
+     "name": "conditioning",
+     "type": "CONDITIONING",
+     "link": 21
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      25
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ConditioningZeroOut"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 24,
+   "type": "SFS_RefinePlates",
+   "pos": [
+    1500,
+    0
+   ],
+   "size": [
+    320,
+    300
+   ],
+   "flags": {},
+   "order": 23,
+   "mode": 4,
+   "inputs": [
+    {
+     "name": "layers",
+     "type": "SFS_LAYERS",
+     "link": 22
+    },
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 23
+    },
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 24
+    },
+    {
+     "name": "negative",
+     "type": "CONDITIONING",
+     "link": 25
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 26
+    },
+    {
+     "name": "only_here",
+     "type": "MASK",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "SFS_LAYERS",
+     "type": "SFS_LAYERS",
+     "links": [
+      27
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SFS_RefinePlates"
+   },
+   "widgets_values": [
+    -1,
+    0,
+    "fixed",
+    20,
+    1.0,
+    "euler",
+    "simple",
+    96
+   ],
+   "title": "Refine Plates (diffusion) - optional"
+  },
+  {
+   "id": 25,
+   "type": "SFS_EditPlate",
+   "pos": [
+    1500,
+    340
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 24,
+   "mode": 4,
+   "inputs": [
+    {
+     "name": "layers",
+     "type": "SFS_LAYERS",
+     "link": 27
+    },
+    {
+     "name": "edited_plate",
+     "type": "IMAGE",
+     "link": 28
+    },
+    {
+     "name": "only_here",
+     "type": "MASK",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "name": "SFS_LAYERS",
+     "type": "SFS_LAYERS",
+     "links": [
+      29
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SFS_EditPlate"
+   },
+   "widgets_values": [
+    0
+   ],
+   "title": "Apply Plate Edit - optional"
+  },
+  {
+   "id": 26,
+   "type": "SFS_Render",
+   "pos": [
+    2240,
+    0
+   ],
+   "size": [
+    320,
+    140
+   ],
+   "flags": {},
+   "order": 25,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "layers",
+     "type": "SFS_LAYERS",
+     "link": 29
+    },
+    {
+     "name": "source_image",
+     "type": "IMAGE",
+     "link": 30
+    }
+   ],
+   "outputs": [
+    {
+     "name": "side_by_side",
+     "type": "IMAGE",
+     "links": [
+      31
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "generated_eye",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 1
+    },
+    {
+     "name": "review",
+     "type": "IMAGE",
+     "links": [
+      32
+     ],
+     "slot_index": 2
+    },
+    {
+     "name": "anaglyph",
+     "type": "IMAGE",
+     "links": [],
+     "slot_index": 3
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SFS_Render"
+   },
+   "widgets_values": [
+    "parallel (left | right)"
+   ]
+  },
+  {
+   "id": 27,
+   "type": "SaveImage",
+   "pos": [
+    2240,
+    180
+   ],
+   "size": [
+    520,
+    340
+   ],
+   "flags": {},
+   "order": 26,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 31
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "SaveImage"
+   },
+   "widgets_values": [
+    "StereoForgeSeg/sbs"
+   ]
+  },
+  {
+   "id": 28,
+   "type": "PreviewImage",
+   "pos": [
+    2240,
+    560
+   ],
+   "size": [
+    520,
+    340
+   ],
+   "flags": {},
+   "order": 27,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 32
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "Stereo review (cyan = invented, magenta = auto-filled)"
+  }
+ ],
+ "links": [
+  [
+   1,
+   2,
+   0,
+   3,
+   0,
+   "IMAGE"
+  ],
+  [
+   2,
+   5,
+   0,
+   6,
+   0,
+   "MOGE_MODEL"
+  ],
+  [
+   3,
+   3,
+   0,
+   6,
+   1,
+   "IMAGE"
+  ],
+  [
+   4,
+   6,
+   0,
+   7,
+   0,
+   "MOGE_GEOMETRY"
+  ],
+  [
+   5,
+   8,
+   1,
+   9,
+   0,
+   "CLIP"
+  ],
+  [
+   6,
+   8,
+   0,
+   10,
+   0,
+   "MODEL"
+  ],
+  [
+   7,
+   3,
+   0,
+   10,
+   1,
+   "IMAGE"
+  ],
+  [
+   8,
+   9,
+   0,
+   10,
+   2,
+   "CONDITIONING"
+  ],
+  [
+   9,
+   3,
+   0,
+   11,
+   0,
+   "IMAGE"
+  ],
+  [
+   10,
+   10,
+   0,
+   11,
+   1,
+   "MASK"
+  ],
+  [
+   11,
+   4,
+   1,
+   11,
+   2,
+   "MASK"
+  ],
+  [
+   12,
+   11,
+   1,
+   12,
+   0,
+   "IMAGE"
+  ],
+  [
+   13,
+   3,
+   0,
+   13,
+   0,
+   "IMAGE"
+  ],
+  [
+   14,
+   7,
+   0,
+   13,
+   1,
+   "MASK"
+  ],
+  [
+   15,
+   11,
+   0,
+   13,
+   2,
+   "MASK"
+  ],
+  [
+   16,
+   13,
+   1,
+   14,
+   0,
+   "IMAGE"
+  ],
+  [
+   17,
+   13,
+   2,
+   15,
+   0,
+   "IMAGE"
+  ],
+  [
+   18,
+   13,
+   3,
+   16,
+   0,
+   "IMAGE"
+  ],
+  [
+   19,
+   19,
+   0,
+   21,
+   0,
+   "CLIP"
+  ],
+  [
+   20,
+   21,
+   0,
+   22,
+   0,
+   "CONDITIONING"
+  ],
+  [
+   21,
+   21,
+   0,
+   23,
+   0,
+   "CONDITIONING"
+  ],
+  [
+   22,
+   13,
+   0,
+   24,
+   0,
+   "SFS_LAYERS"
+  ],
+  [
+   23,
+   18,
+   0,
+   24,
+   1,
+   "MODEL"
+  ],
+  [
+   24,
+   22,
+   0,
+   24,
+   2,
+   "CONDITIONING"
+  ],
+  [
+   25,
+   23,
+   0,
+   24,
+   3,
+   "CONDITIONING"
+  ],
+  [
+   26,
+   20,
+   0,
+   24,
+   4,
+   "VAE"
+  ],
+  [
+   27,
+   24,
+   0,
+   25,
+   0,
+   "SFS_LAYERS"
+  ],
+  [
+   28,
+   17,
+   0,
+   25,
+   1,
+   "IMAGE"
+  ],
+  [
+   29,
+   25,
+   0,
+   26,
+   0,
+   "SFS_LAYERS"
+  ],
+  [
+   30,
+   3,
+   0,
+   26,
+   1,
+   "IMAGE"
+  ],
+  [
+   31,
+   26,
+   0,
+   27,
+   0,
+   "IMAGE"
+  ],
+  [
+   32,
+   26,
+   2,
+   28,
+   0,
+   "IMAGE"
+  ]
+ ],
+ "groups": [
+  {
+   "title": "1. Photo",
+   "bounding": [
+    -20,
+    -60,
+    360,
+    1000
+   ],
+   "color": "#3f789e"
+  },
+  {
+   "title": "2. Depth + objects",
+   "bounding": [
+    360,
+    -60,
+    740,
+    1040
+   ],
+   "color": "#8A8"
+  },
+  {
+   "title": "3. Layers, mattes, clean plates (REVIEW)",
+   "bounding": [
+    1100,
+    -60,
+    380,
+    1260
+   ],
+   "color": "#a1309b"
+  },
+  {
+   "title": "4. Optional plate fixes",
+   "bounding": [
+    1480,
+    -60,
+    740,
+    1400
+   ],
+   "color": "#b58b2a"
+  },
+  {
+   "title": "5. Stereo pair",
+   "bounding": [
+    2220,
+    -60,
+    560,
+    980
+   ],
+   "color": "#3f789e"
+  }
+ ],
+ "config": {},
+ "extra": {
+  "ds": {
+   "scale": 0.6,
+   "offset": [
+    480,
+    80
+   ]
+  }
+ },
+ "version": 0.4
+}

@@ -1,0 +1,198 @@
+{
+ "2": {
+  "class_type": "LoadImage",
+  "inputs": {
+   "image": "example.png"
+  }
+ },
+ "3": {
+  "class_type": "SFS_OptionalDownscale",
+  "inputs": {
+   "enabled": false,
+   "max_long_side": 3840,
+   "image": [
+    "2",
+    0
+   ]
+  }
+ },
+ "5": {
+  "class_type": "LoadMoGeModel",
+  "inputs": {
+   "model_name": "moge_3_vitg_fp16.safetensors"
+  }
+ },
+ "6": {
+  "class_type": "MoGeInference",
+  "inputs": {
+   "resolution_level": 9,
+   "fov_x_degrees": 0.0,
+   "batch_size": 1,
+   "force_projection": true,
+   "apply_mask": true,
+   "refine_steps": 3,
+   "moge_model": [
+    "5",
+    0
+   ],
+   "image": [
+    "3",
+    0
+   ]
+  }
+ },
+ "7": {
+  "class_type": "SFS_DisparityFromGeometry",
+  "inputs": {
+   "moge_geometry": [
+    "6",
+    0
+   ]
+  }
+ },
+ "8": {
+  "class_type": "CheckpointLoaderSimple",
+  "inputs": {
+   "ckpt_name": "sam3.1_multiplex_fp16.safetensors"
+  }
+ },
+ "9": {
+  "class_type": "CLIPTextEncode",
+  "inputs": {
+   "text": "person:4",
+   "clip": [
+    "8",
+    1
+   ]
+  }
+ },
+ "10": {
+  "class_type": "SAM3_Detect",
+  "inputs": {
+   "threshold": 0.5,
+   "refine_iterations": 2,
+   "individual_masks": true,
+   "model": [
+    "8",
+    0
+   ],
+   "image": [
+    "3",
+    0
+   ],
+   "conditioning": [
+    "9",
+    0
+   ]
+  }
+ },
+ "11": {
+  "class_type": "SFS_CollectObjects",
+  "inputs": {
+   "drop": "",
+   "min_area_pct": 0.05,
+   "image": [
+    "3",
+    0
+   ],
+   "detected": [
+    "10",
+    0
+   ]
+  }
+ },
+ "12": {
+  "class_type": "PreviewImage",
+  "inputs": {
+   "images": [
+    "11",
+    1
+   ]
+  }
+ },
+ "13": {
+  "class_type": "SFS_BuildLayers",
+  "inputs": {
+   "source_eye": "left",
+   "depth_budget_pct": 3.0,
+   "convergence": 0.25,
+   "stereo_window": true,
+   "matting": "ViTMatte-Base",
+   "edge_band_px": 0,
+   "object_smoothing_px": 0.0,
+   "image": [
+    "3",
+    0
+   ],
+   "disparity": [
+    "7",
+    0
+   ],
+   "objects": [
+    "11",
+    0
+   ]
+  }
+ },
+ "14": {
+  "class_type": "PreviewImage",
+  "inputs": {
+   "images": [
+    "13",
+    1
+   ]
+  }
+ },
+ "15": {
+  "class_type": "PreviewImage",
+  "inputs": {
+   "images": [
+    "13",
+    2
+   ]
+  }
+ },
+ "16": {
+  "class_type": "SaveImage",
+  "inputs": {
+   "filename_prefix": "StereoForgeSeg/plates",
+   "images": [
+    "13",
+    3
+   ]
+  }
+ },
+ "26": {
+  "class_type": "SFS_Render",
+  "inputs": {
+   "layout": "parallel (left | right)",
+   "source_image": [
+    "3",
+    0
+   ],
+   "layers": [
+    "13",
+    0
+   ]
+  }
+ },
+ "27": {
+  "class_type": "SaveImage",
+  "inputs": {
+   "filename_prefix": "StereoForgeSeg/sbs",
+   "images": [
+    "26",
+    0
+   ]
+  }
+ },
+ "28": {
+  "class_type": "PreviewImage",
+  "inputs": {
+   "images": [
+    "26",
+    2
+   ]
+  }
+ }
+}
