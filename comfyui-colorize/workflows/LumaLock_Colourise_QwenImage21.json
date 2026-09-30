@@ -2,7 +2,7 @@
  "id": "431cf07f-d2af-5c01-999d-eac28dc34657",
  "revision": 0,
  "last_node_id": 26,
- "last_link_id": 33,
+ "last_link_id": 34,
  "nodes": [
   {
    "id": 1,
@@ -35,7 +35,7 @@
      "name": "MASK",
      "type": "MASK",
      "links": [
-      30
+      31
      ]
     }
    ],
@@ -423,9 +423,9 @@
      "name": "grey",
      "type": "IMAGE",
      "links": [
-      15,
-      24,
-      32
+      16,
+      25,
+      33
      ]
     }
    ],
@@ -457,8 +457,8 @@
      "type": "IMAGE",
      "links": [
       11,
-      16,
-      27
+      17,
+      28
      ]
     },
     {
@@ -508,6 +508,14 @@
      "links": [
       14
      ]
+    },
+    {
+     "localized_name": "negative_prompt",
+     "name": "negative_prompt",
+     "type": "STRING",
+     "links": [
+      15
+     ]
     }
    ],
    "properties": {
@@ -542,7 +550,7 @@
      "name": "MODEL",
      "type": "MODEL",
      "links": [
-      17
+      18
      ]
     }
    ],
@@ -624,7 +632,7 @@
      "type": "VAE",
      "links": [
       13,
-      22
+      23
      ]
     }
    ],
@@ -675,14 +683,14 @@
      "name": "images.image_1",
      "type": "IMAGE",
      "shape": 7,
-     "link": 15
+     "link": 16
     },
     {
      "localized_name": "image_2",
      "name": "images.image_2",
      "type": "IMAGE",
      "shape": 7,
-     "link": 16
+     "link": 17
     },
     {
      "localized_name": "image_3",
@@ -699,6 +707,15 @@
       "name": "prompt"
      },
      "link": 14
+    },
+    {
+     "localized_name": "negative_prompt",
+     "name": "negative_prompt",
+     "type": "STRING",
+     "widget": {
+      "name": "negative_prompt"
+     },
+     "link": 15
     }
    ],
    "outputs": [
@@ -707,7 +724,7 @@
      "name": "positive",
      "type": "CONDITIONING",
      "links": [
-      18
+      19
      ]
     },
     {
@@ -715,7 +732,7 @@
      "name": "negative",
      "type": "CONDITIONING",
      "links": [
-      19
+      20
      ]
     },
     {
@@ -723,7 +740,7 @@
      "name": "latent",
      "type": "LATENT",
      "links": [
-      20
+      21
      ]
     }
    ],
@@ -756,25 +773,25 @@
      "localized_name": "model",
      "name": "model",
      "type": "MODEL",
-     "link": 17
+     "link": 18
     },
     {
      "localized_name": "positive",
      "name": "positive",
      "type": "CONDITIONING",
-     "link": 18
+     "link": 19
     },
     {
      "localized_name": "negative",
      "name": "negative",
      "type": "CONDITIONING",
-     "link": 19
+     "link": 20
     },
     {
      "localized_name": "latent_image",
      "name": "latent_image",
      "type": "LATENT",
-     "link": 20
+     "link": 21
     }
    ],
    "outputs": [
@@ -783,7 +800,7 @@
      "name": "LATENT",
      "type": "LATENT",
      "links": [
-      21
+      22
      ]
     }
    ],
@@ -794,7 +811,7 @@
     20250930,
     "fixed",
     30,
-    1.0,
+    3.0,
     "euler",
     "simple",
     1.0
@@ -819,13 +836,13 @@
      "localized_name": "samples",
      "name": "samples",
      "type": "LATENT",
-     "link": 21
+     "link": 22
     },
     {
      "localized_name": "vae",
      "name": "vae",
      "type": "VAE",
-     "link": 22
+     "link": 23
     }
    ],
    "outputs": [
@@ -834,8 +851,8 @@
      "name": "IMAGE",
      "type": "IMAGE",
      "links": [
-      23,
-      25
+      24,
+      26
      ]
     }
    ],
@@ -863,7 +880,7 @@
      "localized_name": "images",
      "name": "images",
      "type": "IMAGE",
-     "link": 23
+     "link": 24
     }
    ],
    "outputs": [
@@ -899,13 +916,13 @@
      "localized_name": "original",
      "name": "original",
      "type": "IMAGE",
-     "link": 24
+     "link": 25
     },
     {
      "localized_name": "colour_source",
      "name": "colour_source",
      "type": "IMAGE",
-     "link": 25
+     "link": 26
     }
    ],
    "outputs": [
@@ -914,7 +931,7 @@
      "name": "image",
      "type": "IMAGE",
      "links": [
-      26
+      27
      ]
     },
     {
@@ -955,13 +972,13 @@
      "localized_name": "image",
      "name": "image",
      "type": "IMAGE",
-     "link": 26
+     "link": 27
     },
     {
      "localized_name": "reference",
      "name": "reference",
      "type": "IMAGE",
-     "link": 27,
+     "link": 28,
      "shape": 7
     }
    ],
@@ -971,7 +988,7 @@
      "name": "IMAGE",
      "type": "IMAGE",
      "links": [
-      28
+      29
      ]
     }
    ],
@@ -1003,7 +1020,7 @@
      "localized_name": "image",
      "name": "image",
      "type": "IMAGE",
-     "link": 28
+     "link": 29
     }
    ],
    "outputs": [
@@ -1012,7 +1029,7 @@
      "name": "IMAGE",
      "type": "IMAGE",
      "links": [
-      29
+      30
      ]
     }
    ],
@@ -1046,13 +1063,13 @@
      "localized_name": "image",
      "name": "image",
      "type": "IMAGE",
-     "link": 29
+     "link": 30
     },
     {
      "localized_name": "mask",
      "name": "mask",
      "type": "MASK",
-     "link": 30
+     "link": 31
     }
    ],
    "outputs": [
@@ -1061,8 +1078,8 @@
      "name": "IMAGE",
      "type": "IMAGE",
      "links": [
-      31,
-      33
+      32,
+      34
      ]
     }
    ],
@@ -1097,7 +1114,7 @@
      "localized_name": "images",
      "name": "images",
      "type": "IMAGE",
-     "link": 31
+     "link": 32
     },
     {
      "localized_name": "format",
@@ -1144,14 +1161,14 @@
      "localized_name": "image_a",
      "name": "image_a",
      "type": "IMAGE",
-     "link": 32,
+     "link": 33,
      "shape": 7
     },
     {
      "localized_name": "image_b",
      "name": "image_b",
      "type": "IMAGE",
-     "link": 33,
+     "link": 34,
      "shape": 7
     }
    ],
@@ -1181,7 +1198,7 @@
    "title": "Read me",
    "properties": {},
    "widgets_values": [
-    "## LumaLock colourisation · Qwen-Image 2.1\n\n**How it works.** The model only proposes colour. Step 6 throws away the model's brightness and detail, keeps its colour (CIE a\\*b\\*), lines it up with your photo to fix any small shift or zoom, snaps colour edges to your photo's edges, and puts it under your photo's **exact** original lightness at full resolution. Faces, text and texture therefore come from your original pixels.\n\n**Steps**\n1. Load your photo in *Black-and-white photo*.\n2. (Optional) switch on group 2 for grain, dust/scratches and faded contrast.\n3. (Optional) type colour hints, e.g. `the woman's dress is deep red, the car is pale blue`.\n4. (Optional) paint a mask on the photo (right-click > *Open in MaskEditor*) and pick a colour in *Region colour hint*.\n5. (Optional) load a colour-reference photo and press Ctrl+B on it to switch it on.\n6. Click **Run**. Try another *seed* in the KSampler for a different colour interpretation.\n\n**Tuning**\n- Too strong/weak colour: *saturation* / *vibrance* in *White balance & saturation*; *max_chroma* stops neon patches.\n- Yellow/sepia cast left: raise *white_balance* (1.0 = full neutralisation). Lower it for sunsets and warm interiors.\n- Colour bleeding over edges: raise *edge_snap* to 1.0 in *Keep original brightness…*.\n\n**Speed/quality**: *resolution* in *Encode photo + instruction* is the size the colour is generated at (1536 ≈ 2.4 MP). 1024 is faster; 2048 is the model's maximum. Your output is always full resolution. 30 steps is a good default; the official pipeline uses 40–50.\n"
+    "## LumaLock colourisation · Qwen-Image 2.1\n\n**How it works.** The model only proposes colour. Step 6 throws away the model's brightness and detail, keeps its colour (CIE a\\*b\\*), lines it up with your photo to fix any small shift or zoom, snaps colour edges to your photo's edges, and puts it under your photo's **exact** original lightness at full resolution. Faces, text and texture therefore come from your original pixels.\n\n**Steps**\n1. Load your photo in *Black-and-white photo*.\n2. (Optional) switch on group 2 for grain, dust/scratches and faded contrast.\n3. (Optional) type colour hints, e.g. `the woman's dress is deep red, the car is pale blue`.\n4. (Optional) paint a mask on the photo (right-click > *Open in MaskEditor*) and pick a colour in *Region colour hint*.\n5. (Optional) load a colour-reference photo and press Ctrl+B on it to switch it on.\n6. Click **Run**. Try another *seed* in the KSampler for a different colour interpretation.\n\n**Tuning**\n- Too strong/weak colour: *saturation* / *vibrance* in *White balance & saturation*; *max_chroma* stops neon patches.\n- Yellow/sepia cast left: raise *white_balance* (1.0 = full neutralisation). Lower it for sunsets and warm interiors.\n- Colour bleeding over edges: raise *edge_snap* to 1.0 in *Keep original brightness…*.\n\n**Colour strength**: the KSampler *cfg* (default 3) sets how hard the model is pushed away from the negative prompt (grayscale, dull, sepia…). Raise it to 4–5 if colours are still weak; 1 switches the negative prompt off (fastest, but models then tend to leave large areas grey). The log line \"LumaLock colour: model output median chroma …\" tells you how colourful the model's raw output was.\n\n**Speed/quality**: *resolution* in *Encode photo + instruction* is the size the colour is generated at (1536 ≈ 2.4 MP). 1024 is faster (colour is still applied at full resolution). cfg above 1 roughly doubles sampling time.\n"
    ],
    "color": "#432",
    "bgcolor": "#653"
@@ -1302,6 +1319,14 @@
   ],
   [
    15,
+   12,
+   1,
+   16,
+   6,
+   "STRING"
+  ],
+  [
+   16,
    10,
    0,
    16,
@@ -1309,7 +1334,7 @@
    "IMAGE"
   ],
   [
-   16,
+   17,
    11,
    0,
    16,
@@ -1317,7 +1342,7 @@
    "IMAGE"
   ],
   [
-   17,
+   18,
    13,
    0,
    17,
@@ -1325,7 +1350,7 @@
    "MODEL"
   ],
   [
-   18,
+   19,
    16,
    0,
    17,
@@ -1333,7 +1358,7 @@
    "CONDITIONING"
   ],
   [
-   19,
+   20,
    16,
    1,
    17,
@@ -1341,7 +1366,7 @@
    "CONDITIONING"
   ],
   [
-   20,
+   21,
    16,
    2,
    17,
@@ -1349,7 +1374,7 @@
    "LATENT"
   ],
   [
-   21,
+   22,
    17,
    0,
    18,
@@ -1357,7 +1382,7 @@
    "LATENT"
   ],
   [
-   22,
+   23,
    15,
    0,
    18,
@@ -1365,7 +1390,7 @@
    "VAE"
   ],
   [
-   23,
+   24,
    18,
    0,
    19,
@@ -1373,7 +1398,7 @@
    "IMAGE"
   ],
   [
-   24,
+   25,
    10,
    0,
    20,
@@ -1381,7 +1406,7 @@
    "IMAGE"
   ],
   [
-   25,
+   26,
    18,
    0,
    20,
@@ -1389,7 +1414,7 @@
    "IMAGE"
   ],
   [
-   26,
+   27,
    20,
    0,
    21,
@@ -1397,7 +1422,7 @@
    "IMAGE"
   ],
   [
-   27,
+   28,
    11,
    0,
    21,
@@ -1405,7 +1430,7 @@
    "IMAGE"
   ],
   [
-   28,
+   29,
    21,
    0,
    22,
@@ -1413,7 +1438,7 @@
    "IMAGE"
   ],
   [
-   29,
+   30,
    22,
    0,
    23,
@@ -1421,7 +1446,7 @@
    "IMAGE"
   ],
   [
-   30,
+   31,
    1,
    1,
    23,
@@ -1429,7 +1454,7 @@
    "MASK"
   ],
   [
-   31,
+   32,
    23,
    0,
    24,
@@ -1437,7 +1462,7 @@
    "IMAGE"
   ],
   [
-   32,
+   33,
    10,
    0,
    25,
@@ -1445,7 +1470,7 @@
    "IMAGE"
   ],
   [
-   33,
+   34,
    23,
    0,
    25,

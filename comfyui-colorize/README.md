@@ -153,7 +153,8 @@ The full-quality bf16 model (14.2 GB) fits in the 3090's 24 GB. ComfyUI loads th
 
 | Problem | Fix |
 |---|---|
-| Too muted or too strong | *White balance & saturation*: `saturation` / `vibrance` |
+| Large areas left grey, "hand-tinted" look | The model under-colourised. Raise the KSampler `cfg` (default 3 with the built-in negative prompt "grayscale, dull, sepia…"; try 4–5) and/or add `colour_hints` for the grey objects (e.g. `walnut wood panelling, blue-grey Air Force uniform`). Check the log line `LumaLock colour: model output median chroma …`: below about 5 means the model's raw output was already dull. |
+| Too muted or too strong overall | *White balance & saturation*: `saturation` / `vibrance` |
 | Neon patches | Lower `max_chroma` (60–70 is photographic) |
 | Yellow or sepia cast remains | Raise `white_balance` to 1.0 |
 | Sunset or warm interior looks too cold | Lower `white_balance` (0.3–0.5) |

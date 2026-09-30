@@ -60,6 +60,13 @@ def _stats_image(x, max_pixels=1_000_000):
     return resize(x, max(8, round(h * s)), max(8, round(w * s)), "area")
 
 
+def _chroma_stats(ab):
+    C = torch.sqrt((ab.float() ** 2).sum(1)).flatten()
+    if C.numel() > 1_000_000:
+        C = C[torch.randint(0, C.numel(), (1_000_000,), device=C.device)]
+    return float(C.median()), float(torch.quantile(C, 0.75))
+
+
 # ---------------------------------------------------------------- preparation
 
 class LumaLockToGray:
@@ -157,12 +164,18 @@ class LumaLockColorizePrompt:
     """Builds the edit instruction for the colourisation model."""
 
     LOOKS = {
-        "modern DSLR, neutral daylight": "neutral daylight white balance, like a photo taken today on a modern full-frame digital camera",
-        "modern DSLR, warm golden hour": "warm late-afternoon sunlight, like a photo taken today on a modern full-frame digital camera",
-        "modern DSLR, overcast soft light": "soft overcast daylight with neutral white balance, like a photo taken today on a modern full-frame digital camera",
-        "modern DSLR, indoor available light": "natural indoor light with correctly balanced white balance, like a photo taken today on a modern full-frame digital camera",
-        "true-to-period colour film": "the natural colour rendering of good quality colour film of the period, without fading or colour casts",
+        "modern DSLR, neutral daylight": "clean neutral daylight white balance",
+        "modern DSLR, warm golden hour": "warm late-afternoon sunlight",
+        "modern DSLR, overcast soft light": "soft overcast daylight with neutral white balance",
+        "modern DSLR, indoor available light": "natural indoor light with correctly balanced white balance",
+        "true-to-period colour film": "the rich colour rendering of fresh, well-exposed colour film of the period",
     }
+
+    # Used as the negative prompt: with cfg above 1 the sampler is pushed away
+    # from these, which is what stops edit models from under-colourising.
+    NEGATIVE = ("black and white photo, grayscale, monochrome, desaturated, muted colors, dull colors, "
+                "faded, washed out, sepia, brown tint, yellow cast, hand-tinted, colorized look, "
+                "gray skin, gray wood, gray clothing, low saturation")
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -178,31 +191,35 @@ class LumaLockColorizePrompt:
             "reference": ("IMAGE", {"tooltip": "Connect the same colour-reference photo that goes into image_2 of the encoder."}),
         }}
 
-    RETURN_TYPES = ("STRING",)
-    RETURN_NAMES = ("prompt",)
+    RETURN_TYPES = ("STRING", "STRING")
+    RETURN_NAMES = ("prompt", "negative_prompt")
     FUNCTION = "run"
     CATEGORY = CATEGORY
 
     def run(self, model_family, look, colour_hints, scene_notes, reference=None):
         qwen21 = model_family == "Qwen-Image 2.1"
         img1, img2 = ("<image1>", "<image2>") if qwen21 else ("Picture 1", "Picture 2")
-        tag = f"the {img1}" if reference is not None else "this"
-        p = (f"Colorize {tag} black-and-white photograph into a realistic full-colour photograph with "
-             f"{self.LOOKS[look]}. Give every object its own natural, plausible and varied colour; "
-             "realistic, healthy skin tones with natural variation between people; true whites and neutral greys; "
-             "clean colour separation between neighbouring objects with no colour bleeding; natural, "
-             "moderate saturation. Keep the composition, framing, every face, expression, texture, "
-             "text and fine detail exactly as they are; change only the colours. "
-             "No sepia, no yellow or brown tint, no colour cast, no hand-tinted look, no oversaturation.")
+        tag = img1 if reference is not None else "this"
+        # Structure is guaranteed by LumaLock Merge (only colour is used), so the
+        # instruction spends its words on colour, stated affirmatively. Telling an
+        # edit model to "keep everything exactly" makes it under-edit and leave
+        # large areas grey.
+        p = (f"Fully colorize {tag} black-and-white photograph into a vivid, realistic colour photograph, "
+             f"as if shot today on a modern full-frame digital camera with {self.LOOKS[look]}. "
+             "Every surface gets its own rich, true-to-life colour: warm, lifelike skin with natural variation "
+             "between people, natural hair colour, clothing and uniforms in their real fabric colours, wood in warm "
+             "natural wood tones, walls, floors, furniture, metal, plants and sky each in their realistic colours. "
+             "Clean neutral whites, deep neutral blacks, strong clean colour separation between objects, "
+             "full modern colour saturation. Same composition and framing.")
         if scene_notes.strip():
             p += f" Context: {scene_notes.strip()}."
         hints = [h.strip(" .") for h in colour_hints.replace("\n", ",").split(",") if h.strip(" .")]
         if hints:
             p += " Specific colours: " + "; ".join(hints) + "."
         if reference is not None:
-            p += (f" Use {img2} only as a reference for the colour palette, white balance and mood; "
-                  f"do not copy any content, objects or composition from {img2}.")
-        return (p,)
+            p += (f" Take the colour palette, white balance and mood from {img2}; "
+                  f"use {img2} only for colour, not for content.")
+        return (p, self.NEGATIVE)
 
 
 # ---------------------------------------------------------------- the core merge
@@ -271,6 +288,9 @@ class LumaLockMerge:
                     q = _interp_rows(A, H, W, y0, y1) * (Lc / 100.0) + _interp_rows(B, H, W, y0, y1)
                     ab_up = ab_up + (q - ab_up) * edge_snap
                 res[..., y0:y1, :] = gamut_map(Lc, ab_up).cpu()
+            log.info("LumaLock colour: model output median chroma %.1f (75th pct %.1f); merged result %.1f (75th pct %.1f). "
+                     "Real photos are typically 10-20 / 20-35; low model numbers mean the model under-colourised.",
+                     *_chroma_stats(lab_c[:, 1:3]), *_chroma_stats(rgb_to_lab(_stats_image(res.to(dev)))[:, 1:3]))
             outs.append(to_bhwc(res))
         return (torch.cat(outs, 0), torch.cat(previews, 0) if len({p.shape for p in previews}) == 1 else previews[0])
 

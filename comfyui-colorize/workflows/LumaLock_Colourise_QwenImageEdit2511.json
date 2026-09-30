@@ -2,7 +2,7 @@
  "id": "08c78f77-53e2-5e4a-b5f5-d7aa658f6c02",
  "revision": 0,
  "last_node_id": 34,
- "last_link_id": 45,
+ "last_link_id": 46,
  "nodes": [
   {
    "id": 1,
@@ -35,7 +35,7 @@
      "name": "MASK",
      "type": "MASK",
      "links": [
-      42
+      43
      ]
     }
    ],
@@ -424,8 +424,8 @@
      "type": "IMAGE",
      "links": [
       15,
-      36,
-      44
+      37,
+      45
      ]
     }
    ],
@@ -459,7 +459,7 @@
       11,
       19,
       23,
-      39
+      40
      ]
     },
     {
@@ -508,6 +508,14 @@
      "type": "STRING",
      "links": [
       24
+     ]
+    },
+    {
+     "localized_name": "negative_prompt",
+     "name": "negative_prompt",
+     "type": "STRING",
+     "links": [
+      25
      ]
     }
    ],
@@ -678,7 +686,7 @@
      "name": "patched_model",
      "type": "MODEL",
      "links": [
-      29
+      30
      ]
     }
    ],
@@ -755,8 +763,8 @@
      "links": [
       17,
       21,
-      28,
-      34
+      29,
+      35
      ]
     }
    ],
@@ -804,7 +812,7 @@
      "links": [
       18,
       22,
-      27
+      28
      ]
     }
    ],
@@ -882,7 +890,7 @@
      "name": "CONDITIONING",
      "type": "CONDITIONING",
      "links": [
-      25
+      26
      ]
     }
    ],
@@ -942,6 +950,15 @@
      "type": "IMAGE",
      "link": null,
      "shape": 7
+    },
+    {
+     "localized_name": "prompt",
+     "name": "prompt",
+     "type": "STRING",
+     "widget": {
+      "name": "prompt"
+     },
+     "link": 25
     }
    ],
    "outputs": [
@@ -950,7 +967,7 @@
      "name": "CONDITIONING",
      "type": "CONDITIONING",
      "links": [
-      26
+      27
      ]
     }
    ],
@@ -960,7 +977,7 @@
    "widgets_values": [
     ""
    ],
-   "title": "Encode (negative, empty)"
+   "title": "Encode (negative: grayscale, dull...)"
   },
   {
    "id": 22,
@@ -981,7 +998,7 @@
      "localized_name": "conditioning",
      "name": "conditioning",
      "type": "CONDITIONING",
-     "link": 25
+     "link": 26
     }
    ],
    "outputs": [
@@ -990,7 +1007,7 @@
      "name": "CONDITIONING",
      "type": "CONDITIONING",
      "links": [
-      30
+      31
      ]
     }
    ],
@@ -1020,7 +1037,7 @@
      "localized_name": "conditioning",
      "name": "conditioning",
      "type": "CONDITIONING",
-     "link": 26
+     "link": 27
     }
    ],
    "outputs": [
@@ -1029,7 +1046,7 @@
      "name": "CONDITIONING",
      "type": "CONDITIONING",
      "links": [
-      31
+      32
      ]
     }
    ],
@@ -1059,13 +1076,13 @@
      "localized_name": "pixels",
      "name": "pixels",
      "type": "IMAGE",
-     "link": 27
+     "link": 28
     },
     {
      "localized_name": "vae",
      "name": "vae",
      "type": "VAE",
-     "link": 28
+     "link": 29
     }
    ],
    "outputs": [
@@ -1074,7 +1091,7 @@
      "name": "LATENT",
      "type": "LATENT",
      "links": [
-      32
+      33
      ]
     }
    ],
@@ -1102,25 +1119,25 @@
      "localized_name": "model",
      "name": "model",
      "type": "MODEL",
-     "link": 29
+     "link": 30
     },
     {
      "localized_name": "positive",
      "name": "positive",
      "type": "CONDITIONING",
-     "link": 30
+     "link": 31
     },
     {
      "localized_name": "negative",
      "name": "negative",
      "type": "CONDITIONING",
-     "link": 31
+     "link": 32
     },
     {
      "localized_name": "latent_image",
      "name": "latent_image",
      "type": "LATENT",
-     "link": 32
+     "link": 33
     }
    ],
    "outputs": [
@@ -1129,7 +1146,7 @@
      "name": "LATENT",
      "type": "LATENT",
      "links": [
-      33
+      34
      ]
     }
    ],
@@ -1165,13 +1182,13 @@
      "localized_name": "samples",
      "name": "samples",
      "type": "LATENT",
-     "link": 33
+     "link": 34
     },
     {
      "localized_name": "vae",
      "name": "vae",
      "type": "VAE",
-     "link": 34
+     "link": 35
     }
    ],
    "outputs": [
@@ -1180,8 +1197,8 @@
      "name": "IMAGE",
      "type": "IMAGE",
      "links": [
-      35,
-      37
+      36,
+      38
      ]
     }
    ],
@@ -1209,7 +1226,7 @@
      "localized_name": "images",
      "name": "images",
      "type": "IMAGE",
-     "link": 35
+     "link": 36
     }
    ],
    "outputs": [
@@ -1245,13 +1262,13 @@
      "localized_name": "original",
      "name": "original",
      "type": "IMAGE",
-     "link": 36
+     "link": 37
     },
     {
      "localized_name": "colour_source",
      "name": "colour_source",
      "type": "IMAGE",
-     "link": 37
+     "link": 38
     }
    ],
    "outputs": [
@@ -1260,7 +1277,7 @@
      "name": "image",
      "type": "IMAGE",
      "links": [
-      38
+      39
      ]
     },
     {
@@ -1301,13 +1318,13 @@
      "localized_name": "image",
      "name": "image",
      "type": "IMAGE",
-     "link": 38
+     "link": 39
     },
     {
      "localized_name": "reference",
      "name": "reference",
      "type": "IMAGE",
-     "link": 39,
+     "link": 40,
      "shape": 7
     }
    ],
@@ -1317,7 +1334,7 @@
      "name": "IMAGE",
      "type": "IMAGE",
      "links": [
-      40
+      41
      ]
     }
    ],
@@ -1349,7 +1366,7 @@
      "localized_name": "image",
      "name": "image",
      "type": "IMAGE",
-     "link": 40
+     "link": 41
     }
    ],
    "outputs": [
@@ -1358,7 +1375,7 @@
      "name": "IMAGE",
      "type": "IMAGE",
      "links": [
-      41
+      42
      ]
     }
    ],
@@ -1392,13 +1409,13 @@
      "localized_name": "image",
      "name": "image",
      "type": "IMAGE",
-     "link": 41
+     "link": 42
     },
     {
      "localized_name": "mask",
      "name": "mask",
      "type": "MASK",
-     "link": 42
+     "link": 43
     }
    ],
    "outputs": [
@@ -1407,8 +1424,8 @@
      "name": "IMAGE",
      "type": "IMAGE",
      "links": [
-      43,
-      45
+      44,
+      46
      ]
     }
    ],
@@ -1443,7 +1460,7 @@
      "localized_name": "images",
      "name": "images",
      "type": "IMAGE",
-     "link": 43
+     "link": 44
     },
     {
      "localized_name": "format",
@@ -1490,14 +1507,14 @@
      "localized_name": "image_a",
      "name": "image_a",
      "type": "IMAGE",
-     "link": 44,
+     "link": 45,
      "shape": 7
     },
     {
      "localized_name": "image_b",
      "name": "image_b",
      "type": "IMAGE",
-     "link": 45,
+     "link": 46,
      "shape": 7
     }
    ],
@@ -1728,6 +1745,14 @@
   ],
   [
    25,
+   12,
+   1,
+   21,
+   5,
+   "STRING"
+  ],
+  [
+   26,
    20,
    0,
    22,
@@ -1735,7 +1760,7 @@
    "CONDITIONING"
   ],
   [
-   26,
+   27,
    21,
    0,
    23,
@@ -1743,7 +1768,7 @@
    "CONDITIONING"
   ],
   [
-   27,
+   28,
    19,
    0,
    24,
@@ -1751,7 +1776,7 @@
    "IMAGE"
   ],
   [
-   28,
+   29,
    18,
    0,
    24,
@@ -1759,7 +1784,7 @@
    "VAE"
   ],
   [
-   29,
+   30,
    16,
    0,
    25,
@@ -1767,7 +1792,7 @@
    "MODEL"
   ],
   [
-   30,
+   31,
    22,
    0,
    25,
@@ -1775,7 +1800,7 @@
    "CONDITIONING"
   ],
   [
-   31,
+   32,
    23,
    0,
    25,
@@ -1783,7 +1808,7 @@
    "CONDITIONING"
   ],
   [
-   32,
+   33,
    24,
    0,
    25,
@@ -1791,7 +1816,7 @@
    "LATENT"
   ],
   [
-   33,
+   34,
    25,
    0,
    26,
@@ -1799,7 +1824,7 @@
    "LATENT"
   ],
   [
-   34,
+   35,
    18,
    0,
    26,
@@ -1807,7 +1832,7 @@
    "VAE"
   ],
   [
-   35,
+   36,
    26,
    0,
    27,
@@ -1815,7 +1840,7 @@
    "IMAGE"
   ],
   [
-   36,
+   37,
    10,
    0,
    28,
@@ -1823,7 +1848,7 @@
    "IMAGE"
   ],
   [
-   37,
+   38,
    26,
    0,
    28,
@@ -1831,7 +1856,7 @@
    "IMAGE"
   ],
   [
-   38,
+   39,
    28,
    0,
    29,
@@ -1839,7 +1864,7 @@
    "IMAGE"
   ],
   [
-   39,
+   40,
    11,
    0,
    29,
@@ -1847,7 +1872,7 @@
    "IMAGE"
   ],
   [
-   40,
+   41,
    29,
    0,
    30,
@@ -1855,7 +1880,7 @@
    "IMAGE"
   ],
   [
-   41,
+   42,
    30,
    0,
    31,
@@ -1863,7 +1888,7 @@
    "IMAGE"
   ],
   [
-   42,
+   43,
    1,
    1,
    31,
@@ -1871,7 +1896,7 @@
    "MASK"
   ],
   [
-   43,
+   44,
    31,
    0,
    32,
@@ -1879,7 +1904,7 @@
    "IMAGE"
   ],
   [
-   44,
+   45,
    10,
    0,
    33,
@@ -1887,7 +1912,7 @@
    "IMAGE"
   ],
   [
-   45,
+   46,
    31,
    0,
    33,

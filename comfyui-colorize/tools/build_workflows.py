@@ -250,13 +250,14 @@ def build_qwen21(info):
                  widgets={"negative_prompt": "", "resolution": 1536},
                  extra_inputs=[("images.image_1", "IMAGE"), ("images.image_2", "IMAGE"), ("images.image_3", "IMAGE")])
     ks = g.node("KSampler", (mx + 840, my + 70), (300, 270),
-                widgets={"seed": 20250930, "control_after_generate": "fixed", "steps": 30, "cfg": 1.0,
+                widgets={"seed": 20250930, "control_after_generate": "fixed", "steps": 30, "cfg": 3.0,
                          "sampler_name": "euler", "scheduler": "simple", "denoise": 1.0})
     dec = g.node("VAEDecode", (mx + 840, my + 380), (300, 50))
     raw = g.node("PreviewImage", (mx + 1170, my + 70), (300, 330), title="Raw model output (colour source only)")
     g.link(clip, 0, enc, "clip")
     g.link(vae, 0, enc, "vae")
     g.link(prompt, 0, enc, "prompt")
+    g.link(prompt, 1, enc, "negative_prompt")
     g.link(grey, 0, enc, "images.image_1")
     g.link(ref, 0, enc, "images.image_2")
     g.link(unet, 0, ks, "model")
@@ -291,8 +292,7 @@ def build_qwen2511(info):
     scale = g.node("LumaLockScaleForEdit", (mx + 410, my + 300), (360, 90), title="Scale to 1 MP (keeps aspect ratio)",
                    widgets={"megapixels": 1.0, "multiple_of": 8})
     pos = g.node("TextEncodeQwenImageEditPlus", (mx + 800, my + 70), (330, 150), title="Encode (positive)")
-    neg = g.node("TextEncodeQwenImageEditPlus", (mx + 800, my + 250), (330, 150), title="Encode (negative, empty)",
-                 widgets={"prompt": ""})
+    neg = g.node("TextEncodeQwenImageEditPlus", (mx + 800, my + 250), (330, 150), title="Encode (negative: grayscale, dull...)")
     mp = g.node("FluxKontextMultiReferenceLatentMethod", (mx + 1160, my + 70), (300, 60),
                 widgets={"reference_latents_method": "index_timestep_zero"})
     mn = g.node("FluxKontextMultiReferenceLatentMethod", (mx + 1160, my + 160), (300, 60),
@@ -313,6 +313,7 @@ def build_qwen2511(info):
         g.link(scale, 0, enc, "image1")
         g.link(ref, 0, enc, "image2")
     g.link(prompt, 0, pos, "prompt")
+    g.link(prompt, 1, neg, "prompt")
     g.link(pos, 0, mp, "conditioning")
     g.link(neg, 0, mn, "conditioning")
     g.link(scale, 0, venc, "pixels")
@@ -366,7 +367,9 @@ GUIDE_COMMON = """
 """
 
 GUIDE_QWEN21 = "## LumaLock colourisation · Qwen-Image 2.1\n" + GUIDE_COMMON + """
-**Speed/quality**: *resolution* in *Encode photo + instruction* is the size the colour is generated at (1536 ≈ 2.4 MP). 1024 is faster; 2048 is the model's maximum. Your output is always full resolution. 30 steps is a good default; the official pipeline uses 40–50.
+**Colour strength**: the KSampler *cfg* (default 3) sets how hard the model is pushed away from the negative prompt (grayscale, dull, sepia…). Raise it to 4–5 if colours are still weak; 1 switches the negative prompt off (fastest, but models then tend to leave large areas grey). The log line "LumaLock colour: model output median chroma …" tells you how colourful the model's raw output was.
+
+**Speed/quality**: *resolution* in *Encode photo + instruction* is the size the colour is generated at (1536 ≈ 2.4 MP). 1024 is faster (colour is still applied at full resolution). cfg above 1 roughly doubles sampling time.
 """
 
 GUIDE_QWEN2511 = "## LumaLock colourisation · Qwen-Image-Edit-2511\n" + GUIDE_COMMON + """
