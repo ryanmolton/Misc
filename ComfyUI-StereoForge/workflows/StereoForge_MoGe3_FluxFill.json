@@ -1,6 +1,6 @@
 {
- "last_node_id": 19,
- "last_link_id": 22,
+ "last_node_id": 20,
+ "last_link_id": 23,
  "nodes": [
   {
    "id": 1,
@@ -746,6 +746,14 @@
       22
      ],
      "slot_index": 2
+    },
+    {
+     "name": "side_by_side_unfilled",
+     "type": "IMAGE",
+     "links": [
+      23
+     ],
+     "slot_index": 3
     }
    ],
    "properties": {
@@ -812,6 +820,36 @@
    },
    "widgets_values": [],
    "title": "Anaglyph check (red/cyan)"
+  },
+  {
+   "id": 20,
+   "type": "SaveImage",
+   "pos": [
+    1920,
+    1020
+   ],
+   "size": [
+    520,
+    360
+   ],
+   "flags": {},
+   "order": 19,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 23
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "SaveImage"
+   },
+   "widgets_values": [
+    "StereoForge/sbs_unfilled"
+   ],
+   "title": "Unfilled pair (gaps transparent)"
   }
  ],
  "links": [
@@ -990,6 +1028,14 @@
    19,
    0,
    "IMAGE"
+  ],
+  [
+   23,
+   17,
+   3,
+   20,
+   0,
+   "IMAGE"
   ]
  ],
  "groups": [
@@ -1039,7 +1085,7 @@
     1900,
     -30,
     560,
-    1030
+    1430
    ],
    "color": "#3f789e"
   }

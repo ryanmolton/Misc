@@ -53,11 +53,15 @@ def test_object_moves_with_its_matte_not_the_depth_edge():
     img, disp, disc = _scene()
     H, W = disp.shape
     st = L.build_stack(img, disp, [disc.float()], _params(W, 20), None, _fill_const, log=lambda *a: None)
-    eye, inv_vis, auto = L.render_stack(st)
+    eye, inv_vis, auto, unfilled = L.render_stack(st)
+    # unfilled: photo-derived pixels opaque, invented/auto-filled pixels transparent
+    assert unfilled.shape[-1] == 4
+    assert bool((unfilled[..., 3][inv_vis] < 0.5).all()) and bool((unfilled[..., 3][auto] == 0).all())
     # right eye: disc (disparity 20 px in front) moves 20 px left; background stays
     yy, xx = torch.meshgrid(torch.arange(H), torch.arange(W), indexing="ij")
     moved = ((yy - 120) ** 2 + (xx - 160) ** 2) < 55 ** 2
     assert (eye[moved] - torch.tensor([0.9, 0.2, 0.2])).abs().max() < 0.05
+    assert bool((unfilled[..., 3][moved] > 0.99).all())
     # no red ghost where the disc's rim used to be (the 3 px depth-edge offset must not drag background)
     ring = (((yy - 120) ** 2 + (xx - 180) ** 2) > 61 ** 2) & (((yy - 120) ** 2 + (xx - 180) ** 2) < 70 ** 2) & (xx > 200)
     assert (eye[ring][:, 0] - eye[ring][:, 1]).max() < 0.35

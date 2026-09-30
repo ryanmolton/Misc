@@ -430,8 +430,11 @@ class SF_StereoCompose:
                                                                    "with the background-side pre-fill."}),
             }}
 
-    RETURN_TYPES = ("IMAGE", "IMAGE", "IMAGE")
-    RETURN_NAMES = ("side_by_side", "generated_eye", "anaglyph_preview")
+    RETURN_TYPES = ("IMAGE", "IMAGE", "IMAGE", "IMAGE")
+    RETURN_NAMES = ("side_by_side", "generated_eye", "anaglyph_preview", "side_by_side_unfilled")
+    OUTPUT_TOOLTIPS = ("Final stereo pair.", "The synthesised eye alone.", "Red/cyan check.",
+                       "RGBA pair with only photo-derived pixels: every gap that was (or would be) filled is "
+                       "transparent, ready for inpainting in another tool.")
     FUNCTION = "run"
     CATEGORY = CATEGORY
 
@@ -441,7 +444,7 @@ class SF_StereoCompose:
         if rendered.shape[1:3] != (H, W):
             raise ValueError(f"source_image is {W}x{H} but the stereo render is "
                              f"{rendered.shape[2]}x{rendered.shape[1]}; connect the same image used for rendering.")
-        gens, sbss, anas = [], [], []
+        gens, sbss, anas, unfs = [], [], [], []
         for i in range(B):
             ri = min(i, rendered.shape[0] - 1)
             inp = inpainted[min(i, inpainted.shape[0] - 1)][..., :3].float() if inpainted is not None else None
@@ -462,7 +465,21 @@ class SF_StereoCompose:
             sbss.append(torch.cat(pair, dim=1))
             gens.append(gen.to(src.dtype))
             anas.append(core.anaglyph_dubois(left[..., :3].float(), right[..., :3].float()))
-        return (torch.stack(sbss), torch.stack(gens), torch.stack(anas))
+            # unfilled: rendered photo pixels (+ hair matte) only; filled gaps -> alpha 0
+            fa = stereo["fringe_alpha"][ri].float().unsqueeze(-1)
+            a = alpha[ri].float().unsqueeze(-1)
+            known_a = fa + (1 - fa) * a
+            known_c = stereo["fringe_color"][ri].float() + (1 - fa) * a * rendered[ri].float()
+            rgb = torch.where(known_a > 1e-3, known_c / known_a.clamp_min(1e-3), torch.zeros_like(known_c))
+            blk = black[ri].unsqueeze(-1)
+            rgb = torch.where(blk, torch.zeros_like(rgb), rgb).clamp(0, 1)
+            known_a = torch.where(blk, torch.ones_like(known_a), known_a).clamp(0, 1)
+            unf = torch.cat([rgb, known_a], -1).to(src.dtype)
+            src4 = torch.cat([src[..., :3], torch.ones_like(src[..., :1])], -1)
+            ul, ur = (src4, unf) if stereo["source_eye"] == "left" else (unf, src4)
+            upair = (ul, ur) if layout.startswith("parallel") else (ur, ul)
+            unfs.append(torch.cat(upair, dim=1))
+        return (torch.stack(sbss), torch.stack(gens), torch.stack(anas), torch.stack(unfs))
 
 
 NODE_CLASS_MAPPINGS = {

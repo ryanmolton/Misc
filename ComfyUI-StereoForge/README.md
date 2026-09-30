@@ -148,7 +148,7 @@ The `*.api.json` files are the same graphs in API format, for scripted use.
 | **Flatten Regions to Plane** | Optional. Give it a mask of pictures, screens, posters or signs (for example from SAM) and each masked region becomes the plane of its surroundings. |
 | **Render Opposite Eye** | The full-resolution geometric renderer described above. |
 | **Tiled Inpaint (native res)** | Works with any inpainting model. FLUX Fill: cfg 1, FluxGuidance 30, 20 steps, euler/simple. SD1.5/SDXL inpainting: tile 512/1024 with normal cfg. |
-| **Compose Side-by-Side** | Parallel (L\|R) or cross-eyed (R\|L), plus the generated eye alone and a red/cyan anaglyph for quick checks. |
+| **Compose Side-by-Side** | Parallel (L\|R) or cross-eyed (R\|L), plus the generated eye alone, a red/cyan anaglyph for quick checks, and `side_by_side_unfilled`: an RGBA pair where every filled gap is transparent (saved as `sbs_unfilled`), so you can inpaint it later in any tool. |
 
 **Comfort and composition** (Render node):
 

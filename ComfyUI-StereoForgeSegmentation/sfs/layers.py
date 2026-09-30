@@ -301,24 +301,35 @@ def decontaminate(stack: Stack) -> None:
 def render_stack(stack: Stack, hole_fill: FillFn | None = None):
     """Composite all layers into the opposite eye.
 
-    Returns (eye, invented_visible, autofilled): the latter two are review masks
-    in the target view (pixels showing clean-plate content / pixels that had to
-    be auto-filled because no layer covered them - unmasked depth edges and
-    the frame-edge strip)."""
+    Returns (eye, invented_visible, autofilled, unfilled):
+    * eye: (H, W, 3) final generated eye;
+    * invented_visible / autofilled: review masks in the target view (pixels
+      showing clean-plate content / pixels no layer covered - unmasked depth
+      edges and the frame-edge strip - which were auto-filled);
+    * unfilled: (H, W, 4) the same eye with only photo-derived content, alpha 0
+      wherever content was invented or auto-filled (for inpainting elsewhere).
+    """
     img = stack.image
     H, W, _ = img.shape
     ones = torch.ones(H, W, device=img.device)
+
+    def ext_of(L):
+        inv = L.invented.float().unsqueeze(-1)
+        return torch.cat([L.color, inv, L.color * (1 - inv), 1 - inv], -1)
+
     L0 = stack.layers[0]
-    ext = torch.cat([L0.color, L0.invented.float().unsqueeze(-1)], -1)
-    c, a, hole0 = render_layer(ext, ones, L0.D, stack.sign)
+    c, a, hole0 = render_layer(ext_of(L0), ones, L0.D, stack.sign)
     out, inv, cov = c[..., :3], c[..., 3], a
+    kc, ka = c[..., 4:7], c[..., 7]
     for L in stack.layers[1:]:
-        ra = L.render_alpha()
-        ext = torch.cat([L.color, L.invented.float().unsqueeze(-1)], -1)
-        c, a, _ = render_layer(ext, ra, L.D, stack.sign, OBJ_STRETCH)
-        out = c[..., :3] + (1 - a.unsqueeze(-1)) * out
+        c, a, _ = render_layer(ext_of(L), L.render_alpha(), L.D, stack.sign, OBJ_STRETCH)
+        a1 = (1 - a).unsqueeze(-1)
+        out = c[..., :3] + a1 * out
         inv = c[..., 3] + (1 - a) * inv
         cov = a + (1 - a) * cov
+        # invented content of a nearer layer still hides what is behind it
+        kc = c[..., 4:7] + a1 * kc
+        ka = c[..., 7] + (1 - a) * ka
     holes = cov < 0.5
     norm = out / cov.clamp_min(1e-3).unsqueeze(-1)
     norm = torch.where(holes.unsqueeze(-1), torch.zeros_like(norm), norm).clamp(0, 1)
@@ -329,4 +340,7 @@ def render_stack(stack: Stack, hole_fill: FillFn | None = None):
             filled = hole_fill(norm, holes, torch.zeros_like(holes))
         norm = torch.where(holes.unsqueeze(-1), filled, norm)
     inv_vis = (inv / cov.clamp_min(1e-3) > 0.5) & ~holes
-    return norm.clamp(0, 1), inv_vis, holes
+    ka = torch.where(holes, torch.zeros_like(ka), ka).clamp(0, 1)
+    krgb = torch.where((ka > 1e-3).unsqueeze(-1), kc / ka.clamp_min(1e-3).unsqueeze(-1), torch.zeros_like(kc))
+    unfilled = torch.cat([krgb.clamp(0, 1), ka.unsqueeze(-1)], -1)
+    return norm.clamp(0, 1), inv_vis, holes, unfilled

@@ -191,7 +191,8 @@ def build(depth: str = "moge", test: bool = False, image_name: str = "example.pn
 
     co = g.node("SF_StereoCompose", (1920, 40), ["parallel (left | right)", True],
                 inputs=[("stereo", "SF_STEREO"), ("source_image", "IMAGE"), ("inpainted", "IMAGE")],
-                outputs=[("side_by_side", "IMAGE"), ("generated_eye", "IMAGE"), ("anaglyph_preview", "IMAGE")],
+                outputs=[("side_by_side", "IMAGE"), ("generated_eye", "IMAGE"), ("anaglyph_preview", "IMAGE"),
+                         ("side_by_side_unfilled", "IMAGE")],
                 size=(340, 130), api_widgets={"layout": "parallel (left | right)", "reject_foreground_bleed": True})
     g.link(ren, 0, co, "stereo")
     g.link(down, 0, co, "source_image")
@@ -203,6 +204,10 @@ def build(depth: str = "moge", test: bool = False, image_name: str = "example.pn
     an = g.node("PreviewImage", (1920, 620), [], inputs=[("images", "IMAGE")], size=(520, 360),
                 title="Anaglyph check (red/cyan)", api_widgets={})
     g.link(co, 2, an, "images")
+    su = g.node("SaveImage", (1920, 1020), ["StereoForge/sbs_unfilled"], inputs=[("images", "IMAGE")],
+                size=(520, 360), title="Unfilled pair (gaps transparent)",
+                api_widgets={"filename_prefix": "StereoForge/sbs_unfilled"})
+    g.link(co, 3, su, "images")
 
     groups = [
         {"title": "1. Input", "bounding": [-20, -30, 360, 700], "color": "#3f789e"},
@@ -210,7 +215,7 @@ def build(depth: str = "moge", test: bool = False, image_name: str = "example.pn
         {"title": "3. Render opposite eye (full res)", "bounding": [740, -30, 380, 730], "color": "#a1309b"},
         {"title": "4. Generative fill of disocclusions (1:1 tiles)", "bounding": [1140, -30, 760, 860],
          "color": "#b58b2a"},
-        {"title": "5. Side-by-side output", "bounding": [1900, -30, 560, 1030], "color": "#3f789e"},
+        {"title": "5. Side-by-side output", "bounding": [1900, -30, 560, 1430], "color": "#3f789e"},
     ]
     return g.ui(groups), g.api
 

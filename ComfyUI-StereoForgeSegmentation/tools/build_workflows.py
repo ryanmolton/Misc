@@ -46,7 +46,9 @@ right as flat images, the stereo pair is clean.
       Edit' and set its layer number.
 5. 'Stereo review': cyan = invented content visible in the new eye,
    magenta = auto-filled (depth edges with no mask - add a mask there if it
-   matters). The side-by-side is saved to output/StereoForgeSeg/."""
+   matters). The side-by-side is saved to output/StereoForgeSeg/, plus
+   sbs_unfilled: the same pair with every invented pixel transparent, so you
+   can inpaint it later in any tool."""
 
 
 class G:
@@ -190,7 +192,8 @@ def build(test=False, image="example.png"):
     rd = g.node("SFS_Render", (2240, 0), ["parallel (left | right)"],
                 inputs=[("layers", "SFS_LAYERS"), ("source_image", "IMAGE")],
                 outputs=[("side_by_side", "IMAGE"), ("generated_eye", "IMAGE"), ("review", "IMAGE"),
-                         ("anaglyph", "IMAGE")], size=(320, 140), api={"layout": "parallel (left | right)"})
+                         ("anaglyph", "IMAGE"), ("side_by_side_unfilled", "IMAGE")], size=(320, 160),
+                api={"layout": "parallel (left | right)"})
     g.link(ep, 0, rd, "layers")
     g.link(down, 0, rd, "source_image")
     # API twin: bypassed fixes are skipped, so Render reads the layers directly
@@ -201,13 +204,17 @@ def build(test=False, image="example.png"):
     rv = g.node("PreviewImage", (2240, 560), [], inputs=[("images", "IMAGE")], size=(520, 340),
                 title="Stereo review (cyan = invented, magenta = auto-filled)", api={})
     g.link(rd, 2, rv, "images")
+    su = g.node("SaveImage", (2240, 940), ["StereoForgeSeg/sbs_unfilled"], inputs=[("images", "IMAGE")],
+                size=(520, 340), title="Unfilled pair (invented areas transparent)",
+                api={"filename_prefix": "StereoForgeSeg/sbs_unfilled"})
+    g.link(rd, 4, su, "images")
 
     ui = {"last_node_id": g._id, "last_link_id": g._link, "nodes": g.nodes, "links": g.links, "groups": [
         {"title": "1. Photo", "bounding": [-20, -60, 360, 1000], "color": "#3f789e"},
         {"title": "2. Depth + objects", "bounding": [360, -60, 740, 1040], "color": "#8A8"},
         {"title": "3. Layers, mattes, clean plates (REVIEW)", "bounding": [1100, -60, 380, 1260], "color": "#a1309b"},
         {"title": "4. Optional plate fixes", "bounding": [1480, -60, 740, 1400], "color": "#b58b2a"},
-        {"title": "5. Stereo pair", "bounding": [2220, -60, 560, 980], "color": "#3f789e"}],
+        {"title": "5. Stereo pair", "bounding": [2220, -60, 560, 1360], "color": "#3f789e"}],
         "config": {}, "extra": {"ds": {"scale": 0.6, "offset": [480, 80]}}, "version": 0.4}
     return ui, g.api
 

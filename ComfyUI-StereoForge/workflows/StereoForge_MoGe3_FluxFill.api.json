@@ -219,5 +219,15 @@
     2
    ]
   }
+ },
+ "20": {
+  "class_type": "SaveImage",
+  "inputs": {
+   "filename_prefix": "StereoForge/sbs_unfilled",
+   "images": [
+    "17",
+    3
+   ]
+  }
  }
 }

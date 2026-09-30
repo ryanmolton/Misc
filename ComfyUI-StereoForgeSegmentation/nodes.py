@@ -421,8 +421,11 @@ class SFS_Render:
             "layout": (["parallel (left | right)", "cross-eyed (right | left)"], {"default": "parallel (left | right)"}),
         }}
 
-    RETURN_TYPES = ("IMAGE", "IMAGE", "IMAGE", "IMAGE")
-    RETURN_NAMES = ("side_by_side", "generated_eye", "review", "anaglyph")
+    RETURN_TYPES = ("IMAGE", "IMAGE", "IMAGE", "IMAGE", "IMAGE")
+    RETURN_NAMES = ("side_by_side", "generated_eye", "review", "anaglyph", "side_by_side_unfilled")
+    OUTPUT_TOOLTIPS = ("Final stereo pair.", "The synthesised eye alone.", "Where content was invented / auto-filled.",
+                       "Red/cyan check.", "RGBA pair: only photo-derived pixels; invented and auto-filled pixels are "
+                                          "transparent, ready for inpainting in another tool.")
     FUNCTION = "run"
     CATEGORY = CATEGORY
 
@@ -434,7 +437,7 @@ class SFS_Render:
             raise ValueError("source_image does not match the image the layers were built from.")
         lama = models.load_lama(st.image.device)
         hf = lambda im, m, h: models.lama_fill(lama, im, m, h, 8)
-        eye, inv_vis, auto = L.render_stack(st, hf)
+        eye, inv_vis, auto, unfilled = L.render_stack(st, hf)
         eye = eye.cpu()
         review = eye * 0.85
         review = torch.where(_outline(inv_vis.cpu(), 1).unsqueeze(-1), torch.tensor([0.1, 1.0, 1.0]).expand_as(review), review)
@@ -447,7 +450,11 @@ class SFS_Render:
         pair = (left, right) if layout.startswith("parallel") else (right, left)
         sbs = torch.cat(pair, dim=1)
         ana = core.anaglyph_dubois(left[..., :3].float(), right[..., :3].float())
-        return (sbs[None], gen[None], review[None], ana[None])
+        src4 = torch.cat([src[..., :3], torch.ones_like(src[..., :1])], -1)
+        unf = unfilled.cpu().to(src.dtype)
+        ul, ur = (src4, unf) if st.source_eye == "left" else (unf, src4)
+        upair = (ul, ur) if layout.startswith("parallel") else (ur, ul)
+        return (sbs[None], gen[None], review[None], ana[None], torch.cat(upair, dim=1)[None])
 
 
 NODE_CLASS_MAPPINGS = {

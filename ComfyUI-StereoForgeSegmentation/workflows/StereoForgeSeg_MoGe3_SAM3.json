@@ -1,6 +1,6 @@
 {
- "last_node_id": 28,
- "last_link_id": 32,
+ "last_node_id": 29,
+ "last_link_id": 33,
  "nodes": [
   {
    "id": 1,
@@ -22,7 +22,7 @@
     "Node name for S&R": "Note"
    },
    "widgets_values": [
-    "StereoForge Segmentation - clean-edged stereo pairs\n\nHOW IT WORKS\nEdges come from object masks + a matting network, not from the depth map.\nEverything the new eye sees that the photo does not contain is invented ONCE\nas a flat \"clean plate\" you can inspect and fix. If the mattes and plates look\nright as flat images, the stereo pair is clean.\n\n1. Load your photo (Load Image, top left). It stays the LEFT eye, bit-exact.\n2. Objects: SAM 3 finds what you type in \"Objects to find\". Add :N for up\n   to N of each (default \"person:4\"); several kinds, e.g.\n   \"person:4, dog, gift box:3\". Check 'Objects' preview. Wrong/missing?\n   - drop bad ones by number in Collect Object Masks > drop\n   - paint a missing object: un-mute 'Paint extra object', load the SAME\n     photo, right-click > Open in MaskEditor, paint it, connect to mask_1.\n3. Run. Check 'Mattes' (edges) and 'Plate review' (outlined = invented).\n4. A plate looks wrong? Either\n   a) un-bypass 'Refine Plates (diffusion)' to redo it with FLUX Fill\n      (paint 'only_here' to redo just one spot), or\n   b) open the saved plate PNG (output/StereoForgeSeg/plates_*) in any\n      editor, fix it, load it in 'Edited plate', un-bypass 'Apply Plate\n      Edit' and set its layer number.\n5. 'Stereo review': cyan = invented content visible in the new eye,\n   magenta = auto-filled (depth edges with no mask - add a mask there if it\n   matters). The side-by-side is saved to output/StereoForgeSeg/."
+    "StereoForge Segmentation - clean-edged stereo pairs\n\nHOW IT WORKS\nEdges come from object masks + a matting network, not from the depth map.\nEverything the new eye sees that the photo does not contain is invented ONCE\nas a flat \"clean plate\" you can inspect and fix. If the mattes and plates look\nright as flat images, the stereo pair is clean.\n\n1. Load your photo (Load Image, top left). It stays the LEFT eye, bit-exact.\n2. Objects: SAM 3 finds what you type in \"Objects to find\". Add :N for up\n   to N of each (default \"person:4\"); several kinds, e.g.\n   \"person:4, dog, gift box:3\". Check 'Objects' preview. Wrong/missing?\n   - drop bad ones by number in Collect Object Masks > drop\n   - paint a missing object: un-mute 'Paint extra object', load the SAME\n     photo, right-click > Open in MaskEditor, paint it, connect to mask_1.\n3. Run. Check 'Mattes' (edges) and 'Plate review' (outlined = invented).\n4. A plate looks wrong? Either\n   a) un-bypass 'Refine Plates (diffusion)' to redo it with FLUX Fill\n      (paint 'only_here' to redo just one spot), or\n   b) open the saved plate PNG (output/StereoForgeSeg/plates_*) in any\n      editor, fix it, load it in 'Edited plate', un-bypass 'Apply Plate\n      Edit' and set its layer number.\n5. 'Stereo review': cyan = invented content visible in the new eye,\n   magenta = auto-filled (depth edges with no mask - add a mask there if it\n   matters). The side-by-side is saved to output/StereoForgeSeg/, plus\n   sbs_unfilled: the same pair with every invented pixel transparent, so you\n   can inpaint it later in any tool."
    ],
    "title": "READ ME"
   },
@@ -1110,7 +1110,7 @@
    ],
    "size": [
     320,
-    140
+    160
    ],
    "flags": {},
    "order": 25,
@@ -1155,6 +1155,14 @@
      "type": "IMAGE",
      "links": [],
      "slot_index": 3
+    },
+    {
+     "name": "side_by_side_unfilled",
+     "type": "IMAGE",
+     "links": [
+      33
+     ],
+     "slot_index": 4
     }
    ],
    "properties": {
@@ -1220,6 +1228,36 @@
    },
    "widgets_values": [],
    "title": "Stereo review (cyan = invented, magenta = auto-filled)"
+  },
+  {
+   "id": 29,
+   "type": "SaveImage",
+   "pos": [
+    2240,
+    940
+   ],
+   "size": [
+    520,
+    340
+   ],
+   "flags": {},
+   "order": 28,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 33
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "SaveImage"
+   },
+   "widgets_values": [
+    "StereoForgeSeg/sbs_unfilled"
+   ],
+   "title": "Unfilled pair (invented areas transparent)"
   }
  ],
  "links": [
@@ -1478,6 +1516,14 @@
    28,
    0,
    "IMAGE"
+  ],
+  [
+   33,
+   26,
+   4,
+   29,
+   0,
+   "IMAGE"
   ]
  ],
  "groups": [
@@ -1527,7 +1573,7 @@
     2220,
     -60,
     560,
-    980
+    1360
    ],
    "color": "#3f789e"
   }
