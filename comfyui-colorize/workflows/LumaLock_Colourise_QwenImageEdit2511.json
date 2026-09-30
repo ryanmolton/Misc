@@ -1,0 +1,1992 @@
+{
+ "id": "08c78f77-53e2-5e4a-b5f5-d7aa658f6c02",
+ "revision": 0,
+ "last_node_id": 34,
+ "last_link_id": 45,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "LoadImage",
+   "pos": [
+    20,
+    70
+   ],
+   "size": [
+    340,
+    420
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "localized_name": "IMAGE",
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      1,
+      3,
+      5
+     ]
+    },
+    {
+     "localized_name": "MASK",
+     "name": "MASK",
+     "type": "MASK",
+     "links": [
+      42
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadImage"
+   },
+   "widgets_values": [
+    "example.png",
+    "image"
+   ],
+   "title": "Black-and-white photo (right-click > Open in MaskEditor to paint a region hint)"
+  },
+  {
+   "id": 2,
+   "type": "UpscaleModelLoader",
+   "pos": [
+    440,
+    70
+   ],
+   "size": [
+    330,
+    60
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 4,
+   "inputs": [],
+   "outputs": [
+    {
+     "localized_name": "UPSCALE_MODEL",
+     "name": "UPSCALE_MODEL",
+     "type": "UPSCALE_MODEL",
+     "links": [
+      2
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "UpscaleModelLoader",
+    "models": [
+     {
+      "name": "scunet_color_real_psnr.pth",
+      "url": "https://github.com/cszn/KAIR/releases/download/v1.0/scunet_color_real_psnr.pth",
+      "directory": "upscale_models"
+     }
+    ]
+   },
+   "widgets_values": [
+    "scunet_color_real_psnr.pth"
+   ],
+   "title": "Grain remover model (SCUNet)"
+  },
+  {
+   "id": 3,
+   "type": "ImageUpscaleWithModel",
+   "pos": [
+    440,
+    180
+   ],
+   "size": [
+    330,
+    50
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 4,
+   "inputs": [
+    {
+     "localized_name": "upscale_model",
+     "name": "upscale_model",
+     "type": "UPSCALE_MODEL",
+     "link": 2
+    },
+    {
+     "localized_name": "image",
+     "name": "image",
+     "type": "IMAGE",
+     "link": 1
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "IMAGE",
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      4
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ImageUpscaleWithModel"
+   },
+   "widgets_values": [],
+   "title": "Remove grain / noise"
+  },
+  {
+   "id": 4,
+   "type": "ImageBlend",
+   "pos": [
+    440,
+    280
+   ],
+   "size": [
+    330,
+    110
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 4,
+   "inputs": [
+    {
+     "localized_name": "image1",
+     "name": "image1",
+     "type": "IMAGE",
+     "link": 3
+    },
+    {
+     "localized_name": "image2",
+     "name": "image2",
+     "type": "IMAGE",
+     "link": 4
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "IMAGE",
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      7
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ImageBlend"
+   },
+   "widgets_values": [
+    0.8,
+    "normal"
+   ],
+   "title": "Grain removal strength (blend_factor)"
+  },
+  {
+   "id": 5,
+   "type": "LumaLockDefectMask",
+   "pos": [
+    800,
+    70
+   ],
+   "size": [
+    330,
+    200
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 4,
+   "inputs": [
+    {
+     "localized_name": "image",
+     "name": "image",
+     "type": "IMAGE",
+     "link": 5
+    },
+    {
+     "localized_name": "extra_mask",
+     "name": "extra_mask",
+     "type": "MASK",
+     "link": null,
+     "shape": 7
+    },
+    {
+     "localized_name": "protect_mask",
+     "name": "protect_mask",
+     "type": "MASK",
+     "link": null,
+     "shape": 7
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "mask",
+     "name": "mask",
+     "type": "MASK",
+     "links": [
+      8
+     ]
+    },
+    {
+     "localized_name": "preview",
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [
+      6
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LumaLockDefectMask"
+   },
+   "widgets_values": [
+    0.3,
+    3,
+    "both",
+    1,
+    0.1
+   ],
+   "title": "Detect dust & scratches"
+  },
+  {
+   "id": 6,
+   "type": "PreviewImage",
+   "pos": [
+    800,
+    300
+   ],
+   "size": [
+    330,
+    330
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 4,
+   "inputs": [
+    {
+     "localized_name": "images",
+     "name": "images",
+     "type": "IMAGE",
+     "link": 6
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "images",
+     "name": "images",
+     "type": "IMAGE",
+     "links": null
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "Detected damage shown in red — check this"
+  },
+  {
+   "id": 7,
+   "type": "LumaLockFillDefects",
+   "pos": [
+    1160,
+    70
+   ],
+   "size": [
+    330,
+    90
+   ],
+   "flags": {},
+   "order": 7,
+   "mode": 4,
+   "inputs": [
+    {
+     "localized_name": "image",
+     "name": "image",
+     "type": "IMAGE",
+     "link": 7
+    },
+    {
+     "localized_name": "mask",
+     "name": "mask",
+     "type": "MASK",
+     "link": 8
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "IMAGE",
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      9
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LumaLockFillDefects"
+   },
+   "widgets_values": [
+    "fast fill (no model)"
+   ],
+   "title": "Fill dust & scratches"
+  },
+  {
+   "id": 8,
+   "type": "LumaLockTone",
+   "pos": [
+    1160,
+    200
+   ],
+   "size": [
+    330,
+    200
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 4,
+   "inputs": [
+    {
+     "localized_name": "image",
+     "name": "image",
+     "type": "IMAGE",
+     "link": 9
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "grey",
+     "name": "grey",
+     "type": "IMAGE",
+     "links": [
+      10
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LumaLockTone"
+   },
+   "widgets_values": [
+    0.1,
+    0.1,
+    1.0,
+    1.0,
+    0.15
+   ],
+   "title": "Restore faded contrast"
+  },
+  {
+   "id": 9,
+   "type": "MarkdownNote",
+   "pos": [
+    440,
+    420
+   ],
+   "size": [
+    330,
+    220
+   ],
+   "flags": {},
+   "order": 9,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "title": "How to use restoration",
+   "properties": {},
+   "widgets_values": [
+    "**Restoration (optional)**\n\nEverything in this purple group is *bypassed* (purple) until you switch it on. Click the group title and press **Ctrl+B**, or select single nodes and press Ctrl+B to use only some steps.\n\n- **Grain**: SCUNet denoiser, blended back by *blend_factor* (0.8 = 80% denoised).\n- **Dust & scratches**: check the red preview. Detection is deliberately conservative. Raise *sensitivity* or *max_width_px* if damage is missed; lower them if catchlights, hair highlights, patterned fabric or lettering turn red. For tears or big stains, paint them yourself (MaskEditor on the photo) and connect that mask to *extra_mask*. Choose *big-lama.pt* in the fill node for tears.\n- **Faded contrast**: one global tone curve; cannot move edges or detail."
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 10,
+   "type": "LumaLockToGray",
+   "pos": [
+    1570,
+    70
+   ],
+   "size": [
+    300,
+    60
+   ],
+   "flags": {},
+   "order": 10,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "image",
+     "name": "image",
+     "type": "IMAGE",
+     "link": 10
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "grey",
+     "name": "grey",
+     "type": "IMAGE",
+     "links": [
+      15,
+      36,
+      44
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LumaLockToGray"
+   },
+   "widgets_values": [],
+   "title": "Neutral grey (removes sepia / scan cast)"
+  },
+  {
+   "id": 11,
+   "type": "LoadImage",
+   "pos": [
+    20,
+    790
+   ],
+   "size": [
+    300,
+    330
+   ],
+   "flags": {},
+   "order": 11,
+   "mode": 4,
+   "inputs": [],
+   "outputs": [
+    {
+     "localized_name": "IMAGE",
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      11,
+      19,
+      23,
+      39
+     ]
+    },
+    {
+     "localized_name": "MASK",
+     "name": "MASK",
+     "type": "MASK",
+     "links": null
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadImage"
+   },
+   "widgets_values": [
+    "example.png",
+    "image"
+   ],
+   "title": "OPTIONAL colour-reference photo (bypassed; select + Ctrl+B to use)"
+  },
+  {
+   "id": 12,
+   "type": "LumaLockColorizePrompt",
+   "pos": [
+    350,
+    790
+   ],
+   "size": [
+    380,
+    330
+   ],
+   "flags": {},
+   "order": 12,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "reference",
+     "name": "reference",
+     "type": "IMAGE",
+     "link": 11,
+     "shape": 7
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "prompt",
+     "name": "prompt",
+     "type": "STRING",
+     "links": [
+      24
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LumaLockColorizePrompt"
+   },
+   "widgets_values": [
+    "Qwen-Image-Edit 2509/2511",
+    "modern DSLR, neutral daylight",
+    "",
+    ""
+   ],
+   "title": "Colourise instruction + colour hints"
+  },
+  {
+   "id": 13,
+   "type": "UNETLoader",
+   "pos": [
+    810,
+    790
+   ],
+   "size": [
+    360,
+    90
+   ],
+   "flags": {},
+   "order": 13,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "localized_name": "MODEL",
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      12
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "UNETLoader",
+    "models": [
+     {
+      "name": "qwen_image_edit_2511_fp8mixed.safetensors",
+      "url": "https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_2511_fp8mixed.safetensors",
+      "directory": "diffusion_models"
+     }
+    ]
+   },
+   "widgets_values": [
+    "qwen_image_edit_2511_fp8mixed.safetensors",
+    "default"
+   ]
+  },
+  {
+   "id": 14,
+   "type": "LoraLoaderModelOnly",
+   "pos": [
+    810,
+    910
+   ],
+   "size": [
+    360,
+    90
+   ],
+   "flags": {},
+   "order": 14,
+   "mode": 4,
+   "inputs": [
+    {
+     "localized_name": "model",
+     "name": "model",
+     "type": "MODEL",
+     "link": 12
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "MODEL",
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      13
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoraLoaderModelOnly",
+    "models": [
+     {
+      "name": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+      "url": "https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning/resolve/main/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+      "directory": "loras"
+     }
+    ]
+   },
+   "widgets_values": [
+    "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+    1.0
+   ],
+   "title": "Lightning 4-step LoRA (bypassed; to use: Ctrl+B, then steps 4, cfg 1)"
+  },
+  {
+   "id": 15,
+   "type": "ModelSamplingAuraFlow",
+   "pos": [
+    810,
+    1030
+   ],
+   "size": [
+    360,
+    60
+   ],
+   "flags": {},
+   "order": 15,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "model",
+     "name": "model",
+     "type": "MODEL",
+     "link": 13
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "MODEL",
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      14
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ModelSamplingAuraFlow"
+   },
+   "widgets_values": [
+    3.1,
+    "flow"
+   ]
+  },
+  {
+   "id": 16,
+   "type": "CFGNorm",
+   "pos": [
+    810,
+    1120
+   ],
+   "size": [
+    360,
+    60
+   ],
+   "flags": {},
+   "order": 16,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "model",
+     "name": "model",
+     "type": "MODEL",
+     "link": 14
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "patched_model",
+     "name": "patched_model",
+     "type": "MODEL",
+     "links": [
+      29
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CFGNorm"
+   },
+   "widgets_values": [
+    1.0,
+    false
+   ]
+  },
+  {
+   "id": 17,
+   "type": "CLIPLoader",
+   "pos": [
+    1200,
+    790
+   ],
+   "size": [
+    360,
+    110
+   ],
+   "flags": {},
+   "order": 17,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "localized_name": "CLIP",
+     "name": "CLIP",
+     "type": "CLIP",
+     "links": [
+      16,
+      20
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPLoader",
+    "models": [
+     {
+      "name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+      "url": "https://huggingface.co/Comfy-Org/HunyuanVideo_1.5_repackaged/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors",
+      "directory": "text_encoders"
+     }
+    ]
+   },
+   "widgets_values": [
+    "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+    "qwen_image",
+    "default"
+   ]
+  },
+  {
+   "id": 18,
+   "type": "VAELoader",
+   "pos": [
+    1200,
+    930
+   ],
+   "size": [
+    360,
+    60
+   ],
+   "flags": {},
+   "order": 18,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "localized_name": "VAE",
+     "name": "VAE",
+     "type": "VAE",
+     "links": [
+      17,
+      21,
+      28,
+      34
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAELoader",
+    "models": [
+     {
+      "name": "qwen_image_vae.safetensors",
+      "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors",
+      "directory": "vae"
+     }
+    ]
+   },
+   "widgets_values": [
+    "qwen_image_vae.safetensors"
+   ]
+  },
+  {
+   "id": 19,
+   "type": "LumaLockScaleForEdit",
+   "pos": [
+    1200,
+    1020
+   ],
+   "size": [
+    360,
+    90
+   ],
+   "flags": {},
+   "order": 19,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "image",
+     "name": "image",
+     "type": "IMAGE",
+     "link": 15
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "IMAGE",
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      18,
+      22,
+      27
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LumaLockScaleForEdit"
+   },
+   "widgets_values": [
+    1.0,
+    8
+   ],
+   "title": "Scale to 1 MP (keeps aspect ratio)"
+  },
+  {
+   "id": 20,
+   "type": "TextEncodeQwenImageEditPlus",
+   "pos": [
+    1590,
+    790
+   ],
+   "size": [
+    330,
+    150
+   ],
+   "flags": {},
+   "order": 20,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "clip",
+     "name": "clip",
+     "type": "CLIP",
+     "link": 16
+    },
+    {
+     "localized_name": "vae",
+     "name": "vae",
+     "type": "VAE",
+     "link": 17,
+     "shape": 7
+    },
+    {
+     "localized_name": "image1",
+     "name": "image1",
+     "type": "IMAGE",
+     "link": 18,
+     "shape": 7
+    },
+    {
+     "localized_name": "image2",
+     "name": "image2",
+     "type": "IMAGE",
+     "link": 19,
+     "shape": 7
+    },
+    {
+     "localized_name": "image3",
+     "name": "image3",
+     "type": "IMAGE",
+     "link": null,
+     "shape": 7
+    },
+    {
+     "localized_name": "prompt",
+     "name": "prompt",
+     "type": "STRING",
+     "widget": {
+      "name": "prompt"
+     },
+     "link": 24
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "CONDITIONING",
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      25
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "TextEncodeQwenImageEditPlus"
+   },
+   "widgets_values": [
+    ""
+   ],
+   "title": "Encode (positive)"
+  },
+  {
+   "id": 21,
+   "type": "TextEncodeQwenImageEditPlus",
+   "pos": [
+    1590,
+    970
+   ],
+   "size": [
+    330,
+    150
+   ],
+   "flags": {},
+   "order": 21,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "clip",
+     "name": "clip",
+     "type": "CLIP",
+     "link": 20
+    },
+    {
+     "localized_name": "vae",
+     "name": "vae",
+     "type": "VAE",
+     "link": 21,
+     "shape": 7
+    },
+    {
+     "localized_name": "image1",
+     "name": "image1",
+     "type": "IMAGE",
+     "link": 22,
+     "shape": 7
+    },
+    {
+     "localized_name": "image2",
+     "name": "image2",
+     "type": "IMAGE",
+     "link": 23,
+     "shape": 7
+    },
+    {
+     "localized_name": "image3",
+     "name": "image3",
+     "type": "IMAGE",
+     "link": null,
+     "shape": 7
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "CONDITIONING",
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      26
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "TextEncodeQwenImageEditPlus"
+   },
+   "widgets_values": [
+    ""
+   ],
+   "title": "Encode (negative, empty)"
+  },
+  {
+   "id": 22,
+   "type": "FluxKontextMultiReferenceLatentMethod",
+   "pos": [
+    1950,
+    790
+   ],
+   "size": [
+    300,
+    60
+   ],
+   "flags": {},
+   "order": 22,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "conditioning",
+     "name": "conditioning",
+     "type": "CONDITIONING",
+     "link": 25
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "CONDITIONING",
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      30
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "FluxKontextMultiReferenceLatentMethod"
+   },
+   "widgets_values": [
+    "index_timestep_zero"
+   ]
+  },
+  {
+   "id": 23,
+   "type": "FluxKontextMultiReferenceLatentMethod",
+   "pos": [
+    1950,
+    880
+   ],
+   "size": [
+    300,
+    60
+   ],
+   "flags": {},
+   "order": 23,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "conditioning",
+     "name": "conditioning",
+     "type": "CONDITIONING",
+     "link": 26
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "CONDITIONING",
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      31
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "FluxKontextMultiReferenceLatentMethod"
+   },
+   "widgets_values": [
+    "index_timestep_zero"
+   ]
+  },
+  {
+   "id": 24,
+   "type": "VAEEncode",
+   "pos": [
+    1950,
+    970
+   ],
+   "size": [
+    300,
+    50
+   ],
+   "flags": {},
+   "order": 24,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "pixels",
+     "name": "pixels",
+     "type": "IMAGE",
+     "link": 27
+    },
+    {
+     "localized_name": "vae",
+     "name": "vae",
+     "type": "VAE",
+     "link": 28
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "LATENT",
+     "name": "LATENT",
+     "type": "LATENT",
+     "links": [
+      32
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAEEncode"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 25,
+   "type": "KSampler",
+   "pos": [
+    2280,
+    790
+   ],
+   "size": [
+    300,
+    270
+   ],
+   "flags": {},
+   "order": 25,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "model",
+     "name": "model",
+     "type": "MODEL",
+     "link": 29
+    },
+    {
+     "localized_name": "positive",
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 30
+    },
+    {
+     "localized_name": "negative",
+     "name": "negative",
+     "type": "CONDITIONING",
+     "link": 31
+    },
+    {
+     "localized_name": "latent_image",
+     "name": "latent_image",
+     "type": "LATENT",
+     "link": 32
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "LATENT",
+     "name": "LATENT",
+     "type": "LATENT",
+     "links": [
+      33
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "KSampler"
+   },
+   "widgets_values": [
+    20250930,
+    "fixed",
+    30,
+    4.0,
+    "euler",
+    "simple",
+    1.0
+   ]
+  },
+  {
+   "id": 26,
+   "type": "VAEDecode",
+   "pos": [
+    2280,
+    1090
+   ],
+   "size": [
+    300,
+    50
+   ],
+   "flags": {},
+   "order": 26,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "samples",
+     "name": "samples",
+     "type": "LATENT",
+     "link": 33
+    },
+    {
+     "localized_name": "vae",
+     "name": "vae",
+     "type": "VAE",
+     "link": 34
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "IMAGE",
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      35,
+      37
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAEDecode"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 27,
+   "type": "PreviewImage",
+   "pos": [
+    2610,
+    790
+   ],
+   "size": [
+    300,
+    330
+   ],
+   "flags": {},
+   "order": 27,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "images",
+     "name": "images",
+     "type": "IMAGE",
+     "link": 35
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "images",
+     "name": "images",
+     "type": "IMAGE",
+     "links": null
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "Raw model output (colour source only)"
+  },
+  {
+   "id": 28,
+   "type": "LumaLockMerge",
+   "pos": [
+    20,
+    1270
+   ],
+   "size": [
+    340,
+    230
+   ],
+   "flags": {},
+   "order": 28,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "original",
+     "name": "original",
+     "type": "IMAGE",
+     "link": 36
+    },
+    {
+     "localized_name": "colour_source",
+     "name": "colour_source",
+     "type": "IMAGE",
+     "link": 37
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "image",
+     "name": "image",
+     "type": "IMAGE",
+     "links": [
+      38
+     ]
+    },
+    {
+     "localized_name": "aligned_colour_preview",
+     "name": "aligned_colour_preview",
+     "type": "IMAGE",
+     "links": null
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LumaLockMerge"
+   },
+   "widgets_values": [
+    "affine",
+    0.6,
+    2,
+    0.001,
+    1.0
+   ],
+   "title": "Keep original brightness, take only colour"
+  },
+  {
+   "id": 29,
+   "type": "LumaLockReferenceMood",
+   "pos": [
+    20,
+    1540
+   ],
+   "size": [
+    340,
+    110
+   ],
+   "flags": {},
+   "order": 29,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "image",
+     "name": "image",
+     "type": "IMAGE",
+     "link": 38
+    },
+    {
+     "localized_name": "reference",
+     "name": "reference",
+     "type": "IMAGE",
+     "link": 39,
+     "shape": 7
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "IMAGE",
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      40
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LumaLockReferenceMood"
+   },
+   "widgets_values": [
+    0.4,
+    "palette + saturation"
+   ],
+   "title": "Colour mood from reference photo (does nothing without one)"
+  },
+  {
+   "id": 30,
+   "type": "LumaLockColorFinish",
+   "pos": [
+    20,
+    1690
+   ],
+   "size": [
+    340,
+    160
+   ],
+   "flags": {},
+   "order": 30,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "image",
+     "name": "image",
+     "type": "IMAGE",
+     "link": 40
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "IMAGE",
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      41
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LumaLockColorFinish"
+   },
+   "widgets_values": [
+    0.7,
+    1.0,
+    0.15,
+    70.0
+   ],
+   "title": "White balance & saturation"
+  },
+  {
+   "id": 31,
+   "type": "LumaLockRegionHint",
+   "pos": [
+    400,
+    1270
+   ],
+   "size": [
+    340,
+    220
+   ],
+   "flags": {},
+   "order": 31,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "image",
+     "name": "image",
+     "type": "IMAGE",
+     "link": 41
+    },
+    {
+     "localized_name": "mask",
+     "name": "mask",
+     "type": "MASK",
+     "link": 42
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "IMAGE",
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      43,
+      45
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LumaLockRegionHint"
+   },
+   "widgets_values": [
+    "#9e1b24",
+    1.0,
+    "colour",
+    2.0,
+    true
+   ],
+   "title": "Region colour hint (uses the mask painted on the photo; nothing painted = no change)"
+  },
+  {
+   "id": 32,
+   "type": "SaveImageAdvanced",
+   "pos": [
+    400,
+    1530
+   ],
+   "size": [
+    340,
+    330
+   ],
+   "flags": {},
+   "order": 32,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "images",
+     "name": "images",
+     "type": "IMAGE",
+     "link": 43
+    },
+    {
+     "localized_name": "format",
+     "name": "format",
+     "type": "COMFY_DYNAMICCOMBO_V3",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "images",
+     "name": "images",
+     "type": "IMAGE",
+     "links": null
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SaveImageAdvanced"
+   },
+   "widgets_values": [
+    "LumaLock_colourised",
+    "png",
+    "16-bit",
+    "sRGB"
+   ],
+   "title": "Save full-resolution result (16-bit PNG)"
+  },
+  {
+   "id": 33,
+   "type": "ImageCompare",
+   "pos": [
+    780,
+    1270
+   ],
+   "size": [
+    620,
+    600
+   ],
+   "flags": {},
+   "order": 33,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "image_a",
+     "name": "image_a",
+     "type": "IMAGE",
+     "link": 44,
+     "shape": 7
+    },
+    {
+     "localized_name": "image_b",
+     "name": "image_b",
+     "type": "IMAGE",
+     "link": 45,
+     "shape": 7
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "ImageCompare"
+   },
+   "widgets_values": [],
+   "title": "Before / after (drag the slider)"
+  },
+  {
+   "id": 34,
+   "type": "MarkdownNote",
+   "pos": [
+    1460,
+    1270
+   ],
+   "size": [
+    600,
+    610
+   ],
+   "flags": {},
+   "order": 34,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "title": "Read me",
+   "properties": {},
+   "widgets_values": [
+    "## LumaLock colourisation · Qwen-Image-Edit-2511\n\n**How it works.** The model only proposes colour. Step 6 throws away the model's brightness and detail, keeps its colour (CIE a\\*b\\*), lines it up with your photo to fix any small shift or zoom, snaps colour edges to your photo's edges, and puts it under your photo's **exact** original lightness at full resolution. Faces, text and texture therefore come from your original pixels.\n\n**Steps**\n1. Load your photo in *Black-and-white photo*.\n2. (Optional) switch on group 2 for grain, dust/scratches and faded contrast.\n3. (Optional) type colour hints, e.g. `the woman's dress is deep red, the car is pale blue`.\n4. (Optional) paint a mask on the photo (right-click > *Open in MaskEditor*) and pick a colour in *Region colour hint*.\n5. (Optional) load a colour-reference photo and press Ctrl+B on it to switch it on.\n6. Click **Run**. Try another *seed* in the KSampler for a different colour interpretation.\n\n**Tuning**\n- Too strong/weak colour: *saturation* / *vibrance* in *White balance & saturation*; *max_chroma* stops neon patches.\n- Yellow/sepia cast left: raise *white_balance* (1.0 = full neutralisation). Lower it for sunsets and warm interiors.\n- Colour bleeding over edges: raise *edge_snap* to 1.0 in *Keep original brightness…*.\n\nUse this version if your ComfyUI does not have the *Text Encode Qwen Image 2.1* node yet.\n\n**Speed**: 30 steps at cfg 4 by default. For about 8x faster runs, select the Lightning LoRA node, press Ctrl+B, then set steps 4 and cfg 1 in the KSampler.\n"
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  }
+ ],
+ "links": [
+  [
+   1,
+   1,
+   0,
+   3,
+   1,
+   "IMAGE"
+  ],
+  [
+   2,
+   2,
+   0,
+   3,
+   0,
+   "UPSCALE_MODEL"
+  ],
+  [
+   3,
+   1,
+   0,
+   4,
+   0,
+   "IMAGE"
+  ],
+  [
+   4,
+   3,
+   0,
+   4,
+   1,
+   "IMAGE"
+  ],
+  [
+   5,
+   1,
+   0,
+   5,
+   0,
+   "IMAGE"
+  ],
+  [
+   6,
+   5,
+   1,
+   6,
+   0,
+   "IMAGE"
+  ],
+  [
+   7,
+   4,
+   0,
+   7,
+   0,
+   "IMAGE"
+  ],
+  [
+   8,
+   5,
+   0,
+   7,
+   1,
+   "MASK"
+  ],
+  [
+   9,
+   7,
+   0,
+   8,
+   0,
+   "IMAGE"
+  ],
+  [
+   10,
+   8,
+   0,
+   10,
+   0,
+   "IMAGE"
+  ],
+  [
+   11,
+   11,
+   0,
+   12,
+   0,
+   "IMAGE"
+  ],
+  [
+   12,
+   13,
+   0,
+   14,
+   0,
+   "MODEL"
+  ],
+  [
+   13,
+   14,
+   0,
+   15,
+   0,
+   "MODEL"
+  ],
+  [
+   14,
+   15,
+   0,
+   16,
+   0,
+   "MODEL"
+  ],
+  [
+   15,
+   10,
+   0,
+   19,
+   0,
+   "IMAGE"
+  ],
+  [
+   16,
+   17,
+   0,
+   20,
+   0,
+   "CLIP"
+  ],
+  [
+   17,
+   18,
+   0,
+   20,
+   1,
+   "VAE"
+  ],
+  [
+   18,
+   19,
+   0,
+   20,
+   2,
+   "IMAGE"
+  ],
+  [
+   19,
+   11,
+   0,
+   20,
+   3,
+   "IMAGE"
+  ],
+  [
+   20,
+   17,
+   0,
+   21,
+   0,
+   "CLIP"
+  ],
+  [
+   21,
+   18,
+   0,
+   21,
+   1,
+   "VAE"
+  ],
+  [
+   22,
+   19,
+   0,
+   21,
+   2,
+   "IMAGE"
+  ],
+  [
+   23,
+   11,
+   0,
+   21,
+   3,
+   "IMAGE"
+  ],
+  [
+   24,
+   12,
+   0,
+   20,
+   5,
+   "STRING"
+  ],
+  [
+   25,
+   20,
+   0,
+   22,
+   0,
+   "CONDITIONING"
+  ],
+  [
+   26,
+   21,
+   0,
+   23,
+   0,
+   "CONDITIONING"
+  ],
+  [
+   27,
+   19,
+   0,
+   24,
+   0,
+   "IMAGE"
+  ],
+  [
+   28,
+   18,
+   0,
+   24,
+   1,
+   "VAE"
+  ],
+  [
+   29,
+   16,
+   0,
+   25,
+   0,
+   "MODEL"
+  ],
+  [
+   30,
+   22,
+   0,
+   25,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   31,
+   23,
+   0,
+   25,
+   2,
+   "CONDITIONING"
+  ],
+  [
+   32,
+   24,
+   0,
+   25,
+   3,
+   "LATENT"
+  ],
+  [
+   33,
+   25,
+   0,
+   26,
+   0,
+   "LATENT"
+  ],
+  [
+   34,
+   18,
+   0,
+   26,
+   1,
+   "VAE"
+  ],
+  [
+   35,
+   26,
+   0,
+   27,
+   0,
+   "IMAGE"
+  ],
+  [
+   36,
+   10,
+   0,
+   28,
+   0,
+   "IMAGE"
+  ],
+  [
+   37,
+   26,
+   0,
+   28,
+   1,
+   "IMAGE"
+  ],
+  [
+   38,
+   28,
+   0,
+   29,
+   0,
+   "IMAGE"
+  ],
+  [
+   39,
+   11,
+   0,
+   29,
+   1,
+   "IMAGE"
+  ],
+  [
+   40,
+   29,
+   0,
+   30,
+   0,
+   "IMAGE"
+  ],
+  [
+   41,
+   30,
+   0,
+   31,
+   0,
+   "IMAGE"
+  ],
+  [
+   42,
+   1,
+   1,
+   31,
+   1,
+   "MASK"
+  ],
+  [
+   43,
+   31,
+   0,
+   32,
+   0,
+   "IMAGE"
+  ],
+  [
+   44,
+   10,
+   0,
+   33,
+   0,
+   "IMAGE"
+  ],
+  [
+   45,
+   31,
+   0,
+   33,
+   1,
+   "IMAGE"
+  ]
+ ],
+ "groups": [
+  {
+   "id": 1,
+   "title": "1 · Photo",
+   "bounding": [
+    0,
+    0,
+    380,
+    520
+   ],
+   "color": "#3f789e",
+   "font_size": 24,
+   "flags": {}
+  },
+  {
+   "id": 2,
+   "title": "2 · Restoration of scanned prints (OPTIONAL — off by default: click the group title, then Ctrl+B to switch on)",
+   "bounding": [
+    420,
+    0,
+    1090,
+    660
+   ],
+   "color": "#a1309b",
+   "font_size": 24,
+   "flags": {}
+  },
+  {
+   "id": 3,
+   "title": "3 · Prepare",
+   "bounding": [
+    1550,
+    0,
+    340,
+    170
+   ],
+   "color": "#8A8",
+   "font_size": 24,
+   "flags": {}
+  },
+  {
+   "id": 4,
+   "title": "4 · Colour hints & reference (optional)",
+   "bounding": [
+    0,
+    720,
+    750,
+    430
+   ],
+   "color": "#b58b2a",
+   "font_size": 24,
+   "flags": {}
+  },
+  {
+   "id": 5,
+   "title": "5 · Colourise with Qwen-Image-Edit-2511 (fallback engine; brightness is replaced by the original's in step 6)",
+   "bounding": [
+    790,
+    720,
+    2140,
+    460
+   ],
+   "color": "#88A",
+   "font_size": 24,
+   "flags": {}
+  },
+  {
+   "id": 6,
+   "title": "6 · Lock luminance, finish, save",
+   "bounding": [
+    0,
+    1200,
+    1420,
+    700
+   ],
+   "color": "#b06634",
+   "font_size": 24,
+   "flags": {}
+  }
+ ],
+ "definitions": {
+  "subgraphs": []
+ },
+ "config": {},
+ "extra": {
+  "ds": {
+   "scale": 0.55,
+   "offset": [
+    80,
+    120
+   ]
+  }
+ },
+ "version": 0.4
+}

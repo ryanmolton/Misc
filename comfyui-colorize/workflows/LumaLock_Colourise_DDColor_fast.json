@@ -1,0 +1,1078 @@
+{
+ "id": "984f9039-b34c-56cb-8a9d-e2727e037506",
+ "revision": 0,
+ "last_node_id": 19,
+ "last_link_id": 21,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "LoadImage",
+   "pos": [
+    20,
+    70
+   ],
+   "size": [
+    340,
+    420
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "localized_name": "IMAGE",
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      1,
+      3,
+      5
+     ]
+    },
+    {
+     "localized_name": "MASK",
+     "name": "MASK",
+     "type": "MASK",
+     "links": [
+      18
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadImage"
+   },
+   "widgets_values": [
+    "example.png",
+    "image"
+   ],
+   "title": "Black-and-white photo (right-click > Open in MaskEditor to paint a region hint)"
+  },
+  {
+   "id": 2,
+   "type": "UpscaleModelLoader",
+   "pos": [
+    440,
+    70
+   ],
+   "size": [
+    330,
+    60
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 4,
+   "inputs": [],
+   "outputs": [
+    {
+     "localized_name": "UPSCALE_MODEL",
+     "name": "UPSCALE_MODEL",
+     "type": "UPSCALE_MODEL",
+     "links": [
+      2
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "UpscaleModelLoader",
+    "models": [
+     {
+      "name": "scunet_color_real_psnr.pth",
+      "url": "https://github.com/cszn/KAIR/releases/download/v1.0/scunet_color_real_psnr.pth",
+      "directory": "upscale_models"
+     }
+    ]
+   },
+   "widgets_values": [
+    "scunet_color_real_psnr.pth"
+   ],
+   "title": "Grain remover model (SCUNet)"
+  },
+  {
+   "id": 3,
+   "type": "ImageUpscaleWithModel",
+   "pos": [
+    440,
+    180
+   ],
+   "size": [
+    330,
+    50
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 4,
+   "inputs": [
+    {
+     "localized_name": "upscale_model",
+     "name": "upscale_model",
+     "type": "UPSCALE_MODEL",
+     "link": 2
+    },
+    {
+     "localized_name": "image",
+     "name": "image",
+     "type": "IMAGE",
+     "link": 1
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "IMAGE",
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      4
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ImageUpscaleWithModel"
+   },
+   "widgets_values": [],
+   "title": "Remove grain / noise"
+  },
+  {
+   "id": 4,
+   "type": "ImageBlend",
+   "pos": [
+    440,
+    280
+   ],
+   "size": [
+    330,
+    110
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 4,
+   "inputs": [
+    {
+     "localized_name": "image1",
+     "name": "image1",
+     "type": "IMAGE",
+     "link": 3
+    },
+    {
+     "localized_name": "image2",
+     "name": "image2",
+     "type": "IMAGE",
+     "link": 4
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "IMAGE",
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      7
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ImageBlend"
+   },
+   "widgets_values": [
+    0.8,
+    "normal"
+   ],
+   "title": "Grain removal strength (blend_factor)"
+  },
+  {
+   "id": 5,
+   "type": "LumaLockDefectMask",
+   "pos": [
+    800,
+    70
+   ],
+   "size": [
+    330,
+    200
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 4,
+   "inputs": [
+    {
+     "localized_name": "image",
+     "name": "image",
+     "type": "IMAGE",
+     "link": 5
+    },
+    {
+     "localized_name": "extra_mask",
+     "name": "extra_mask",
+     "type": "MASK",
+     "link": null,
+     "shape": 7
+    },
+    {
+     "localized_name": "protect_mask",
+     "name": "protect_mask",
+     "type": "MASK",
+     "link": null,
+     "shape": 7
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "mask",
+     "name": "mask",
+     "type": "MASK",
+     "links": [
+      8
+     ]
+    },
+    {
+     "localized_name": "preview",
+     "name": "preview",
+     "type": "IMAGE",
+     "links": [
+      6
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LumaLockDefectMask"
+   },
+   "widgets_values": [
+    0.3,
+    3,
+    "both",
+    1,
+    0.1
+   ],
+   "title": "Detect dust & scratches"
+  },
+  {
+   "id": 6,
+   "type": "PreviewImage",
+   "pos": [
+    800,
+    300
+   ],
+   "size": [
+    330,
+    330
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 4,
+   "inputs": [
+    {
+     "localized_name": "images",
+     "name": "images",
+     "type": "IMAGE",
+     "link": 6
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "images",
+     "name": "images",
+     "type": "IMAGE",
+     "links": null
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PreviewImage"
+   },
+   "widgets_values": [],
+   "title": "Detected damage shown in red — check this"
+  },
+  {
+   "id": 7,
+   "type": "LumaLockFillDefects",
+   "pos": [
+    1160,
+    70
+   ],
+   "size": [
+    330,
+    90
+   ],
+   "flags": {},
+   "order": 7,
+   "mode": 4,
+   "inputs": [
+    {
+     "localized_name": "image",
+     "name": "image",
+     "type": "IMAGE",
+     "link": 7
+    },
+    {
+     "localized_name": "mask",
+     "name": "mask",
+     "type": "MASK",
+     "link": 8
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "IMAGE",
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      9
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LumaLockFillDefects"
+   },
+   "widgets_values": [
+    "fast fill (no model)"
+   ],
+   "title": "Fill dust & scratches"
+  },
+  {
+   "id": 8,
+   "type": "LumaLockTone",
+   "pos": [
+    1160,
+    200
+   ],
+   "size": [
+    330,
+    200
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 4,
+   "inputs": [
+    {
+     "localized_name": "image",
+     "name": "image",
+     "type": "IMAGE",
+     "link": 9
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "grey",
+     "name": "grey",
+     "type": "IMAGE",
+     "links": [
+      10
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LumaLockTone"
+   },
+   "widgets_values": [
+    0.1,
+    0.1,
+    1.0,
+    1.0,
+    0.15
+   ],
+   "title": "Restore faded contrast"
+  },
+  {
+   "id": 9,
+   "type": "MarkdownNote",
+   "pos": [
+    440,
+    420
+   ],
+   "size": [
+    330,
+    220
+   ],
+   "flags": {},
+   "order": 9,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "title": "How to use restoration",
+   "properties": {},
+   "widgets_values": [
+    "**Restoration (optional)**\n\nEverything in this purple group is *bypassed* (purple) until you switch it on. Click the group title and press **Ctrl+B**, or select single nodes and press Ctrl+B to use only some steps.\n\n- **Grain**: SCUNet denoiser, blended back by *blend_factor* (0.8 = 80% denoised).\n- **Dust & scratches**: check the red preview. Detection is deliberately conservative. Raise *sensitivity* or *max_width_px* if damage is missed; lower them if catchlights, hair highlights, patterned fabric or lettering turn red. For tears or big stains, paint them yourself (MaskEditor on the photo) and connect that mask to *extra_mask*. Choose *big-lama.pt* in the fill node for tears.\n- **Faded contrast**: one global tone curve; cannot move edges or detail."
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  },
+  {
+   "id": 10,
+   "type": "LumaLockToGray",
+   "pos": [
+    1570,
+    70
+   ],
+   "size": [
+    300,
+    60
+   ],
+   "flags": {},
+   "order": 10,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "image",
+     "name": "image",
+     "type": "IMAGE",
+     "link": 10
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "grey",
+     "name": "grey",
+     "type": "IMAGE",
+     "links": [
+      11,
+      13,
+      20
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LumaLockToGray"
+   },
+   "widgets_values": [],
+   "title": "Neutral grey (removes sepia / scan cast)"
+  },
+  {
+   "id": 11,
+   "type": "DDColor_Colorize",
+   "pos": [
+    20,
+    790
+   ],
+   "size": [
+    340,
+    110
+   ],
+   "flags": {},
+   "order": 11,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "image",
+     "name": "image",
+     "type": "IMAGE",
+     "link": 11
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "colorized_image",
+     "name": "colorized_image",
+     "type": "IMAGE",
+     "links": [
+      12
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "DDColor_Colorize"
+   },
+   "widgets_values": [
+    512,
+    "ddcolor_modelscope.pth"
+   ],
+   "title": "DDColor (automatic, no prompt)"
+  },
+  {
+   "id": 12,
+   "type": "LumaLockScaleForEdit",
+   "pos": [
+    20,
+    940
+   ],
+   "size": [
+    340,
+    90
+   ],
+   "flags": {},
+   "order": 12,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "image",
+     "name": "image",
+     "type": "IMAGE",
+     "link": 12
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "IMAGE",
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      14
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LumaLockScaleForEdit"
+   },
+   "widgets_values": [
+    0.25,
+    1
+   ],
+   "title": "Back to model resolution (removes DDColor's blocky colour upscale)"
+  },
+  {
+   "id": 13,
+   "type": "LumaLockMerge",
+   "pos": [
+    440,
+    790
+   ],
+   "size": [
+    340,
+    230
+   ],
+   "flags": {},
+   "order": 13,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "original",
+     "name": "original",
+     "type": "IMAGE",
+     "link": 13
+    },
+    {
+     "localized_name": "colour_source",
+     "name": "colour_source",
+     "type": "IMAGE",
+     "link": 14
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "image",
+     "name": "image",
+     "type": "IMAGE",
+     "links": [
+      15
+     ]
+    },
+    {
+     "localized_name": "aligned_colour_preview",
+     "name": "aligned_colour_preview",
+     "type": "IMAGE",
+     "links": null
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LumaLockMerge"
+   },
+   "widgets_values": [
+    "off",
+    0.6,
+    2,
+    0.001,
+    1.0
+   ],
+   "title": "Keep original brightness, take only colour"
+  },
+  {
+   "id": 14,
+   "type": "LumaLockReferenceMood",
+   "pos": [
+    440,
+    1060
+   ],
+   "size": [
+    340,
+    110
+   ],
+   "flags": {},
+   "order": 14,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "image",
+     "name": "image",
+     "type": "IMAGE",
+     "link": 15
+    },
+    {
+     "localized_name": "reference",
+     "name": "reference",
+     "type": "IMAGE",
+     "link": null,
+     "shape": 7
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "IMAGE",
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      16
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LumaLockReferenceMood"
+   },
+   "widgets_values": [
+    0.4,
+    "palette + saturation"
+   ],
+   "title": "Colour mood from reference photo (does nothing without one)"
+  },
+  {
+   "id": 15,
+   "type": "LumaLockColorFinish",
+   "pos": [
+    440,
+    1210
+   ],
+   "size": [
+    340,
+    160
+   ],
+   "flags": {},
+   "order": 15,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "image",
+     "name": "image",
+     "type": "IMAGE",
+     "link": 16
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "IMAGE",
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      17
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LumaLockColorFinish"
+   },
+   "widgets_values": [
+    0.7,
+    1.0,
+    0.15,
+    70.0
+   ],
+   "title": "White balance & saturation"
+  },
+  {
+   "id": 16,
+   "type": "LumaLockRegionHint",
+   "pos": [
+    820,
+    790
+   ],
+   "size": [
+    340,
+    220
+   ],
+   "flags": {},
+   "order": 16,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "image",
+     "name": "image",
+     "type": "IMAGE",
+     "link": 17
+    },
+    {
+     "localized_name": "mask",
+     "name": "mask",
+     "type": "MASK",
+     "link": 18
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "IMAGE",
+     "name": "IMAGE",
+     "type": "IMAGE",
+     "links": [
+      19,
+      21
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LumaLockRegionHint"
+   },
+   "widgets_values": [
+    "#9e1b24",
+    1.0,
+    "colour",
+    2.0,
+    true
+   ],
+   "title": "Region colour hint (uses the mask painted on the photo; nothing painted = no change)"
+  },
+  {
+   "id": 17,
+   "type": "SaveImageAdvanced",
+   "pos": [
+    820,
+    1050
+   ],
+   "size": [
+    340,
+    330
+   ],
+   "flags": {},
+   "order": 17,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "images",
+     "name": "images",
+     "type": "IMAGE",
+     "link": 19
+    },
+    {
+     "localized_name": "format",
+     "name": "format",
+     "type": "COMFY_DYNAMICCOMBO_V3",
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "localized_name": "images",
+     "name": "images",
+     "type": "IMAGE",
+     "links": null
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SaveImageAdvanced"
+   },
+   "widgets_values": [
+    "LumaLock_colourised",
+    "png",
+    "16-bit",
+    "sRGB"
+   ],
+   "title": "Save full-resolution result (16-bit PNG)"
+  },
+  {
+   "id": 18,
+   "type": "ImageCompare",
+   "pos": [
+    1200,
+    790
+   ],
+   "size": [
+    620,
+    600
+   ],
+   "flags": {},
+   "order": 18,
+   "mode": 0,
+   "inputs": [
+    {
+     "localized_name": "image_a",
+     "name": "image_a",
+     "type": "IMAGE",
+     "link": 20,
+     "shape": 7
+    },
+    {
+     "localized_name": "image_b",
+     "name": "image_b",
+     "type": "IMAGE",
+     "link": 21,
+     "shape": 7
+    }
+   ],
+   "outputs": [],
+   "properties": {
+    "Node name for S&R": "ImageCompare"
+   },
+   "widgets_values": [],
+   "title": "Before / after (drag the slider)"
+  },
+  {
+   "id": 19,
+   "type": "MarkdownNote",
+   "pos": [
+    1880,
+    790
+   ],
+   "size": [
+    520,
+    520
+   ],
+   "flags": {},
+   "order": 19,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "title": "Read me",
+   "properties": {},
+   "widgets_values": [
+    "## LumaLock colourisation · DDColor (fast)\n\n**How it works.** The model only proposes colour. Step 6 throws away the model's brightness and detail, keeps its colour (CIE a\\*b\\*), lines it up with your photo to fix any small shift or zoom, snaps colour edges to your photo's edges, and puts it under your photo's **exact** original lightness at full resolution. Faces, text and texture therefore come from your original pixels.\n\n**Steps**\n1. Load your photo in *Black-and-white photo*.\n2. (Optional) switch on group 2 for grain, dust/scratches and faded contrast.\n4. (Optional) paint a mask on the photo (right-click > *Open in MaskEditor*) and pick a colour in *Region colour hint*.\n6. Click **Run**.\n\n**Tuning**\n- Too strong/weak colour: *saturation* / *vibrance* in *White balance & saturation*; *max_chroma* stops neon patches.\n- Yellow/sepia cast left: raise *white_balance* (1.0 = full neutralisation). Lower it for sunsets and warm interiors.\n- Colour bleeding over edges: raise *edge_snap* to 1.0 in *Keep original brightness…*.\n\nDDColor is a fast, automatic colouriser (seconds per photo, no prompt). Its colours are less accurate than Qwen's and it tends to be muted, but it is a handy quick draft. Try *ddcolor_artistic.pth* for more vivid colour. Needs the **ComfyUI-DDColor** node pack (by kijai) from the Manager.\n"
+   ],
+   "color": "#432",
+   "bgcolor": "#653"
+  }
+ ],
+ "links": [
+  [
+   1,
+   1,
+   0,
+   3,
+   1,
+   "IMAGE"
+  ],
+  [
+   2,
+   2,
+   0,
+   3,
+   0,
+   "UPSCALE_MODEL"
+  ],
+  [
+   3,
+   1,
+   0,
+   4,
+   0,
+   "IMAGE"
+  ],
+  [
+   4,
+   3,
+   0,
+   4,
+   1,
+   "IMAGE"
+  ],
+  [
+   5,
+   1,
+   0,
+   5,
+   0,
+   "IMAGE"
+  ],
+  [
+   6,
+   5,
+   1,
+   6,
+   0,
+   "IMAGE"
+  ],
+  [
+   7,
+   4,
+   0,
+   7,
+   0,
+   "IMAGE"
+  ],
+  [
+   8,
+   5,
+   0,
+   7,
+   1,
+   "MASK"
+  ],
+  [
+   9,
+   7,
+   0,
+   8,
+   0,
+   "IMAGE"
+  ],
+  [
+   10,
+   8,
+   0,
+   10,
+   0,
+   "IMAGE"
+  ],
+  [
+   11,
+   10,
+   0,
+   11,
+   0,
+   "IMAGE"
+  ],
+  [
+   12,
+   11,
+   0,
+   12,
+   0,
+   "IMAGE"
+  ],
+  [
+   13,
+   10,
+   0,
+   13,
+   0,
+   "IMAGE"
+  ],
+  [
+   14,
+   12,
+   0,
+   13,
+   1,
+   "IMAGE"
+  ],
+  [
+   15,
+   13,
+   0,
+   14,
+   0,
+   "IMAGE"
+  ],
+  [
+   16,
+   14,
+   0,
+   15,
+   0,
+   "IMAGE"
+  ],
+  [
+   17,
+   15,
+   0,
+   16,
+   0,
+   "IMAGE"
+  ],
+  [
+   18,
+   1,
+   1,
+   16,
+   1,
+   "MASK"
+  ],
+  [
+   19,
+   16,
+   0,
+   17,
+   0,
+   "IMAGE"
+  ],
+  [
+   20,
+   10,
+   0,
+   18,
+   0,
+   "IMAGE"
+  ],
+  [
+   21,
+   16,
+   0,
+   18,
+   1,
+   "IMAGE"
+  ]
+ ],
+ "groups": [
+  {
+   "id": 1,
+   "title": "1 · Photo",
+   "bounding": [
+    0,
+    0,
+    380,
+    520
+   ],
+   "color": "#3f789e",
+   "font_size": 24,
+   "flags": {}
+  },
+  {
+   "id": 2,
+   "title": "2 · Restoration of scanned prints (OPTIONAL — off by default: click the group title, then Ctrl+B to switch on)",
+   "bounding": [
+    420,
+    0,
+    1090,
+    660
+   ],
+   "color": "#a1309b",
+   "font_size": 24,
+   "flags": {}
+  },
+  {
+   "id": 3,
+   "title": "3 · Prepare",
+   "bounding": [
+    1550,
+    0,
+    340,
+    170
+   ],
+   "color": "#8A8",
+   "font_size": 24,
+   "flags": {}
+  },
+  {
+   "id": 4,
+   "title": "5 · Colourise with DDColor (fast draft engine)",
+   "bounding": [
+    0,
+    720,
+    380,
+    350
+   ],
+   "color": "#88A",
+   "font_size": 24,
+   "flags": {}
+  },
+  {
+   "id": 5,
+   "title": "6 · Lock luminance, finish, save",
+   "bounding": [
+    420,
+    720,
+    1420,
+    700
+   ],
+   "color": "#b06634",
+   "font_size": 24,
+   "flags": {}
+  }
+ ],
+ "definitions": {
+  "subgraphs": []
+ },
+ "config": {},
+ "extra": {
+  "ds": {
+   "scale": 0.55,
+   "offset": [
+    80,
+    120
+   ]
+  }
+ },
+ "version": 0.4
+}
