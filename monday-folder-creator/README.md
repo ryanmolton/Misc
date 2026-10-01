@@ -29,9 +29,10 @@ whose name starts with that row's Item ID, so it's still found if someone
 renamed the end of it. Otherwise click **Create**.
 
 The list follows the page as you scroll, filter or switch groups. Monday only
-draws the rows on screen, so scroll to see more. The **Project** and
-**Item ID** columns need to be visible on the board (not hidden or scrolled
-off to the side).
+draws the rows on screen, so scroll down to see more. The Item ID and project
+name come from each row's own page data, so the Item ID column doesn't need
+to be visible. Other columns used in the folder name need to be on screen
+(not scrolled off to the side).
 
 ## Notes
 

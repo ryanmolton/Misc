@@ -135,7 +135,89 @@
   const rowSignature = (values, keyColumn) =>
     JSON.stringify(Object.entries(values).filter(([c]) => c !== keyColumn).sort());
 
-  function scrape({ keyColumn, columns }) {
+  // --- Reading Monday's own row markup (preferred) ---
+  // Each item row is <div id="row-pulse-currentBoard-<board>-<item>-…">, and
+  // each cell has a screen-reader label "<Column> <Item name> <Value>". This
+  // works even for columns scrolled off screen, as long as the row is drawn.
+  const isItemIdColumn = (c) => /^item\s*id$/i.test(norm(c));
+  const NAME_ALIASES = ['name', 'item', 'item name'];
+
+  function nameColumnTitle() {
+    const el = document.getElementById('column-title-name');
+    return el ? visibleText(el, hiddenChecker()) || norm(el.textContent) : null;
+  }
+
+  function rowElements() {
+    return [...document.querySelectorAll('[id^="row-pulse-"]')].filter((row) => {
+      if (/-placeholder$/.test(row.id) && !/-notplaceholder$/.test(row.id)) return false;
+      return !boardId || row.id.includes(`-${boardId}-`); // skip subitem rows
+    });
+  }
+
+  const itemIdOf = (row) => (row.id.match(/\d{6,}/g) || []).pop() || null;
+
+  function itemNameOf(row, id) {
+    const el = row.querySelector('[role="heading"]') || document.getElementById(`name-cell-${id}`);
+    return el ? norm(el.textContent) : '';
+  }
+
+  function visibleText(root, isHidden) {
+    const parts = [];
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      const text = norm(n.nodeValue);
+      if (text && n.parentElement && !isHidden(n.parentElement)) parts.push(text);
+    }
+    return norm(parts.join(' '));
+  }
+
+  function cellValue(row, column, name, isHidden) {
+    const prefix = `${lower(column)} ${lower(name)}`;
+    for (const label of row.querySelectorAll('[class*="srOnly"]')) {
+      const text = norm(label.textContent);
+      const l = text.toLowerCase();
+      if (l !== prefix && !l.startsWith(prefix + ' ')) continue;
+      // Prefer what's shown in the cell (the label can carry extras like a colour name).
+      const shown = label.parentElement ? visibleText(label.parentElement, isHidden) : '';
+      return shown || text.slice(prefix.length).trim();
+    }
+    return null;
+  }
+
+  function scrapeStructured({ columns }) {
+    const rowEls = rowElements();
+    if (!rowEls.length) return null;
+    const nameTitle = nameColumnTitle();
+    const isHidden = hiddenChecker();
+    const rows = [];
+    const found = new Set();
+    const seen = new Set();
+    for (const row of rowEls) {
+      const id = itemIdOf(row);
+      const name = id && itemNameOf(row, id);
+      if (!id || !name || seen.has(id)) continue;
+      seen.add(id);
+      const values = {};
+      for (const c of columns) {
+        let v = null;
+        if (isItemIdColumn(c)) v = id;
+        else if ((nameTitle && lower(c) === lower(nameTitle)) || NAME_ALIASES.includes(lower(c))) v = name;
+        else v = cellValue(row, c, name, isHidden);
+        if (v != null) found.add(c);
+        values[c] = v || '';
+      }
+      rows.push(values);
+    }
+    return { rows, missingColumns: columns.filter((c) => !found.has(c)), method: 'rows' };
+  }
+
+  // --- Reading by position on screen (fallback) ---
+  function scrape(msg) {
+    const structured = scrapeStructured(msg);
+    return structured && structured.rows.length ? structured : scrapeByPosition(msg);
+  }
+
+  function scrapeByPosition({ keyColumn, columns }) {
     const headers = {};
     for (const c of columns) headers[c] = headerCells(c);
     // Rows are found from the key column, or any other visible column if it's off screen.
@@ -190,7 +272,7 @@
     saveMemory(keyColumn, memory);
 
     const missingColumns = columns.filter((c) => !headers[c].length && !(rows.length && rows.every((r) => r[c])));
-    return { rows, missingColumns };
+    return { rows, missingColumns, method: 'position' };
   }
 
   // Everything the extension sees around the first rows, for troubleshooting.
@@ -234,7 +316,14 @@
     const links = firstRowEl
       ? [...(firstRowEl.closest('[role="row"]') || firstRowEl.parentElement).querySelectorAll('a[href]')].map((a) => a.getAttribute('href').slice(0, 120)).slice(0, 10)
       : [];
-    return { page: location.pathname, headers, near, ancestors, links, result: scrape(msg) };
+    const firstRow = rowElements()[0];
+    const rowInfo = {
+      rowCount: rowElements().length,
+      nameTitle: nameColumnTitle(),
+      firstRowId: firstRow ? firstRow.id : null,
+      firstRowLabels: firstRow ? [...firstRow.querySelectorAll('[class*="srOnly"]')].map((l) => norm(l.textContent).slice(0, 100)) : [],
+    };
+    return { page: location.pathname, rowInfo, headers, near: near.slice(0, 60), ancestors, links, result: scrape(msg) };
   }
 
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
