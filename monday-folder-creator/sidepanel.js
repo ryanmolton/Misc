@@ -24,6 +24,7 @@ async function init() {
   };
   $('#settings').onclick = () => chrome.runtime.openOptionsPage();
   $('#filter').oninput = render;
+  $('#debug').onclick = copyDebug;
   chrome.tabs.onActivated.addListener(scheduleRefresh);
   chrome.tabs.onUpdated.addListener((id, info) => {
     if (id === tabId && (info.status === 'complete' || info.url)) scheduleRefresh();
@@ -108,8 +109,21 @@ async function doRefresh() {
   render();
 }
 
-async function scrape(id, opts) {
-  const msg = { type: 'scrape', ...opts };
+async function copyDebug() {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const opts = { keyColumn: MFC.keyColumn(settings), columns: MFC.columnsNeeded(settings) };
+    const info = await scrape(tab.id, opts, 'debug');
+    const report = { version: chrome.runtime.getManifest().version, settings, ...info };
+    await navigator.clipboard.writeText(JSON.stringify(report, null, 1));
+    toast('Debug info copied. Paste it to whoever is helping you.');
+  } catch (e) {
+    toast(`Couldn't collect debug info: ${e.message}`);
+  }
+}
+
+async function scrape(id, opts, type = 'scrape') {
+  const msg = { type, ...opts };
   try {
     return await chrome.tabs.sendMessage(id, msg);
   } catch {

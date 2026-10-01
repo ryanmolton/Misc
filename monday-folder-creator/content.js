@@ -9,8 +9,31 @@
   const lower = (s) => norm(s).toLowerCase();
   const ROW_TOLERANCE = 14; // px between a row's key cell and its other cells
 
+  // Screen-reader-only text (e.g. Monday's "Proof link <item> <url>" labels)
+  // is in the page but not on screen, so it mustn't be read as a cell.
+  function hiddenChecker() {
+    const cache = new Map();
+    const hidden = (el, depth = 0) => {
+      if (!el || el === document.body || depth > 6) return false;
+      if (cache.has(el)) return cache.get(el);
+      const st = getComputedStyle(el);
+      const r = el.getBoundingClientRect();
+      const result =
+        st.visibility === 'hidden' ||
+        st.opacity === '0' ||
+        (st.clip !== 'auto' && st.position === 'absolute') ||
+        /inset\((50|100)%/.test(st.clipPath) ||
+        (st.overflow !== 'visible' && (r.width <= 2 || r.height <= 2)) ||
+        hidden(el.parentElement, depth + 1);
+      cache.set(el, result);
+      return result;
+    };
+    return hidden;
+  }
+
   function collectText() {
     const items = [];
+    const isHidden = hiddenChecker();
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     const range = document.createRange();
     for (let n = walker.nextNode(); n; n = walker.nextNode()) {
@@ -25,7 +48,8 @@
       const er = el.getBoundingClientRect();
       const left = Math.max(r.left, er.left);
       const right = Math.min(r.right, er.right);
-      items.push({ text, cx: (left + right) / 2, top: r.top, cy: (r.top + r.bottom) / 2 });
+      if (right - left < 2 || isHidden(el)) continue;
+      items.push({ el, text, cx: (left + right) / 2, top: r.top, cy: (r.top + r.bottom) / 2 });
     }
     return items;
   }
@@ -111,8 +135,40 @@
     return { rows, missingColumns };
   }
 
+  // Everything the extension sees around the first rows, for troubleshooting.
+  function debugInfo(msg) {
+    const round = (r) => [r.left, r.top, r.width, r.height].map(Math.round);
+    const headers = {};
+    for (const c of msg.columns) headers[c] = headerCells(c).map(round);
+    const first = headerCells(msg.keyColumn)[0];
+    const near = [];
+    if (first) {
+      const isHidden = hiddenChecker();
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      const range = document.createRange();
+      for (let n = walker.nextNode(); n && near.length < 200; n = walker.nextNode()) {
+        const el = n.parentElement;
+        if (!el || !norm(n.nodeValue) || el.closest('script, style, noscript, template')) continue;
+        range.selectNodeContents(n);
+        const r = range.getBoundingClientRect();
+        if (r.bottom < first.top - 5 || r.top > first.bottom + 160) continue;
+        near.push({
+          text: norm(n.nodeValue).slice(0, 80),
+          tag: el.tagName.toLowerCase(),
+          cls: String(el.className).slice(0, 80),
+          role: el.closest('[role]')?.getAttribute('role') || '',
+          textBox: round(r),
+          elBox: round(el.getBoundingClientRect()),
+          hidden: isHidden(el),
+        });
+      }
+    }
+    return { page: location.pathname, headers, near, result: scrape(msg) };
+  }
+
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (msg.type === 'scrape') sendResponse(scrape(msg));
+    if (msg.type === 'debug') sendResponse(debugInfo(msg));
   });
 
   // Tell the side panel when the board changes or scrolls (at most ~1/sec).

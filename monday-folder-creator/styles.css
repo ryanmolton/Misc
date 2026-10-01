@@ -80,3 +80,4 @@ input[type="text"], input[type="search"] {
 .picked { display: flex; align-items: center; gap: 8px; }
 .options { max-width: 620px; margin: 0 auto; padding: 8px 4px 40px; }
 code { background: var(--card); padding: 0 4px; border-radius: 3px; }
+button.link { border: none; background: none; padding: 0; color: var(--muted); text-decoration: underline; font-size: 12px; }
