@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Monday Folder Creator Settings</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="options">
+    <h1>Monday Folder Creator</h1>
+
+    <h2>Folders</h2>
+    <div class="field">
+      <label>Template folder</label>
+      <div class="picked"><button id="pickTemplate">Choose…</button><span id="templateName" class="muted">Not chosen</span></div>
+      <div class="sub">Its contents are copied into every new project folder.</div>
+    </div>
+    <div class="field">
+      <label>Project folders location</label>
+      <div class="picked"><button id="pickRoot">Choose…</button><span id="rootName" class="muted">Not chosen</span></div>
+      <div class="sub">New project folders are created here, and existing ones are looked up here.</div>
+    </div>
+    <div class="field">
+      <label for="rootPath">Full path of the project folders location (optional)</label>
+      <input id="rootPath" type="text" placeholder="e.g. /Volumes/Creative/Projects or \\server\Creative\Projects">
+      <div class="sub">Chrome doesn't tell extensions where a folder is, so type it here to enable “Copy path”.</div>
+    </div>
+
+    <h2>Naming</h2>
+    <div class="field">
+      <label for="pattern">Folder name</label>
+      <input id="pattern" type="text">
+      <div class="sub">Put Monday column names in braces, e.g. <code>{Item ID}-{Project}</code>. <code>{today}</code> gives today's date. A <code>/</code> makes subfolders, e.g. <code>{Client}/{Item ID}-{Project}</code>.</div>
+      <div class="sub">Example: <strong id="preview"></strong></div>
+    </div>
+    <div class="field">
+      <label for="matchColumn">Find existing folders by column</label>
+      <input id="matchColumn" type="text">
+      <div class="sub">A folder counts as this project's if its name starts with this column's value, so renamed folders are still found.</div>
+    </div>
+    <div class="field">
+      <label><input id="renameInTemplate" type="checkbox"> Fill in <code>{column}</code> names inside the template too</label>
+      <div class="sub">e.g. a template file called <code>{Item ID} Brief.docx</code> becomes <code>12111781128 Brief.docx</code>.</div>
+    </div>
+
+    <p><button id="save" class="primary">Save</button> <span id="saved" class="muted"></span></p>
+  </div>
+  <script src="shared.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

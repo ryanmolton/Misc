@@ -1,0 +1,82 @@
+:root {
+  --bg: #ffffff;
+  --fg: #1f2330;
+  --muted: #676879;
+  --border: #d0d4e4;
+  --card: #f6f7fb;
+  --accent: #0073ea;
+  --accent-fg: #ffffff;
+  --ok: #00854d;
+  --ok-bg: #d6f5e6;
+  --warn-bg: #fff3d6;
+  --err: #d83a52;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #181b34;
+    --fg: #e6e9ef;
+    --muted: #a5a8bd;
+    --border: #3d4166;
+    --card: #222546;
+    --accent: #3b8ef0;
+    --ok: #4fd18b;
+    --ok-bg: #173b2b;
+    --warn-bg: #3d3420;
+    --err: #ff6b81;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  padding: 12px;
+  background: var(--bg);
+  color: var(--fg);
+  font: 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+h1 { font-size: 15px; margin: 0; }
+h2 { font-size: 14px; margin: 20px 0 6px; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.actions { display: flex; gap: 6px; }
+button {
+  font: inherit;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  cursor: pointer;
+}
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+button:disabled { opacity: 0.6; cursor: default; }
+input[type="text"], input[type="search"] {
+  width: 100%;
+  font: inherit;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--fg);
+}
+.muted { color: var(--muted); }
+.error { color: var(--err); }
+.banner { background: var(--warn-bg); padding: 8px 10px; border-radius: 6px; margin-bottom: 10px; }
+.banner button { margin-top: 6px; }
+#status { margin: 8px 0; }
+#rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+#rows li { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; }
+.name { font-weight: 600; word-break: break-word; }
+.sub { color: var(--muted); font-size: 12px; margin-top: 2px; word-break: break-word; }
+.row-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; }
+.chip { font-size: 11px; padding: 1px 8px; border-radius: 10px; background: var(--border); color: var(--fg); }
+.chip.ok { background: var(--ok-bg); color: var(--ok); }
+#toast {
+  position: fixed; left: 12px; right: 12px; bottom: 12px;
+  background: var(--fg); color: var(--bg);
+  padding: 8px 10px; border-radius: 6px;
+}
+.field { margin: 10px 0; }
+.field label { display: block; font-weight: 600; margin-bottom: 4px; }
+.picked { display: flex; align-items: center; gap: 8px; }
+.options { max-width: 620px; margin: 0 auto; padding: 8px 4px 40px; }
+code { background: var(--card); padding: 0 4px; border-radius: 3px; }

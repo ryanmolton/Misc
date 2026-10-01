@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Monday Folder Creator",
+  "version": "1.0.0",
+  "description": "Create a project folder (optionally copied from a template) named from what's on the current Monday.com page.",
+  "permissions": ["storage", "sidePanel", "activeTab", "scripting"],
+  "host_permissions": ["https://*.monday.com/*"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_title": "Monday Folder Creator" },
+  "side_panel": { "default_path": "sidepanel.html" },
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": ["https://*.monday.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
