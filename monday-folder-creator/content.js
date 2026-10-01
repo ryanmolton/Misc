@@ -92,11 +92,55 @@
     return norm((words.length && words.length < parts.length ? words : parts).join(' '));
   }
 
+  const boardId = (location.pathname.match(/boards\/(\d+)/) || [])[1];
+  // Matches things like data-pulse-id="123…", id="row-pulse-123…", href=".../pulses/123…".
+  const ITEM_ID_RE = /(?:pulse|item)[\w-]*?[=\/_-]\s*"?(\d{6,})/i;
+
+  function idInAttributes(el) {
+    for (const attr of el.attributes) {
+      const m = `${attr.name}=${attr.value}`.match(ITEM_ID_RE);
+      if (m && m[1] !== boardId) return m[1];
+    }
+    return null;
+  }
+
+  // Monday often tags a row's elements with the item's ID even when the
+  // Item ID column isn't on screen. Look in the row around `el`.
+  function itemIdFromRow(el) {
+    for (let a = el, depth = 0; a && a !== document.body && depth < 15; a = a.parentElement, depth++) {
+      if (a.getBoundingClientRect().height > 80) break; // past the row, into the group
+      const found = idInAttributes(a) || [...a.querySelectorAll('a[href*="pulse"]')].map(idInAttributes).find(Boolean);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  // Values seen while the key column was on screen, so they can still be
+  // used after it's scrolled away.
+  const memoryKey = (keyColumn) => `mfc:${location.pathname}:${keyColumn}`;
+  function loadMemory(keyColumn) {
+    try {
+      return JSON.parse(sessionStorage.getItem(memoryKey(keyColumn))) || {};
+    } catch {
+      return {};
+    }
+  }
+  function saveMemory(keyColumn, memory) {
+    try {
+      sessionStorage.setItem(memoryKey(keyColumn), JSON.stringify(memory));
+    } catch {
+      // Storage full or blocked; remembering is only a convenience.
+    }
+  }
+  const rowSignature = (values, keyColumn) =>
+    JSON.stringify(Object.entries(values).filter(([c]) => c !== keyColumn).sort());
+
   function scrape({ keyColumn, columns }) {
     const headers = {};
     for (const c of columns) headers[c] = headerCells(c);
-    const missingColumns = columns.filter((c) => !headers[c].length);
-    if (!headers[keyColumn] || !headers[keyColumn].length) return { rows: [], missingColumns };
+    // Rows are found from the key column, or any other visible column if it's off screen.
+    const anchor = headers[keyColumn] && headers[keyColumn].length ? keyColumn : columns.find((c) => headers[c].length);
+    if (!anchor) return { rows: [], missingColumns: columns };
 
     // Header titles themselves (incl. other groups' headers) aren't cells.
     const allHeaders = Object.values(headers).flat();
@@ -104,34 +148,48 @@
       allHeaders.some((h) => it.cx >= h.left && it.cx <= h.right && it.cy >= h.top && it.cy <= h.bottom);
     const items = collectText().filter((it) => !inHeader(it));
 
-    // Rows: group the key column's text by height on the page.
-    const keyRows = [];
+    // Rows: group the anchor column's text by height on the page.
+    const anchorRows = [];
     for (const it of items) {
-      const h = headerFor(headers[keyColumn], it);
+      const h = headerFor(headers[anchor], it);
       if (!h) continue;
-      const row = keyRows.find((r) => r.header === h && Math.abs(r.cy - it.cy) < 6);
+      const row = anchorRows.find((r) => r.header === h && Math.abs(r.cy - it.cy) < 6);
       if (row) row.parts.push(it.text);
-      else keyRows.push({ header: h, cy: it.cy, parts: [it.text] });
+      else anchorRows.push({ header: h, cy: it.cy, el: it.el, parts: [it.text] });
     }
 
+    const memory = loadMemory(keyColumn);
     const rows = [];
     const seen = new Set();
-    for (const kr of keyRows) {
-      const key = joinParts(kr.parts);
-      if (!key || seen.has(key)) continue;
-      const values = { [keyColumn]: key };
+    for (const ar of anchorRows) {
+      const anchorValue = joinParts(ar.parts);
+      if (!anchorValue || /^\+\s*add\b/i.test(anchorValue)) continue; // the "+ Add project" row
+      const values = { [anchor]: anchorValue };
       for (const c of columns) {
-        if (c === keyColumn) continue;
+        if (c === anchor) continue;
         const parts = items
-          .filter((it) => Math.abs(it.cy - kr.cy) <= ROW_TOLERANCE && headerFor(headers[c], it))
+          .filter((it) => Math.abs(it.cy - ar.cy) <= ROW_TOLERANCE && headerFor(headers[c], it))
           .map((it) => it.text);
         values[c] = joinParts(parts);
       }
-      // A row with only a key value is usually the group's summary footer.
-      if (columns.length > 1 && columns.every((c) => c === keyColumn || !values[c])) continue;
-      seen.add(key);
+      // A row with only one value is usually the group's summary footer.
+      const others = columns.filter((c) => c !== anchor && headers[c].length);
+      if (others.length && others.every((c) => !values[c])) continue;
+
+      const sig = rowSignature(values, keyColumn);
+      if (values[keyColumn]) {
+        memory[sig] = values[keyColumn];
+      } else {
+        values[keyColumn] = memory[sig] || (/\bid\b/i.test(keyColumn) && itemIdFromRow(ar.el)) || '';
+      }
+      const id = values[keyColumn] || sig;
+      if (seen.has(id)) continue;
+      seen.add(id);
       rows.push(values);
     }
+    saveMemory(keyColumn, memory);
+
+    const missingColumns = columns.filter((c) => !headers[c].length && !(rows.length && rows.every((r) => r[c])));
     return { rows, missingColumns };
   }
 
@@ -140,8 +198,10 @@
     const round = (r) => [r.left, r.top, r.width, r.height].map(Math.round);
     const headers = {};
     for (const c of msg.columns) headers[c] = headerCells(c).map(round);
-    const first = headerCells(msg.keyColumn)[0];
+    const anchor = msg.columns.find((c) => headers[c].length);
+    const first = anchor && headerCells(anchor)[0];
     const near = [];
+    let firstRowEl = null;
     if (first) {
       const isHidden = hiddenChecker();
       const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -152,6 +212,7 @@
         range.selectNodeContents(n);
         const r = range.getBoundingClientRect();
         if (r.bottom < first.top - 5 || r.top > first.bottom + 160) continue;
+        if (!firstRowEl && r.top > first.bottom && r.left >= first.left && r.left <= first.right) firstRowEl = el;
         near.push({
           text: norm(n.nodeValue).slice(0, 80),
           tag: el.tagName.toLowerCase(),
@@ -163,7 +224,17 @@
         });
       }
     }
-    return { page: location.pathname, headers, near, result: scrape(msg) };
+    // The first row's surrounding elements and their attributes.
+    const ancestors = [];
+    for (let a = firstRowEl, d = 0; a && a !== document.body && d < 18; a = a.parentElement, d++) {
+      const attrs = {};
+      for (const at of a.attributes) attrs[at.name] = at.value.slice(0, 120);
+      ancestors.push({ tag: a.tagName.toLowerCase(), h: Math.round(a.getBoundingClientRect().height), attrs });
+    }
+    const links = firstRowEl
+      ? [...(firstRowEl.closest('[role="row"]') || firstRowEl.parentElement).querySelectorAll('a[href]')].map((a) => a.getAttribute('href').slice(0, 120)).slice(0, 10)
+      : [];
+    return { page: location.pathname, headers, near, ancestors, links, result: scrape(msg) };
   }
 
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {

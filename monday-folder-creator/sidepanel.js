@@ -99,7 +99,11 @@ async function doRefresh() {
   }
   rows = next;
 
-  if (missingColumns.length) {
+  const lacking = rows.filter((r) => r.missing.length).length;
+  if (lacking) {
+    const cols = [...new Set(rows.flatMap((r) => r.missing))].join(', ');
+    setStatus(`${cols} isn't on screen for ${lacking} project${lacking === 1 ? '' : 's'}. Scroll the board sideways until ${cols} shows (it's remembered after that), or drag that column next to Project.`, true);
+  } else if (missingColumns.length) {
     setStatus(`Can't see these columns on the page: ${missingColumns.join(', ')}. Scroll so they're visible, or check the names in Settings.`, true);
   } else if (!rows.length) {
     setStatus('No projects found on screen.');
