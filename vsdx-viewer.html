@@ -1,0 +1,757 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!--
+  Local VSDX viewer. Security model:
+  - No external resources: every byte of code is in this file.
+  - The CSP below forbids all network access (connect-src 'none', no remote
+    img/font/script/frame), forms, plugins and <base> rewriting. Only the
+    exact inline script and style blocks below may run (pinned by SHA-256 hash).
+  - The file is read with File.arrayBuffer() and never leaves the browser.
+  - File content is never inserted as HTML; SVG is built with createElementNS
+    and text is set with textContent. Hyperlinks in drawings are not rendered.
+  - Embedded images are shown only for raster formats (PNG/JPEG/GIF/BMP) via
+    blob: URLs.
+  - ZIP parsing enforces entry-count and decompressed-size limits (zip bombs).
+  If you edit the script or style blocks, re-run build-csp.js to update the hashes.
+-->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-6DHpCTl2GMEwQ/lldbPU1p20vnTMNK9JuND9POiwQWE='; style-src 'sha256-MvDUPkA6RwK2sSjjAHd6loPU/21yC0GyPHCJS/ElY7k='; img-src blob:; connect-src 'none'; font-src 'none'; object-src 'none'; frame-src 'none'; worker-src 'none'; media-src 'none'; manifest-src 'none'; form-action 'none'; base-uri 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Local VSDX Viewer</title>
+<style>
+:root{--bg:#f4f5f7;--panel:#fff;--ink:#1d2330;--muted:#5d6676;--line:#d6dae1;--accent:#2b6cd9;--canvas:#e9ecf0}
+@media (prefers-color-scheme:dark){:root{--bg:#16191f;--panel:#1f242c;--ink:#e6e9ee;--muted:#9aa3b2;--line:#323946;--accent:#6ea2ff;--canvas:#2a2f38}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column}
+header{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line)}
+header h1{font-size:15px;margin:0 8px 0 0;font-weight:600}
+.badge{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 8px}
+button,label.btn{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 10px;cursor:pointer}
+button:hover,label.btn:hover{border-color:var(--accent)}
+button:disabled{opacity:.5;cursor:default}
+input[type=file]{position:absolute;width:1px;height:1px;opacity:0}
+.spacer{flex:1}
+#tabs{display:flex;gap:4px;overflow-x:auto;padding:6px 12px;background:var(--panel);border-bottom:1px solid var(--line)}
+#tabs:empty{display:none}
+#tabs button{white-space:nowrap}
+#tabs button[aria-selected=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+main{flex:1;position:relative;overflow:hidden;background:var(--canvas)}
+#stage{width:100%;height:100%;display:block;cursor:grab;touch-action:none}
+#stage.drag{cursor:grabbing}
+#drop{position:absolute;inset:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:2px dashed var(--line);border-radius:12px;text-align:center;padding:16px;color:var(--muted)}
+#drop.hover{border-color:var(--accent);color:var(--ink)}
+#drop strong{color:var(--ink);font-size:16px}
+#drop.hidden{display:none}
+#status{font-size:12px;color:var(--muted)}
+#status.err{color:#d33}
+</style>
+</head>
+<body>
+<header>
+  <h1>VSDX Viewer</h1>
+  <span class="badge" title="Content-Security-Policy blocks all network requests">Offline · nothing is uploaded</span>
+  <label class="btn" for="file">Open file…</label>
+  <input id="file" type="file" accept=".vsdx,.vsdm,.vssx,.vssm,.vstx,.vstm">
+  <button id="fit" disabled>Fit</button>
+  <button id="zin" disabled>+</button>
+  <button id="zout" disabled>−</button>
+  <span class="spacer"></span>
+  <span id="status"></span>
+</header>
+<nav id="tabs" role="tablist"></nav>
+<main>
+  <svg id="stage" xmlns="http://www.w3.org/2000/svg"></svg>
+  <div id="drop"><strong>Drop a .vsdx file here</strong><span>or use “Open file…”. The file is read locally in your browser and is never sent anywhere.</span></div>
+</main>
+<script>
+"use strict";
+(() => {
+const SVGNS = "http://www.w3.org/2000/svg";
+const RELNS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+
+// ---------- limits (zip-bomb / abuse protection) ----------
+const MAX_FILE = 200 * 1024 * 1024;
+const MAX_ENTRIES = 20000;
+const MAX_ENTRY_OUT = 100 * 1024 * 1024;
+const MAX_TOTAL_OUT = 400 * 1024 * 1024;
+const MAX_SHAPES = 50000;
+const MAX_DEPTH = 40;
+
+const $ = id => document.getElementById(id);
+const stage = $("stage"), statusEl = $("status"), tabsEl = $("tabs"), drop = $("drop");
+
+function setStatus(msg, err) { statusEl.textContent = msg; statusEl.classList.toggle("err", !!err); }
+
+// ---------- minimal ZIP reader ----------
+class Zip {
+  constructor(buf) {
+    this.buf = buf; this.dv = new DataView(buf); this.entries = new Map(); this.totalOut = 0;
+    const dv = this.dv, n = buf.byteLength;
+    let eocd = -1;
+    for (let i = n - 22; i >= Math.max(0, n - 65557); i--) if (dv.getUint32(i, true) === 0x06054b50) { eocd = i; break; }
+    if (eocd < 0) throw new Error("Not a ZIP/VSDX file (no end-of-central-directory record). Legacy binary .vsd files are not supported.");
+    const count = dv.getUint16(eocd + 10, true);
+    let p = dv.getUint32(eocd + 16, true);
+    if (count === 0xffff || p === 0xffffffff) throw new Error("ZIP64 archives are not supported.");
+    if (count > MAX_ENTRIES) throw new Error("Too many entries in archive.");
+    const dec = new TextDecoder();
+    for (let i = 0; i < count; i++) {
+      if (p + 46 > n || dv.getUint32(p, true) !== 0x02014b50) throw new Error("Corrupt ZIP central directory.");
+      const method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true), usize = dv.getUint32(p + 24, true);
+      const nl = dv.getUint16(p + 28, true), xl = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true);
+      const off = dv.getUint32(p + 42, true);
+      const name = dec.decode(new Uint8Array(buf, p + 46, nl));
+      this.entries.set(name.toLowerCase(), { name, method, csize, usize, off });
+      p += 46 + nl + xl + cl;
+    }
+  }
+  has(path) { return this.entries.has(path.toLowerCase()); }
+  async bytes(path) {
+    const e = this.entries.get(path.toLowerCase());
+    if (!e) return null;
+    const dv = this.dv;
+    if (e.off + 30 > this.buf.byteLength || dv.getUint32(e.off, true) !== 0x04034b50) throw new Error("Corrupt ZIP local header: " + e.name);
+    const start = e.off + 30 + dv.getUint16(e.off + 26, true) + dv.getUint16(e.off + 28, true);
+    if (start + e.csize > this.buf.byteLength) throw new Error("Truncated ZIP entry: " + e.name);
+    const raw = new Uint8Array(this.buf, start, e.csize);
+    let out;
+    if (e.method === 0) out = raw.slice();
+    else if (e.method === 8) out = await this.inflate(raw, e.name);
+    else throw new Error("Unsupported ZIP compression method " + e.method);
+    this.totalOut += out.byteLength;
+    if (this.totalOut > MAX_TOTAL_OUT) throw new Error("Archive expands to too much data; refusing (possible zip bomb).");
+    return out;
+  }
+  async inflate(raw, name) {
+    if (typeof DecompressionStream === "undefined") throw new Error("This browser lacks DecompressionStream; please use a current Chrome, Edge, Firefox or Safari.");
+    const reader = new Blob([raw]).stream().pipeThrough(new DecompressionStream("deflate-raw")).getReader();
+    const chunks = []; let len = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      len += value.byteLength;
+      if (len > MAX_ENTRY_OUT) { reader.cancel(); throw new Error("Entry too large after decompression: " + name); }
+      chunks.push(value);
+    }
+    const out = new Uint8Array(len); let o = 0;
+    for (const c of chunks) { out.set(c, o); o += c.byteLength; }
+    return out;
+  }
+  async text(path) { const b = await this.bytes(path); return b ? new TextDecoder().decode(b) : null; }
+  async xml(path) {
+    const t = await this.text(path);
+    if (t == null) return null;
+    // DOMParser never fetches external entities/DTDs; reject DTDs outright anyway.
+    if (/<!DOCTYPE/i.test(t.slice(0, 2048))) throw new Error("XML with DOCTYPE is not allowed: " + path);
+    const doc = new DOMParser().parseFromString(t, "application/xml");
+    if (doc.getElementsByTagName("parsererror").length) throw new Error("Malformed XML in " + path);
+    return doc;
+  }
+}
+
+// ---------- OPC helpers ----------
+const kids = (el, name) => el ? Array.from(el.children).filter(c => c.localName === name) : [];
+const kid = (el, name) => el ? Array.from(el.children).find(c => c.localName === name) || null : null;
+const dirOf = p => p.includes("/") ? p.slice(0, p.lastIndexOf("/") + 1) : "";
+function resolvePath(base, target) {
+  const parts = (target.startsWith("/") ? target.slice(1) : dirOf(base) + target).split("/");
+  const out = [];
+  for (const s of parts) { if (s === "..") out.pop(); else if (s !== "." && s !== "") out.push(s); }
+  return out.join("/");
+}
+async function readRels(zip, part) {
+  const relPath = dirOf(part) + "_rels/" + part.slice(dirOf(part).length) + ".rels";
+  const doc = await zip.xml(relPath);
+  const map = new Map();
+  if (!doc) return map;
+  for (const r of doc.getElementsByTagName("*")) {
+    if (r.localName !== "Relationship" || r.getAttribute("TargetMode") === "External") continue;
+    map.set(r.getAttribute("Id"), { type: r.getAttribute("Type") || "", path: resolvePath(part, r.getAttribute("Target") || "") });
+  }
+  return map;
+}
+const relId = el => el.getAttributeNS(RELNS, "id") || el.getAttribute("r:id");
+
+// ---------- ShapeSheet model ----------
+// A "sheet" is a parsed Shape/StyleSheet/PageSheet: { cells, sections, text, attrs, el }
+function parseSheet(el) {
+  const s = { el, cells: Object.create(null), sections: Object.create(null), text: null };
+  for (const c of el.children) {
+    if (c.localName === "Cell") s.cells[c.getAttribute("N")] = { v: c.getAttribute("V"), f: c.getAttribute("F") };
+    else if (c.localName === "Section") {
+      const key = c.getAttribute("N") + (c.hasAttribute("IX") ? c.getAttribute("IX") : "");
+      const sec = { del: c.getAttribute("Del") === "1", cells: Object.create(null), rows: new Map() };
+      let auto = 0;
+      for (const r of c.children) {
+        if (r.localName === "Cell") sec.cells[r.getAttribute("N")] = { v: r.getAttribute("V"), f: r.getAttribute("F") };
+        if (r.localName !== "Row") continue;
+        const ix = r.getAttribute("IX") ?? r.getAttribute("N") ?? String(auto); auto++;
+        const row = { t: r.getAttribute("T"), del: r.getAttribute("Del") === "1", cells: Object.create(null) };
+        for (const rc of r.children) if (rc.localName === "Cell") row.cells[rc.getAttribute("N")] = { v: rc.getAttribute("V"), f: rc.getAttribute("F") };
+        sec.rows.set(ix, row);
+      }
+      s.sections[key] = sec;
+    } else if (c.localName === "Text") s.text = c;
+  }
+  return s;
+}
+
+const UNIT = { in: 1, "in.": 1, '"': 1, ft: 12, mm: 1 / 25.4, cm: 1 / 2.54, m: 1 / 0.0254, pt: 1 / 72, p: 1 / 72, pc: 1 / 6, deg: Math.PI / 180, rad: 1 };
+// Tiny, safe evaluator for common ShapeSheet formulas (numbers, units, Width, Height, + - * / and parens).
+function evalFormula(f, W, H) {
+  if (!f || f.length > 200) return NaN;
+  const toks = f.match(/\d*\.?\d+(?:e[+-]?\d+)?|[A-Za-z_"][\w.]*|"|[-+*/()]|\S/gi) || [];
+  let i = 0;
+  const peek = () => toks[i], next = () => toks[i++];
+  function prim() {
+    const t = next();
+    if (t === undefined) throw 0;
+    if (t === "(") { const v = expr(); if (next() !== ")") throw 0; return v; }
+    if (t === "-") return -prim();
+    if (t === "+") return prim();
+    if (/^\d|^\./.test(t)) { let v = parseFloat(t); const u = peek(); if (u && UNIT[u.toLowerCase()] !== undefined) { v *= UNIT[u.toLowerCase()]; i++; } return v; }
+    if (t === "Width") return W;
+    if (t === "Height") return H;
+    throw 0;
+  }
+  function term() { let v = prim(); while (peek() === "*" || peek() === "/") { const o = next(), r = prim(); v = o === "*" ? v * r : v / r; } return v; }
+  function expr() { let v = term(); while (peek() === "+" || peek() === "-") { const o = next(), r = term(); v = o === "+" ? v + r : v - r; } return v; }
+  try { const v = expr(); return i === toks.length && isFinite(v) ? v : NaN; } catch { return NaN; }
+}
+
+// ---------- document model ----------
+class VDoc {
+  constructor() { this.styles = new Map(); this.masters = new Map(); this.colors = []; this.imageUrls = []; }
+}
+
+// Resolves cells for a shape instance through: local -> master shape chain -> style sheets.
+class Ctx {
+  constructor(doc, sheet, master, parentMasterShapes) {
+    this.doc = doc; this.sheet = sheet;
+    this.chain = [sheet];
+    let ms = null;
+    const mid = sheet.el.getAttribute("Master");
+    const m = mid ? doc.masters.get(mid) : master;
+    if (m) {
+      const msid = sheet.el.getAttribute("MasterShape");
+      if (msid) ms = m.byId.get(msid) || null;
+      else if (mid) ms = m.top.length === 1 ? m.top[0] : null;
+    }
+    this.master = mid ? m : master;
+    this.masterSheet = ms;
+    for (let s = ms, d = 0; s && d < 10; d++) { this.chain.push(s); s = s.inheritFrom || null; }
+    this.masterGroupChildren = ms ? ms.childSheets : null;
+    this.styleChain = [];
+    const seen = new Set();
+    const addStyle = id => {
+      for (let d = 0; id != null && d < 20 && !seen.has(id); d++) {
+        seen.add(id); const st = doc.styles.get(id); if (!st) break;
+        this.styleChain.push(st.sheet);
+        id = st.sheet.el.getAttribute("LineStyle") ?? st.sheet.el.getAttribute("FillStyle") ?? st.sheet.el.getAttribute("TextStyle");
+      }
+    };
+    for (const s of this.chain) for (const a of ["LineStyle", "FillStyle", "TextStyle"]) { const id = s.el.getAttribute(a); if (id != null) addStyle(id); }
+    this.W = this.num("Width", 0); this.H = this.num("Height", 0);
+    const mw = ms ? parseFloat(ms.cells.Width?.v) : NaN, mh = ms ? parseFloat(ms.cells.Height?.v) : NaN;
+    this.sx = mw > 0 ? this.W / mw : 1; this.sy = mh > 0 ? this.H / mh : 1;
+  }
+  // Find a cell; returns {c, local}
+  find(getter) {
+    for (let k = 0; k < this.chain.length; k++) { const c = getter(this.chain[k]); if (c) return { c, local: k === 0 }; }
+    for (const s of this.styleChain) { const c = getter(s); if (c) return { c, local: false }; }
+    return null;
+  }
+  // Number from a cell, recomputing inherited geometry-dependent values for this instance's size.
+  numFrom(hit, def, axis) {
+    if (!hit) return def;
+    const v = parseFloat(hit.c.v);
+    if (hit.local || !axis) return isFinite(v) ? v : def;
+    const e = evalFormula(hit.c.f, this.W, this.H);
+    if (isFinite(e)) return e;
+    if (!isFinite(v)) return def;
+    return axis === "x" ? v * this.sx : axis === "y" ? v * this.sy : v;
+  }
+  num(name, def, axis) { return this.numFrom(this.find(s => s.cells[name]), def, axis); }
+  str(name) { const h = this.find(s => s.cells[name]); return h ? h.c.v : null; }
+  secRow(sec, ix, name, def, axis) { return this.numFrom(this.find(s => s.sections[sec]?.rows.get(ix)?.cells[name]), def, axis); }
+  secRowStr(sec, ix, name) { const h = this.find(s => s.sections[sec]?.rows.get(ix)?.cells[name]); return h ? h.c.v : null; }
+  // Merge geometry sections (by IX) across chain, rows merged by IX.
+  geometry() {
+    const keys = new Set();
+    for (const s of this.chain) for (const k in s.sections) if (/^Geometry/.test(k)) keys.add(k);
+    const out = [];
+    for (const k of [...keys].sort((a, b) => (parseInt(a.slice(8)) || 0) - (parseInt(b.slice(8)) || 0))) {
+      const layers = this.chain.map(s => s.sections[k]).filter(Boolean);
+      if (layers[0]?.del) continue;
+      const rowIx = [];
+      for (let l = layers.length - 1; l >= 0; l--) for (const ix of layers[l].rows.keys()) if (!rowIx.includes(ix)) rowIx.push(ix);
+      rowIx.sort((a, b) => (+a) - (+b));
+      const sectionCell = n => { for (let l = 0; l < layers.length; l++) if (layers[l].cells[n]) return layers[l].cells[n].v; return null; };
+      const rows = [];
+      for (const ix of rowIx) {
+        let t = null, del = false;
+        for (const L of layers) { const r = L.rows.get(ix); if (r) { if (r.del) del = true; if (!t && r.t) t = r.t; } }
+        if (del || !t) continue;
+        const get = (n, axis) => {
+          for (let l = 0; l < layers.length; l++) {
+            const c = layers[l].rows.get(ix)?.cells[n];
+            if (c) return this.numFrom({ c, local: layers[l] === this.sheet.sections[k] }, 0, axis);
+          }
+          return 0;
+        };
+        const getF = n => { for (const L of layers) { const c = L.rows.get(ix)?.cells[n]; if (c) return c.f || c.v; } return null; };
+        rows.push({ t, get, getF });
+      }
+      out.push({ noFill: sectionCell("NoFill") === "1", noLine: sectionCell("NoLine") === "1", noShow: sectionCell("NoShow") === "1", rows });
+    }
+    return out;
+  }
+  textEl() { for (const s of this.chain) if (s.text) return s.text; return null; }
+  color(name, def) { return this.doc.resolveColor(this.str(name), def); }
+}
+
+const VISIO_PALETTE = ["#000000","#FFFFFF","#FF0000","#00FF00","#0000FF","#FFFF00","#FF00FF","#00FFFF","#800000","#008000","#000080","#808000","#800080","#008080","#C0C0C0","#E6E6E6","#CDCDCD","#B3B3B3","#9A9A9A","#808080","#666666","#4D4D4D","#333333","#1A1A1A"];
+VDoc.prototype.resolveColor = function (v, def) {
+  if (v == null || v === "" || v === "Themed") return def;
+  if (/^#[0-9a-f]{6}$/i.test(v)) return v;
+  if (/^\d+$/.test(v)) { const i = +v; return this.colors[i] || VISIO_PALETTE[i] || def; }
+  const m = /^RGB\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i.exec(v);
+  if (m) return "#" + [m[1], m[2], m[3]].map(x => Math.min(255, +x).toString(16).padStart(2, "0")).join("");
+  return def;
+};
+
+// ---------- loading ----------
+async function loadVsdx(buf) {
+  const zip = new Zip(buf);
+  const vd = new VDoc();
+  vd.zip = zip;
+  // Find document part via root rels, fall back to the standard path.
+  let docPath = "visio/document.xml";
+  const rootRels = await readRels(zip, "");
+  for (const r of rootRels.values()) if (/\/document$/.test(r.type)) docPath = r.path;
+  const docXml = await zip.xml(docPath);
+  if (!docXml) throw new Error("This does not look like a Visio 2013+ package (visio/document.xml missing).");
+  for (const el of docXml.getElementsByTagName("*")) {
+    if (el.localName === "StyleSheet") vd.styles.set(el.getAttribute("ID"), { sheet: parseSheet(el) });
+    else if (el.localName === "ColorEntry") vd.colors[+el.getAttribute("IX")] = el.getAttribute("RGB");
+  }
+  const docRels = await readRels(zip, docPath);
+  let pagesPath = null, mastersPath = null;
+  for (const r of docRels.values()) {
+    if (/\/pages$/.test(r.type)) pagesPath = r.path;
+    if (/\/masters$/.test(r.type)) mastersPath = r.path;
+  }
+  pagesPath ||= "visio/pages/pages.xml";
+  mastersPath ||= "visio/masters/masters.xml";
+
+  // Masters
+  const mXml = await zip.xml(mastersPath);
+  if (mXml) {
+    const mRels = await readRels(zip, mastersPath);
+    for (const mEl of kids(mXml.documentElement, "Master")) {
+      const rel = kid(mEl, "Rel"); const target = rel && mRels.get(relId(rel));
+      if (!target) continue;
+      const contents = await zip.xml(target.path);
+      if (!contents) continue;
+      const master = { id: mEl.getAttribute("ID"), top: [], byId: new Map(), rels: await readRels(zip, target.path), part: target.path };
+      const walk = (shapesEl, parent) => {
+        const list = [];
+        for (const sh of kids(shapesEl, "Shape")) {
+          const s = parseSheet(sh);
+          master.byId.set(sh.getAttribute("ID"), s);
+          s.childSheets = walk(kid(sh, "Shapes"), s);
+          list.push(s);
+        }
+        return list;
+      };
+      master.top = walk(kid(contents.documentElement, "Shapes"), null);
+      vd.masters.set(master.id, master);
+    }
+  }
+
+  // Pages
+  const pXml = await zip.xml(pagesPath);
+  if (!pXml) throw new Error("No pages found in drawing.");
+  const pRels = await readRels(zip, pagesPath);
+  vd.pages = [];
+  for (const pEl of kids(pXml.documentElement, "Page")) {
+    const rel = kid(pEl, "Rel"); const target = rel && pRels.get(relId(rel));
+    const ps = kid(pEl, "PageSheet");
+    const sheet = ps ? parseSheet(ps) : { cells: {} };
+    vd.pages.push({
+      id: pEl.getAttribute("ID"), name: pEl.getAttribute("Name") || pEl.getAttribute("NameU") || "Page",
+      background: pEl.getAttribute("Background") === "1", backPage: pEl.getAttribute("BackPage"),
+      w: parseFloat(sheet.cells.PageWidth?.v) || 8.5, h: parseFloat(sheet.cells.PageHeight?.v) || 11,
+      part: target ? target.path : null,
+    });
+  }
+  return vd;
+}
+
+// ---------- rendering ----------
+const el = (name, attrs) => { const e = document.createElementNS(SVGNS, name); if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+const fmt = n => (Math.round(n * 1e5) / 1e5).toString();
+let measureCtx = null;
+function measure(text, size, bold, italic) {
+  measureCtx ||= document.createElement("canvas").getContext("2d");
+  measureCtx.font = `${italic ? "italic " : ""}${bold ? "bold " : ""}100px Calibri, Arial, sans-serif`;
+  return measureCtx.measureText(text).width * size / 100;
+}
+
+class Renderer {
+  constructor(vd) { this.vd = vd; this.count = 0; this.markerId = 0; this.defs = null; }
+  async renderPage(page, root) {
+    this.defs = el("defs"); root.appendChild(this.defs);
+    const chain = []; const seen = new Set();
+    for (let p = page; p && !seen.has(p.id); p = this.vd.pages.find(x => x.id === p.backPage)) { seen.add(p.id); chain.unshift(p); if (!p.backPage) break; }
+    const flip = el("g", { transform: `matrix(1 0 0 -1 0 ${fmt(page.h)})` });
+    root.appendChild(flip);
+    for (const p of chain) {
+      if (!p.part) continue;
+      const xml = await this.vd.zip.xml(p.part);
+      if (!xml) continue;
+      this.rels = await readRels(this.vd.zip, p.part);
+      const shapes = kid(xml.documentElement, "Shapes");
+      for (const sh of kids(shapes, "Shape")) await this.shape(parseSheet(sh), flip, null, 0, this.rels);
+    }
+  }
+  async shape(sheet, parentG, master, depth, rels) {
+    if (++this.count > MAX_SHAPES || depth > MAX_DEPTH) return;
+    const c = new Ctx(this.vd, sheet, master, null);
+    const W = c.W, H = c.H;
+    const pinX = c.num("PinX", 0), pinY = c.num("PinY", 0);
+    const locX = c.num("LocPinX", W / 2, "x"), locY = c.num("LocPinY", H / 2, "y");
+    const ang = c.num("Angle", 0), fx = c.num("FlipX", 0) ? -1 : 1, fy = c.num("FlipY", 0) ? -1 : 1;
+    const g = el("g", { transform: `translate(${fmt(pinX)} ${fmt(pinY)}) rotate(${fmt(ang * 180 / Math.PI)}) scale(${fx} ${fy}) translate(${fmt(-locX)} ${fmt(-locY)})` });
+    parentG.appendChild(g);
+
+    const type = sheet.el.getAttribute("Type") || c.masterSheet?.el.getAttribute("Type");
+    if (type === "Foreign") await this.foreign(c, g, rels);
+    this.geometry(c, g);
+
+    // children: own group members, else inherited from master group
+    const own = kid(sheet.el, "Shapes");
+    const childMaster = c.master;
+    if (own && kids(own, "Shape").length) {
+      for (const ch of kids(own, "Shape")) await this.shape(parseSheet(ch), g, childMaster, depth + 1, rels);
+    } else if (c.masterGroupChildren?.length) {
+      for (const ms of c.masterGroupChildren) await this.masterChild(ms, g, childMaster, depth + 1);
+    }
+    this.text(c, g);
+  }
+  async masterChild(ms, g, master, depth) {
+    // Instance had no copy of this master sub-shape: render it via a blank sheet that inherits everything.
+    const id = ms.el.getAttribute("ID");
+    const fakeEl = { getAttribute: n => n === "MasterShape" ? id : null, children: [] };
+    await this.shape({ el: fakeEl, cells: Object.create(null), sections: Object.create(null), text: null }, g, master, depth, master.rels);
+  }
+  geometry(c, g) {
+    const W = c.W, H = c.H;
+    const geos = c.geometry();
+    if (!geos.length) return;
+    const linePat = c.num("LinePattern", 1), fillPat = c.num("FillPattern", 1);
+    const lw = Math.max(c.num("LineWeight", 0.01), 0.003);
+    const stroke = c.color("LineColor", "#000000"), fill = c.color("FillForegnd", "#FFFFFF");
+    const lineTrans = c.num("LineColorTrans", 0), fillTrans = c.num("FillForegndTrans", 0);
+    let fillD = "", lineD = "";
+    for (const geo of geos) {
+      if (geo.noShow) continue;
+      const d = this.pathData(geo.rows, W, H);
+      if (!d.d) continue;
+      if (!geo.noFill && d.closed && fillPat !== 0) fillD += d.d;
+      if (!geo.noLine && linePat !== 0) lineD += d.d;
+    }
+    if (fillD) g.appendChild(el("path", { d: fillD, fill, "fill-opacity": fmt(1 - fillTrans), stroke: "none", "fill-rule": "evenodd" }));
+    if (lineD) {
+      const p = el("path", { d: lineD, fill: "none", stroke, "stroke-opacity": fmt(1 - lineTrans), "stroke-width": fmt(lw), "stroke-linejoin": "round", "stroke-linecap": c.num("LineCap", 0) === 1 ? "square" : "round" });
+      const dash = { 2: [4, 3], 3: [1, 2], 4: [4, 2, 1, 2], 9: [8, 3], 10: [1, 1] }[linePat] || (linePat > 1 ? [3, 2] : null);
+      if (dash) p.setAttribute("stroke-dasharray", dash.map(x => fmt(x * lw)).join(" "));
+      const ba = c.num("BeginArrow", 0), ea = c.num("EndArrow", 0);
+      if (ba) p.setAttribute("marker-start", `url(#${this.marker(stroke, c.num("BeginArrowSize", 2), true)})`);
+      if (ea) p.setAttribute("marker-end", `url(#${this.marker(stroke, c.num("EndArrowSize", 2), false)})`);
+      g.appendChild(p);
+    }
+  }
+  marker(color, size, start) {
+    const id = "m" + (++this.markerId);
+    const s = 2 + size * 1.2;
+    const m = el("marker", { id, viewBox: "0 0 10 10", refX: "9", refY: "5", markerWidth: fmt(s), markerHeight: fmt(s), orient: start ? "auto-start-reverse" : "auto" });
+    m.appendChild(el("path", { d: "M0 0 L10 5 L0 10 z", fill: color }));
+    this.defs.appendChild(m);
+    return id;
+  }
+  pathData(rows, W, H) {
+    let d = "", x = 0, y = 0, sx = 0, sy = 0, closed = true, started = false;
+    const P = (a, b) => `${fmt(a)} ${fmt(b)}`;
+    for (const r of rows) {
+      const X = r.get("X", "x"), Y = r.get("Y", "y");
+      switch (r.t) {
+        case "MoveTo": case "RelMoveTo": {
+          if (started && (Math.abs(x - sx) > 1e-6 || Math.abs(y - sy) > 1e-6)) closed = false;
+          x = r.t === "RelMoveTo" ? r.get("X") * W : X; y = r.t === "RelMoveTo" ? r.get("Y") * H : Y;
+          sx = x; sy = y; started = true; d += `M${P(x, y)}`; break;
+        }
+        case "LineTo": case "RelLineTo": case "SplineStart": case "SplineKnot": case "NURBSTo": {
+          if (!started) { d += `M${P(x, y)}`; started = true; }
+          x = r.t === "RelLineTo" ? r.get("X") * W : X; y = r.t === "RelLineTo" ? r.get("Y") * H : Y;
+          if (r.t === "NURBSTo") d += this.nurbs(r, x, y, W, H) || `L${P(x, y)}`; else d += `L${P(x, y)}`;
+          break;
+        }
+        case "PolylineTo": {
+          if (!started) { d += `M${P(x, y)}`; started = true; }
+          d += this.polyline(r.getF("A"), W, H); x = X; y = Y; d += `L${P(x, y)}`; break;
+        }
+        case "ArcTo": {
+          const A = r.get("A");
+          d += this.arcTo(x, y, X, Y, A); x = X; y = Y; break;
+        }
+        case "EllipticalArcTo": case "RelEllipticalArcTo": {
+          const rel = r.t[0] === "R";
+          const ex = rel ? r.get("X") * W : X, ey = rel ? r.get("Y") * H : Y;
+          const ax = rel ? r.get("A") * W : r.get("A", "x"), ay = rel ? r.get("B") * H : r.get("B", "y");
+          d += this.ellArc(x, y, ex, ey, ax, ay, r.get("C"), r.get("D") || 1); x = ex; y = ey; break;
+        }
+        case "RelCubBezTo": {
+          const ex = r.get("X") * W, ey = r.get("Y") * H;
+          d += `C${P(r.get("A") * W, r.get("B") * H)} ${P(r.get("C") * W, r.get("D") * H)} ${P(ex, ey)}`; x = ex; y = ey; break;
+        }
+        case "RelQuadBezTo": {
+          const ex = r.get("X") * W, ey = r.get("Y") * H;
+          d += `Q${P(r.get("A") * W, r.get("B") * H)} ${P(ex, ey)}`; x = ex; y = ey; break;
+        }
+        case "Ellipse": {
+          const cx = X, cy = Y, ax = r.get("A", "x"), ay = r.get("B", "y"), bx = r.get("C", "x"), by = r.get("D", "y");
+          const rx = Math.hypot(ax - cx, ay - cy), ry = Math.hypot(bx - cx, by - cy);
+          const rot = Math.atan2(ay - cy, ax - cx) * 180 / Math.PI;
+          const c0 = Math.cos(rot * Math.PI / 180), s0 = Math.sin(rot * Math.PI / 180);
+          d += `M${P(cx + rx * c0, cy + rx * s0)}A${fmt(rx)} ${fmt(ry)} ${fmt(rot)} 1 1 ${P(cx - rx * c0, cy - rx * s0)}A${fmt(rx)} ${fmt(ry)} ${fmt(rot)} 1 1 ${P(cx + rx * c0, cy + rx * s0)}Z`;
+          break;
+        }
+        default: break; // InfiniteLine etc.
+      }
+    }
+    if (started && (Math.abs(x - sx) > 1e-6 || Math.abs(y - sy) > 1e-6)) closed = false;
+    return { d, closed };
+  }
+  arcTo(x0, y0, x1, y1, bulge) {
+    const chord = Math.hypot(x1 - x0, y1 - y0);
+    if (Math.abs(bulge) < 1e-9 || chord < 1e-9) return `L${fmt(x1)} ${fmt(y1)}`;
+    const h = Math.abs(bulge), r = (chord * chord / 4 + h * h) / (2 * h);
+    const large = h > chord / 2 ? 1 : 0, sweep = bulge > 0 ? 1 : 0; // positive bulge = counter-clockwise
+    return `A${fmt(r)} ${fmt(r)} 0 ${large} ${sweep} ${fmt(x1)} ${fmt(y1)}`;
+  }
+  ellArc(x0, y0, x1, y1, ax, ay, angle, ratio) {
+    // Transform to circle space (undo rotation & ratio), find circle through 3 points.
+    const c = Math.cos(-angle), s = Math.sin(-angle);
+    const T = (px, py) => { const rx = px * c - py * s, ry = px * s + py * c; return [rx, ry * ratio]; };
+    const [p0x, p0y] = T(x0, y0), [p1x, p1y] = T(x1, y1), [pax, pay] = T(ax, ay);
+    const det = 2 * (p0x * (pay - p1y) + pax * (p1y - p0y) + p1x * (p0y - pay));
+    if (Math.abs(det) < 1e-12) return `L${fmt(x1)} ${fmt(y1)}`;
+    const sq = (u, v) => u * u + v * v;
+    const ux = (sq(p0x, p0y) * (pay - p1y) + sq(pax, pay) * (p1y - p0y) + sq(p1x, p1y) * (p0y - pay)) / det;
+    const uy = (sq(p0x, p0y) * (p1x - pax) + sq(pax, pay) * (p0x - p1x) + sq(p1x, p1y) * (pax - p0x)) / det;
+    const R = Math.hypot(p0x - ux, p0y - uy);
+    const cross = (pax - p0x) * (p1y - p0y) - (pay - p0y) * (p1x - p0x);
+    const sweep = cross > 0 ? 1 : 0; // p0 -> ctrl -> p1 counter-clockwise
+    // large-arc: control point on far side of chord from center
+    const side = (ux - p0x) * (p1y - p0y) - (uy - p0y) * (p1x - p0x);
+    const large = (side > 0) === (cross > 0) ? 1 : 0;
+    const rx = R, ry = R / ratio;
+    return `A${fmt(rx)} ${fmt(ry)} ${fmt(angle * 180 / Math.PI)} ${large} ${sweep} ${fmt(x1)} ${fmt(y1)}`;
+  }
+  polyline(f, W, H) {
+    const m = f && /POLYLINE\(([^)]*)\)/i.exec(f);
+    if (!m) return "";
+    const a = m[1].split(",").map(s => parseFloat(s));
+    if (a.length < 2) return "";
+    const xr = a[0] === 0, yr = a[1] === 0;
+    let d = "";
+    for (let i = 2; i + 1 < a.length; i += 2) d += `L${fmt(xr ? a[i] * W : a[i])} ${fmt(yr ? a[i + 1] * H : a[i + 1])}`;
+    return d;
+  }
+  nurbs(r, ex, ey, W, H) {
+    const m = /NURBS\(([^)]*)\)/i.exec(r.getF("E") || "");
+    if (!m) return "";
+    const a = m[1].split(",").map(s => parseFloat(s));
+    const xr = a[2] === 0, yr = a[3] === 0;
+    let d = "";
+    for (let i = 4; i + 3 < a.length; i += 4) d += `L${fmt(xr ? a[i] * W : a[i])} ${fmt(yr ? a[i + 1] * H : a[i + 1])}`;
+    return d + `L${fmt(ex)} ${fmt(ey)}`;
+  }
+  async foreign(c, g, rels) {
+    const fd = c.sheet.el.children ? kid(c.sheet.el, "ForeignData") : null;
+    const fdEl = fd || (c.masterSheet ? kid(c.masterSheet.el, "ForeignData") : null);
+    const relsToUse = fd ? rels : c.master?.rels;
+    const W = c.W, H = c.H;
+    const iw = c.num("ImgWidth", W, "x"), ih = c.num("ImgHeight", H, "y"), ox = c.num("ImgOffsetX", 0, "x"), oy = c.num("ImgOffsetY", 0, "y");
+    let url = null;
+    const rel = fdEl && kid(fdEl, "Rel");
+    const target = rel && relsToUse?.get(relId(rel));
+    if (target) {
+      const ext = target.path.split(".").pop().toLowerCase();
+      const mime = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", bmp: "image/bmp" }[ext];
+      if (mime) {
+        const bytes = await this.vd.zip.bytes(target.path);
+        if (bytes) { url = URL.createObjectURL(new Blob([bytes], { type: mime })); this.vd.imageUrls.push(url); }
+      }
+    }
+    // Images are drawn in Y-down space, so counter-flip locally.
+    const wrap = el("g", { transform: `translate(${fmt(ox)} ${fmt(oy + ih)}) scale(1 -1)` });
+    if (url) wrap.appendChild(el("image", { href: url, x: "0", y: "0", width: fmt(iw), height: fmt(ih), preserveAspectRatio: "none" }));
+    else {
+      wrap.appendChild(el("rect", { x: "0", y: "0", width: fmt(iw), height: fmt(ih), fill: "#eee", stroke: "#999", "stroke-width": "0.01", "stroke-dasharray": "0.05 0.05" }));
+      const t = el("text", { x: fmt(iw / 2), y: fmt(ih / 2), "font-size": fmt(Math.min(0.14, ih / 3)), "text-anchor": "middle", "dominant-baseline": "middle", fill: "#777" });
+      t.textContent = "[embedded object]";
+      wrap.appendChild(t);
+    }
+    g.appendChild(wrap);
+  }
+  text(c, g) {
+    const tEl = c.textEl();
+    if (!tEl) return;
+    // Collect plain text; fields (<fld>) are replaced by their Field section value.
+    let s = "";
+    for (const n of tEl.childNodes) {
+      if (n.nodeType === 3) s += n.nodeValue;
+      else if (n.nodeType === 1 && n.localName === "fld") s += c.secRowStr("Field", n.getAttribute("IX") || "0", "Value") ?? "";
+    }
+    s = s.replace(/\r\n?/g, "\n").replace(/\u2028|\u2029/g, "\n").replace(/[\u0000-\u0008\u000b-\u001f\ufffc]/g, "");
+    if (!s.trim()) return;
+    const W = c.W, H = c.H;
+    const tw = c.num("TxtWidth", W, "x"), th = c.num("TxtHeight", H, "y");
+    const tpx = c.num("TxtPinX", W / 2, "x"), tpy = c.num("TxtPinY", H / 2, "y");
+    const tlx = c.num("TxtLocPinX", tw / 2, "x"), tly = c.num("TxtLocPinY", th / 2, "y");
+    const tang = c.num("TxtAngle", 0);
+    const size = Math.max(c.secRow("Character", "0", "Size", 1 / 6), 0.01);
+    const color = this.vd.resolveColor(c.secRowStr("Character", "0", "Color"), "#000000");
+    const style = c.secRow("Character", "0", "Style", 0);
+    const bold = (style & 1) !== 0, italic = (style & 2) !== 0, underline = (style & 4) !== 0;
+    const halign = c.secRow("Paragraph", "0", "HorzAlign", 1);
+    const valign = c.num("VerticalAlign", 1);
+    const lm = c.num("LeftMargin", 0.0556), rm = c.num("RightMargin", 0.0556), tm = c.num("TopMargin", 0.0556), bm = c.num("BottomMargin", 0.0556);
+    const avail = Math.max(tw - lm - rm, size);
+    // Word-wrap
+    const lines = [];
+    for (const para of s.split("\n")) {
+      const words = para.split(/(\s+)/); let line = "";
+      for (const w of words) {
+        const cand = line + w;
+        if (line.trim() && measure(cand.trimEnd(), size, bold, italic) > avail) { lines.push(line.trimEnd()); line = w.trimStart(); }
+        else line = cand;
+      }
+      lines.push(line.trimEnd());
+    }
+    while (lines.length > 1 && lines[lines.length - 1] === "") lines.pop();
+    const lh = size * 1.2, total = lh * lines.length;
+    // Text block group in Y-down local space with origin at the block's top-left.
+    const blk = el("g", { transform: `translate(${fmt(tpx)} ${fmt(tpy)}) rotate(${fmt(tang * 180 / Math.PI)}) translate(${fmt(-tlx)} ${fmt(th - tly)}) scale(1 -1)` });
+    let y0 = valign === 0 ? tm : valign === 2 ? th - bm - total : (th - total) / 2;
+    const anchor = halign === 0 ? "start" : halign === 2 ? "end" : "middle";
+    const x = halign === 0 ? lm : halign === 2 ? tw - rm : tw / 2;
+    const t = el("text", { "font-size": fmt(size), fill: color, "text-anchor": anchor, "font-family": "Calibri, Arial, sans-serif" });
+    if (bold) t.setAttribute("font-weight", "bold");
+    if (italic) t.setAttribute("font-style", "italic");
+    if (underline) t.setAttribute("text-decoration", "underline");
+    lines.forEach((ln, i) => {
+      const sp = el("tspan", { x: fmt(x), y: fmt(y0 + lh * i + size * 0.95) });
+      sp.textContent = ln || " ";
+      t.appendChild(sp);
+    });
+    blk.appendChild(t);
+    g.appendChild(blk);
+  }
+}
+
+// ---------- UI: pan/zoom ----------
+let view = null, pageBox = null;
+function applyView() { if (view) stage.setAttribute("viewBox", `${fmt(view.x)} ${fmt(view.y)} ${fmt(view.w)} ${fmt(view.h)}`); }
+function fit() {
+  if (!pageBox) return;
+  const r = stage.getBoundingClientRect(), pad = 0.05;
+  const pw = pageBox.w * (1 + 2 * pad), ph = pageBox.h * (1 + 2 * pad);
+  const s = Math.max(pw / r.width, ph / r.height);
+  view = { w: r.width * s, h: r.height * s }; view.x = pageBox.w / 2 - view.w / 2; view.y = pageBox.h / 2 - view.h / 2;
+  applyView();
+}
+function zoomAt(f, cx, cy) {
+  if (!view) return;
+  const r = stage.getBoundingClientRect();
+  const px = view.x + (cx - r.left) / r.width * view.w, py = view.y + (cy - r.top) / r.height * view.h;
+  const nw = Math.min(Math.max(view.w * f, 0.05), 2000), k = nw / view.w;
+  view = { x: px - (px - view.x) * k, y: py - (py - view.y) * k, w: nw, h: view.h * k };
+  applyView();
+}
+stage.addEventListener("wheel", e => { if (!view) return; e.preventDefault(); zoomAt(Math.exp(e.deltaY * 0.0015), e.clientX, e.clientY); }, { passive: false });
+let drag = null;
+stage.addEventListener("pointerdown", e => { if (!view) return; drag = { x: e.clientX, y: e.clientY, v: { ...view } }; stage.setPointerCapture(e.pointerId); stage.classList.add("drag"); });
+stage.addEventListener("pointermove", e => {
+  if (!drag) return;
+  const r = stage.getBoundingClientRect();
+  view.x = drag.v.x - (e.clientX - drag.x) / r.width * view.w; view.y = drag.v.y - (e.clientY - drag.y) / r.height * view.h; applyView();
+});
+const endDrag = () => { drag = null; stage.classList.remove("drag"); };
+stage.addEventListener("pointerup", endDrag); stage.addEventListener("pointercancel", endDrag);
+$("fit").onclick = fit;
+$("zin").onclick = () => { const r = stage.getBoundingClientRect(); zoomAt(0.8, r.left + r.width / 2, r.top + r.height / 2); };
+$("zout").onclick = () => { const r = stage.getBoundingClientRect(); zoomAt(1.25, r.left + r.width / 2, r.top + r.height / 2); };
+window.addEventListener("resize", fit);
+
+// ---------- UI: file handling ----------
+let current = null, renderToken = 0;
+async function showPage(i) {
+  const token = ++renderToken;
+  const page = current.pages[i];
+  for (const b of tabsEl.children) b.setAttribute("aria-selected", String(+b.dataset.i === i));
+  stage.replaceChildren();
+  const root = el("g");
+  root.appendChild(el("rect", { x: "0", y: "0", width: fmt(page.w), height: fmt(page.h), fill: "#ffffff", stroke: "#b9bec7", "stroke-width": fmt(page.w / 1500) }));
+  setStatus("Rendering “" + page.name + "”…");
+  const r = new Renderer(current);
+  try {
+    await r.renderPage(page, root);
+    if (token !== renderToken) return;
+    stage.appendChild(root);
+    pageBox = { w: page.w, h: page.h };
+    fit();
+    setStatus(`${current.fileName} — ${page.name} (${fmt(page.w)}″ × ${fmt(page.h)}″, ${r.count} shapes${r.count > MAX_SHAPES ? ", truncated" : ""})`);
+  } catch (err) { if (token === renderToken) setStatus("Render error: " + err.message, true); }
+}
+async function openFile(file) {
+  if (!file) return;
+  if (file.size > MAX_FILE) { setStatus("File is larger than 200 MB; refusing.", true); return; }
+  setStatus("Reading " + file.name + "…");
+  try {
+    const buf = await file.arrayBuffer();
+    if (current) for (const u of current.imageUrls) URL.revokeObjectURL(u);
+    const vd = await loadVsdx(buf);
+    vd.fileName = file.name;
+    current = vd;
+    tabsEl.replaceChildren();
+    const fg = vd.pages.map((p, i) => [p, i]).filter(([p]) => !p.background);
+    const list = fg.length ? fg : vd.pages.map((p, i) => [p, i]);
+    for (const [p, i] of list) {
+      const b = document.createElement("button");
+      b.type = "button"; b.setAttribute("role", "tab"); b.dataset.i = i; b.textContent = p.name;
+      b.onclick = () => showPage(i);
+      tabsEl.appendChild(b);
+    }
+    drop.classList.add("hidden");
+    for (const id of ["fit", "zin", "zout"]) $(id).disabled = false;
+    await showPage(list[0][1]);
+  } catch (err) { console.error(err); setStatus(err.message || String(err), true); }
+}
+$("file").addEventListener("change", e => { openFile(e.target.files[0]); e.target.value = ""; });
+const main = document.querySelector("main");
+main.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("hover"); });
+main.addEventListener("dragleave", () => drop.classList.remove("hover"));
+main.addEventListener("drop", e => { e.preventDefault(); drop.classList.remove("hover"); openFile(e.dataTransfer.files[0]); });
+// Stop the browser from navigating to a file dropped elsewhere on the page.
+window.addEventListener("dragover", e => e.preventDefault());
+window.addEventListener("drop", e => e.preventDefault());
+})();
+</script>
+</body>
+</html>
