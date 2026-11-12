@@ -1,0 +1,823 @@
+<title>Skylight Stereoscope</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+DW+Pica:ital@0;1&family=IM+Fell+DW+Pica+SC&family=Alegreya+Sans:wght@400;500;700&display=swap">
+<style>
+/* Layout: one tall vitrine holding the model, its console directly beneath, then the maker's sheet (decisions, parts, shop notes). */
+:root{
+  --bg:#e6e9e0; --surface:#f2f4ec; --ink:#1b2622; --muted:#56635c; --line:#c6ccbf;
+  --accent:#7d5a12; --accent-ink:#fffaf0; --deep:#1e4a40;
+  --vit-a:#f6f7f1; --vit-b:#c9cfc2;
+  --display:"IM Fell DW Pica","Iowan Old Style","Palatino Linotype",Georgia,serif;
+  --caps:"IM Fell DW Pica SC","IM Fell DW Pica",Georgia,serif;
+  --body:"Alegreya Sans","Gill Sans","Trebuchet MS",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0e1513; --surface:#16201e; --ink:#ece6d6; --muted:#9aa79f; --line:#2b3a36;
+  --accent:#dcb55c; --accent-ink:#1a1408; --deep:#8fc7b6;
+  --vit-a:#2a3a35; --vit-b:#0a0f0e; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0e1513; --surface:#16201e; --ink:#ece6d6; --muted:#9aa79f; --line:#2b3a36;
+  --accent:#dcb55c; --accent-ink:#1a1408; --deep:#8fc7b6;
+  --vit-a:#2a3a35; --vit-b:#0a0f0e; color-scheme:dark }
+
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding-block:28px 64px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:28px}
+h1,h2,h3{font-family:var(--display);font-weight:400;text-wrap:balance;margin:0}
+h1{font-size:clamp(2.1rem,5.2vw,3.5rem);line-height:1.02;letter-spacing:-.01em}
+h2{font-size:1.8rem;line-height:1.1}
+h3{font-family:var(--caps);font-size:1.02rem;letter-spacing:.08em;color:var(--accent)}
+p{margin:0}
+.masthead{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 32px}
+.masthead p{max-width:46ch;color:var(--muted)}
+.masthead em{font-family:var(--display);font-style:italic;color:var(--ink)}
+
+.vitrine{position:relative;border:1px solid var(--line);border-radius:3px;overflow:hidden;
+  height:min(72vh,720px);min-height:420px;background:radial-gradient(120% 90% at 50% 38%,var(--vit-a),var(--vit-b))}
+.vitrine canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+.vitrine canvas:active{cursor:grabbing}
+.views{position:absolute;top:10px;right:10px;display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;max-width:calc(100% - 20px)}
+.chip{font:500 .82rem/1 var(--body);letter-spacing:.02em;padding:.5em .8em;border:1px solid var(--line);border-radius:999px;
+  background:color-mix(in srgb,var(--surface) 86%,transparent);color:var(--ink);cursor:pointer}
+.chip:hover{border-color:var(--accent)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button:focus-visible,input:focus-visible,.row:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.pick{position:absolute;left:10px;bottom:10px;max-width:min(360px,calc(100% - 20px));padding:12px 14px;border:1px solid var(--line);border-radius:3px;
+  background:color-mix(in srgb,var(--surface) 92%,transparent);display:flex;flex-direction:column;gap:6px}
+.pick b{font-family:var(--display);font-weight:400;font-size:1.25rem;line-height:1.1}
+.pick span{color:var(--muted);font-size:.92rem}
+.pick .bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.loading{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--display);font-style:italic;font-size:1.3rem;color:var(--muted)}
+.toast{position:absolute;left:50%;top:12px;transform:translateX(-50%);padding:.5em 1em;border-radius:3px;background:var(--ink);color:var(--bg);font-size:.9rem;max-width:80%}
+
+.console{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:20px 36px;align-items:start}
+@media (max-width:820px){.console{grid-template-columns:minmax(0,1fr)}}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px;counter-reset:s}
+.steps button{counter-increment:s;font:500 .95rem/1 var(--body);padding:.6em .85em;border:1px solid var(--line);border-radius:3px;background:var(--surface);color:var(--ink);cursor:pointer}
+.steps button::before{content:counter(s);font-family:var(--display);margin-right:.55em;color:var(--accent)}
+.steps button[aria-current="step"]{background:var(--deep);border-color:var(--deep);color:var(--bg)}
+.steps button[aria-current="step"]::before{color:inherit}
+.caption{margin-top:14px;font-family:var(--display);font-size:1.3rem;line-height:1.32;max-width:60ch;min-height:5.2em}
+.dials{display:flex;flex-direction:column;gap:14px}
+.dial{display:grid;grid-template-columns:7.2em minmax(0,1fr);gap:4px 12px;align-items:center}
+.dial label{font-family:var(--caps);letter-spacing:.07em;font-size:.95rem}
+.dial output{grid-column:2;color:var(--muted);font-size:.9rem;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.toggles{display:flex;flex-wrap:wrap;gap:6px}
+
+.sheet{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,255px),1fr));gap:26px 32px;border-top:1px solid var(--line);padding-top:26px}
+.sheet article{display:flex;flex-direction:column;gap:8px;min-width:0}
+.sheet p{color:var(--muted)}
+.sheet strong{color:var(--ink);font-weight:500}
+
+.partshead{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;border-top:1px solid var(--line);padding-top:26px}
+.partshead p{color:var(--muted);max-width:62ch}
+.btn{font:700 .9rem/1 var(--body);letter-spacing:.03em;padding:.7em 1em;border-radius:3px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);cursor:pointer;white-space:nowrap}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn[disabled]{opacity:.45;cursor:default}
+.group{display:flex;flex-direction:column}
+.group h3{padding:18px 0 6px}
+.row{display:grid;grid-template-columns:minmax(0,2.3fr) 3em minmax(0,1.5fr) minmax(0,1.5fr) 4.4em;gap:4px 16px;align-items:center;
+  padding:9px 8px;border-top:1px solid var(--line);cursor:pointer;border-radius:2px}
+.row:hover,.row.sel{background:var(--surface)}
+.row.sel{box-shadow:inset 3px 0 0 var(--accent)}
+.row .n{font-weight:500;min-width:0}
+.row .n small{display:block;font-weight:400;color:var(--muted);font-size:.86rem;line-height:1.3}
+.row .q,.row .d{font-variant-numeric:tabular-nums;color:var(--muted);font-size:.92rem}
+.row .m{color:var(--muted);font-size:.92rem}
+.row .a{text-align:right}
+@media (max-width:720px){
+  .row{grid-template-columns:minmax(0,1fr) auto}
+  .row .q{grid-column:2;grid-row:1;text-align:right}
+  .row .m,.row .d{grid-column:1}
+  .row .a{grid-column:2;grid-row:2 / span 2;align-self:end}
+}
+.notes{border-top:1px solid var(--line);padding-top:26px;display:flex;flex-direction:column;gap:12px}
+.notes ul{margin:0;padding-left:1.1em;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:8px 36px;color:var(--muted)}
+.notes li{max-width:62ch}
+.notes b{color:var(--ink);font-weight:500}
+@media (prefers-reduced-motion: reduce){*{scroll-behavior:auto}}
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <h1>Skylight Stereoscope</h1>
+    <p>A Brewster-pattern box viewer for <em>front-lit</em> cards, in half-inch walnut, on a ten-inch pedestal. Drag to turn it; select any part for its size and file.</p>
+  </header>
+
+  <section aria-label="Model">
+    <div class="vitrine" id="vitrine">
+      <canvas id="c" aria-label="Three-dimensional model of the stereoscope"></canvas>
+      <div class="views" role="group" aria-label="Camera">
+        <button class="chip" data-view="hero">Three-quarter</button>
+        <button class="chip" data-view="front">Front glass</button>
+        <button class="chip" data-view="seat">Eye side</button>
+        <button class="chip" data-view="under">Mount</button>
+      </div>
+      <div class="pick" id="pick" hidden>
+        <b id="pick-name"></b><span id="pick-meta"></span>
+        <div class="bar"><button class="btn" id="pick-dl">Download STL</button><button class="chip" id="pick-x">Clear</button></div>
+      </div>
+      <div class="toast" id="toast" hidden></div>
+      <div class="loading" id="loading">Cutting the parts…</div>
+    </div>
+  </section>
+
+  <section class="console" aria-label="Controls">
+    <div>
+      <ol class="steps" id="steps"></ol>
+      <p class="caption" id="caption"></p>
+    </div>
+    <div class="dials">
+      <div class="dial"><label for="r-explode">Disassemble</label><input type="range" id="r-explode" min="0" max="1" step="0.01" value="0"></div>
+      <div class="dial"><label for="r-focus">Focus</label><input type="range" id="r-focus" min="0" max="1" step="0.01" value="0.57"><output id="o-focus" for="r-focus"></output></div>
+      <div class="toggles" role="group" aria-label="State">
+        <button class="chip" id="t-cover" aria-pressed="false">Cover off</button>
+        <button class="chip" id="t-card" aria-pressed="false">Card in</button>
+        <button class="chip" id="t-drawer" aria-pressed="false">Drawer open</button>
+        <button class="chip" id="t-lift" aria-pressed="false">Lifted off</button>
+        <button class="chip" id="t-section" aria-pressed="false">Section</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="sheet" aria-label="Design decisions">
+    <article>
+      <h3>Optics</h3>
+      <p>Your two <strong>38 mm, f 150 mm</strong> lenses sit <strong>78 mm apart</strong>, wider than your eyes. You look through the inner half of each, which draws the two pictures together the way the prism lenses of a Holmes viewer do. The card stands 134 to 148 mm from the lenses, just inside the focal length, so the picture floats between 1.3 m and 11 m away.</p>
+      <p>Each eyepiece turns on a four-start thread, 12 mm to the turn, and they focus separately.</p>
+    </article>
+    <article>
+      <h3>Light</h3>
+      <p>The skylight is a trapezoid of ground glass in the sloping top, tilted <strong>10° toward the card</strong>. A gilded sill at the foot of the card throws light back up to its lower edge; the lit face is turned away from the lenses, so you never see it. Light from above reflects downward off glossy albumen, away from your eyes.</p>
+      <p>A 3 mm septum keeps each eye to its own half, and keeps the two projected pictures apart on the front glass.</p>
+    </article>
+    <article>
+      <h3>Mount</h3>
+      <p>Under the viewer is a walnut socle with a tapered socket. On the capital stands a matching key: <strong>64 × 40 mm at the root, 8° a side, 20 mm tall</strong>. Lower the viewer and it centres itself. Tip it and the key wedges in the socket within about three degrees, so it cannot be knocked off; it leaves only straight up, and a pair of 12 mm magnets holds it against that until you mean it.</p>
+      <p>Off the pedestal the viewer stands level on the socle.</p>
+    </article>
+    <article>
+      <h3>Storage</h3>
+      <p>The drawer pulls toward you and holds <strong>about thirty cards</strong> lying flat, standard or cabinet size, on a ribbon that lifts the stack. The front bay is for cotton gloves and a lens cloth.</p>
+      <p>The cover has its own place: a felt-lined groove on the plinth where it stands at 8°, relief toward you, while you look.</p>
+    </article>
+  </section>
+
+  <section aria-label="Parts and files">
+    <div class="partshead">
+      <div><h2>Parts and files</h2>
+      <p>Every solid is modelled at full size in millimetres and exported lying flat, ready to slice or to send to a router. Files arrive zipped, because this page can only hand over a zip. Sizes below are the bounding box of the part as exported.</p></div>
+      <button class="btn" id="dl-all">Download all parts</button>
+    </div>
+    <div id="parts"></div>
+  </section>
+
+  <section class="notes" aria-label="Shop notes">
+    <h2>Shop notes</h2>
+    <ul>
+      <li><b>Stock.</b> Walnut planed to 12.7 mm. The sides splay 8° in plan and the top falls 10°; every joint is a single bevel, no compound mitres.</li>
+      <li><b>Eyepiece holes.</b> 54 mm (2⅛ in Forstner), 78 mm between centres, 47 mm above the floor.</li>
+      <li><b>Glass.</b> 3 mm ground glass, ground face inward. Front pane <span id="n-front"></span> mm. Skylight is a trapezoid, <span id="n-sky"></span> mm overall; cut it from the file.</li>
+      <li><b>Inside.</b> Blacken the walls, lens board and septum. Gild or silver only the sloping face of the sill.</li>
+      <li><b>Felt.</b> Line both faces of the card slot, the socket, the cover groove and the drawer. In the socket it also takes up the 0.4 mm clearance.</li>
+      <li><b>Magnets.</b> Two 12 × 3 mm discs (key and floor), eight 6 × 3 mm (cover and skylight frame). Check polarity before gluing.</li>
+      <li><b>Pedestal.</b> An M8 rod runs from under the plinth top through the column and capital; the key screws on over the nut. A 6 mm steel plate under the plinth keeps it planted when you lean on the eyecups.</li>
+      <li><b>Printing.</b> Sleeve, barrel and ring print without supports as exported. Threads have 0.25 mm radial clearance; scale the barrel to 99% across X and Y if yours bind.</li>
+      <li><b>Relief.</b> The sunburst is a stand-in for your own panel. The pocket is <span id="n-relief"></span> mm, 4.5 mm deep.</li>
+      <li><b>Cards.</b> The slot takes mounts up to 4 × 7 in, flat or curved. The card overlaps each wall by 3 mm, which is what registers it.</li>
+    </ul>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.147.0/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/environments/RoomEnvironment.js"></script>
+<script>
+(function(){
+'use strict';
+const $=s=>document.querySelector(s);
+const RAD=Math.PI/180, TAU=Math.PI*2, T=12.7;
+const lerp=(a,b,t)=>a+(b-a)*t, clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const smooth=t=>{t=clamp(t,0,1);return t*t*(3-2*t);};
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+/* ───────────── dimensions (mm). Viewer frame: card face at z=0, floor top at y=0, eyes toward +z ───────────── */
+const TH=8*RAD, AL=10*RAD, tan8=Math.tan(TH), cos8=Math.cos(TH), sin8=Math.sin(TH), tan10=Math.tan(AL), cos10=Math.cos(AL), sin10=Math.sin(AL);
+const WX=T/cos8;
+const hwi=z=>86-z*tan8, hwo=z=>hwi(z)+WX, ytop=z=>107-z*tan10;
+const ZF0=-17.7, ZF1=-5, ZW0=1.5, ZL0=111.8, ZL1=124.5;      // front frame faces, wall end, lens board faces
+const LX=39, LY=47;                                           // lens axes
+const ZC=52;                                                  // pedestal axis
+const SOCLE=21, PED=254, VY=PED+SOCLE+T;                      // viewer frame origin above the table
+const PITCH=3, STARTS=4, LEAD=PITCH*STARTS, TD=1.2;           // eyepiece thread
+const Y_FEET=14, Y_BOT=Y_FEET+T, Y_CARC=Y_BOT+52, Y_TOP=Y_CARC+T; // plinth levels: 14, 26.7, 78.7, 91.4
+const Y_CAP=215;
+const GROOVE=[58,73.5];                                       // cover groove, offsets from the pedestal axis
+
+/* ───────────── geometry kernel: triangle soups built from lofts and plates ───────────── */
+class Soup{
+  constructor(){this.a=[];}
+  tri(p,q,r){
+    const ux=q[0]-p[0],uy=q[1]-p[1],uz=q[2]-p[2],vx=r[0]-p[0],vy=r[1]-p[1],vz=r[2]-p[2];
+    const nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;
+    if(nx*nx+ny*ny+nz*nz<1e-14)return;
+    this.a.push(p[0],p[1],p[2],q[0],q[1],q[2],r[0],r[1],r[2]);
+  }
+  quad(a,b,c,d){this.tri(a,b,c);this.tri(a,c,d);}
+  volume(){const a=this.a;let v=0;for(let i=0;i<a.length;i+=9){v+=a[i]*(a[i+4]*a[i+8]-a[i+5]*a[i+7])-a[i+1]*(a[i+3]*a[i+8]-a[i+5]*a[i+6])+a[i+2]*(a[i+3]*a[i+7]-a[i+4]*a[i+6]);}return v/6;}
+  fix(){if(this.volume()<0){const a=this.a;for(let i=0;i<a.length;i+=9){for(let k=0;k<3;k++){const t=a[i+3+k];a[i+3+k]=a[i+6+k];a[i+6+k]=t;}}}return this;}
+  map(f){const a=this.a;for(let i=0;i<a.length;i+=3){const p=f(a[i],a[i+1],a[i+2]);a[i]=p[0];a[i+1]=p[1];a[i+2]=p[2];}return this.fix();}
+}
+function loft(loops,o){
+  o=o||{};const s=new Soup(),L=loops.length,n=loops[0].length,m=o.closed?L:L-1;
+  for(let k=0;k<m;k++){const A=loops[k],B=loops[(k+1)%L];for(let i=0;i<n;i++){const j=(i+1)%n;s.quad(A[i],A[j],B[j],B[i]);}}
+  const cen=l=>{const c=[0,0,0];for(const p of l){c[0]+=p[0];c[1]+=p[1];c[2]+=p[2];}return c.map(v=>v/l.length);};
+  if(o.capA){const A=loops[0],c=cen(A);for(let i=0;i<n;i++)s.tri(c,A[(i+1)%n],A[i]);}
+  if(o.capB){const B=loops[L-1],c=cen(B);for(let i=0;i<n;i++)s.tri(c,B[i],B[(i+1)%n]);}
+  return s.fix();
+}
+const area2=l=>{let s=0;for(let i=0;i<l.length;i++){const p=l[i],q=l[(i+1)%l.length];s+=p[0]*q[1]-q[0]*p[1];}return s/2;};
+const circ2=(r,n,cx,cy)=>Array.from({length:n},(_,i)=>{const a=i/n*TAU;return[(cx||0)+r*Math.cos(a),(cy||0)+r*Math.sin(a)];});
+const rect2=(x0,x1,y0,y1)=>[[x0,y0],[x1,y0],[x1,y1],[x0,y1]];
+function rrect2(w,d,r,k){k=k||5;const pts=[],hx=w/2-r,hy=d/2-r,cs=[[hx,hy,0],[-hx,hy,90],[-hx,-hy,180],[hx,-hy,270]];
+  for(const c of cs)for(let i=0;i<=k;i++){const a=(c[2]+90*i/k)*RAD;pts.push([c[0]+r*Math.cos(a),c[1]+r*Math.sin(a)]);}return pts;}
+function rrPolar(w,d,r,N){const hx=w/2,hy=d/2,out=[];
+  for(let i=0;i<N;i++){const a=i/N*TAU,c=Math.cos(a),s=Math.sin(a);
+    let t=Math.min(hx/Math.max(Math.abs(c),1e-9),hy/Math.max(Math.abs(s),1e-9)),x=t*c,y=t*s;
+    if(Math.abs(x)>hx-r&&Math.abs(y)>hy-r){const ax=Math.sign(c)*(hx-r),ay=Math.sign(s)*(hy-r),b=ax*c+ay*s;t=b+Math.sqrt(Math.max(b*b-(ax*ax+ay*ay)+r*r,0));x=t*c;y=t*s;}
+    out.push([x,y]);}return out;}
+function sqPolar(a,b,n,N,amp,K){const out=[];
+  for(let i=0;i<N;i++){const g=i/N*TAU,c=Math.cos(g),s=Math.sin(g);
+    let r=Math.pow(Math.pow(Math.abs(c/a),n)+Math.pow(Math.abs(s/b),n),-1/n);
+    if(amp)r*=1-amp*(1-Math.pow(Math.abs(Math.cos(K*g/2)),0.7));
+    out.push([r*c,r*s]);}return out;}
+function offsetConvex(loop,d){const n=loop.length,sg=Math.sign(area2(loop)),ln=[];
+  for(let i=0;i<n;i++){const p=loop[i],q=loop[(i+1)%n],dx=q[0]-p[0],dy=q[1]-p[1],L=Math.hypot(dx,dy);ln.push([p[0]-dy/L*sg*d,p[1]+dx/L*sg*d,dx,dy]);}
+  const out=[];for(let i=0;i<n;i++){const a=ln[(i-1+n)%n],b=ln[i],det=a[2]*b[3]-a[3]*b[2],t=((b[0]-a[0])*b[3]-(b[1]-a[1])*b[2])/det;out.push([a[0]+a[2]*t,a[1]+a[3]*t]);}
+  return out;}
+/* plate: stacked outline rings in local (u,v,h), with through holes (optional counterbores) and blind pockets */
+function plate(o){
+  const s=new Soup(),rev=area2(o.rings[0].loop)<0,R=o.rings.map(r=>({h:r.h,loop:rev?r.loop.slice().reverse():r.loop}));
+  const h0=R[0].h,h1=R[R.length-1].h,P=(p,h)=>[p[0],p[1],h],ccw=l=>area2(l)>0?l:l.slice().reverse();
+  for(let k=0;k<R.length-1;k++){const A=R[k],B=R[k+1],n=A.loop.length;for(let i=0;i<n;i++){const j=(i+1)%n;s.quad(P(A.loop[i],A.h),P(A.loop[j],A.h),P(B.loop[j],B.h),P(B.loop[i],B.h));}}
+  const wall=(loop,a,b)=>{const l=ccw(loop),n=l.length;for(let i=0;i<n;i++){const j=(i+1)%n;s.quad(P(l[j],a),P(l[i],a),P(l[i],b),P(l[j],b));}};
+  const cap=(outer,holes,h,up)=>{const V=l=>l.map(p=>new THREE.Vector2(p[0],p[1]));const all=outer.concat.apply(outer,holes);
+    const f=THREE.ShapeUtils.triangulateShape(V(outer),holes.map(V));
+    for(const t of f){const a=all[t[0]],b=all[t[1]],c=all[t[2]],ar=(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);
+      if((ar>0)===up)s.tri(P(a,h),P(b,h),P(c,h));else s.tri(P(a,h),P(c,h),P(b,h));}};
+  const holes=o.holes||[],pk=o.pockets||[];
+  cap(R[0].loop,holes.map(q=>q.bot?q.bot.loop:q.loop).concat(pk.filter(q=>q.side==='bottom').map(q=>q.loop)),h0,false);
+  cap(R[R.length-1].loop,holes.map(q=>q.top?q.top.loop:q.loop).concat(pk.filter(q=>q.side!=='bottom').map(q=>q.loop)),h1,true);
+  for(const q of holes){const a=h0+(q.bot?q.bot.depth:0),b=h1-(q.top?q.top.depth:0);wall(q.loop,a,b);
+    if(q.top){wall(q.top.loop,b,h1);cap(q.top.loop,[q.loop],b,true);}
+    if(q.bot){wall(q.bot.loop,h0,a);cap(q.bot.loop,[q.loop],a,false);}}
+  for(const q of pk){if(q.side==='bottom'){wall(q.loop,h0,h0+q.depth);cap(q.loop,[],h0+q.depth,false);}else{wall(q.loop,h1-q.depth,h1);cap(q.loop,[],h1-q.depth,true);}}
+  return s;
+}
+const box=(x0,x1,y0,y1,z0,z1)=>plate({rings:[{loop:rect2(x0,x1,z0,z1),h:y0},{loop:rect2(x0,x1,z0,z1),h:y1}]}).map((u,v,h)=>[u,h,v]);
+const ring=(rf,z,n)=>Array.from({length:n},(_,i)=>{const a=i/n*TAU,r=typeof rf==='function'?rf(a):rf;return[r*Math.cos(a),r*Math.sin(a),z];});
+function spline(pts,sub){const out=[];const P=i=>pts[clamp(i,0,pts.length-1)];
+  for(let i=0;i<pts.length-1;i++){const p0=P(i-1),p1=P(i),p2=P(i+1),p3=P(i+2);
+    for(let k=0;k<sub;k++){const t=k/sub,t2=t*t,t3=t2*t;out.push([0,1].map(d=>0.5*((2*p1[d])+(-p0[d]+p2[d])*t+(2*p0[d]-5*p1[d]+4*p2[d]-p3[d])*t2+(-p0[d]+3*p1[d]-3*p2[d]+p3[d])*t3)));}}
+  out.push(pts[pts.length-1]);return out;}
+function profile(segs){const out=[];for(const sg of segs){const pts=sg.length>3?spline(sg,6):sg;for(const p of pts){const q=out[out.length-1];if(!q||Math.hypot(q[0]-p[0],q[1]-p[1])>1e-6)out.push(p);}}return out;}
+
+/* ───────────── parts ───────────── */
+const PARTS=[];
+const M4=()=>new THREE.Matrix4();
+const RX=a=>M4().makeRotationX(a), RYm=a=>M4().makeRotationY(a), TR=(x,y,z)=>M4().makeTranslation(x,y,z);
+function part(o){PARTS.push(Object.assign({qty:1,node:'ped',ex:[0,0,0],stl:true,flat:true,grain:[1,0,0]},o));}
+
+function buildParts(){
+  const yz=(u,v,h)=>[u,h,v];                                   // plate lying in plan
+  /* viewer: floor */
+  const floorBase=[[-hwo(ZF0),ZF0],[hwo(ZF0),ZF0],[hwo(ZL1),ZL1],[-hwo(ZL1),ZL1]], floorMax=offsetConvex(floorBase,-5);
+  part({id:'floor',name:'Floor board',group:'Viewer body',mat:'walnut',matLabel:'Walnut, ½ in',node:'viewer',
+    note:'Moulded edge; groove for the septum; magnet pocket underneath.',
+    soup:plate({rings:[[2.6,-T],[1,-11.6],[.2,-10.4],[0,-9],[0,-6.6],[.8,-6.6],[1.2,-5.4],[2,-3.6],[3,-1.6],[3.6,-.4],[3.8,0]].map(p=>({loop:offsetConvex(floorMax,p[0]),h:p[1]})),
+      pockets:[{loop:circ2(6.1,28,0,ZC),depth:3.2,side:'bottom'},{loop:rect2(-1.6,1.6,58,ZL0),depth:2,side:'top'}]}).map(yz)});
+  /* socle with tapered socket */
+  const NP=200, sock=h=>[64.8-2*h*tan8,40.8-2*h*tan8,10.4-h*tan8];
+  const at=(l,y)=>l.map(p=>[p[0],y,ZC+p[1]]);
+  const soOut=[[-33.7,64,44],[-32.5,65,45],[-29.6,65,45],[-29,63.4,43.4],[-27,59.5,39.5],[-24.5,57,37],[-21.5,56,36],[-18.5,56.6,36.6],[-16,58.5,38.5],[-14.2,61,41],[-13.4,62,42],[-12.7,62,42]];
+  const soLoops=soOut.map(q=>at(sqPolar(q[1],q[2],5.5,NP),q[0]));
+  const s21=sock(21),s15=sock(1.5),s0=sock(0);
+  soLoops.push(at(rrPolar(s21[0],s21[1],s21[2],NP),-12.7),at(rrPolar(s15[0],s15[1],s15[2],NP),-32.2),at(rrPolar(s0[0]+3,s0[1]+3,s0[2]+1.5,NP),-33.7));
+  part({id:'socle',name:'Socle',group:'Viewer body',mat:'walnut',matLabel:'Walnut, or printed',node:'viewer',ex:[0,-42,0],flat:false,pre:RX(Math.PI/2),
+    note:'Glued under the floor. Its tapered socket drops over the key on the capital.',soup:loft(soLoops,{closed:true})});
+  /* side walls */
+  const wp=[[ZW0,0],[ZL0,0],[ZL0,ytop(ZL0)],[ZW0,ytop(ZW0)]];for(let i=0;i<=18;i++){const a=(90-180*i/18)*RAD;wp.push([ZW0+11*Math.cos(a),50+11*Math.sin(a)]);}
+  const wallPlate=()=>plate({rings:[{loop:wp,h:0},{loop:wp,h:T}]});
+  part({id:'wall-r',name:'Side wall, right',group:'Viewer body',mat:'walnut',matLabel:'Walnut, ½ in',node:'viewer',ex:[78,0,0],grain:[0,0,1],pre:RYm(TH),
+    note:'Ends cut square to the axis; top edge falls 10°. Finger notch at the card slot.',soup:wallPlate().map((u,v,h)=>[hwi(u)+h/T*WX,v,u])});
+  part({id:'wall-l',name:'Side wall, left',group:'Viewer body',mat:'walnut',matLabel:'Walnut, ½ in',node:'viewer',ex:[-78,0,0],grain:[0,0,1],pre:RYm(-TH),
+    note:'Mirror of the right wall.',soup:wallPlate().map((u,v,h)=>[-(hwi(u)+h/T*WX),v,u])});
+  /* lens board */
+  part({id:'lens-board',name:'Lens board',group:'Viewer body',mat:'walnut',matLabel:'Walnut, ½ in',node:'viewer',ex:[0,0,58],
+    note:'Two 54 mm holes at 78 mm centres. Ends bevelled 8°, top 10°.',
+    soup:plate({rings:[{loop:rect2(-hwo(ZL0),hwo(ZL0),0,ytop(ZL0)),h:0},{loop:rect2(-hwo(ZL1),hwo(ZL1),0,ytop(ZL1)),h:T}],
+      holes:[{loop:circ2(27,72,-LX,LY)},{loop:circ2(27,72,LX,LY)}]}).map((u,v,h)=>[u,v,ZL0+h])});
+  /* front frame, glass, slip */
+  const fSight=rect2(-78,78,10,92), fReb=rect2(-83,83,5,97);
+  part({id:'front-frame',name:'Front frame',group:'Viewer body',mat:'walnut',matLabel:'Walnut, ½ in',node:'viewer',ex:[0,0,-52],
+    note:'Rebated from outside for the front glass. Its inner face is the back of the card slot.',
+    soup:plate({rings:[{loop:rect2(-hwo(ZF0),hwo(ZF0),0,ytop(ZF0)),h:0},{loop:rect2(-hwo(ZF1),hwo(ZF1),0,ytop(ZF1)),h:T}],
+      holes:[{loop:fSight,bot:{loop:fReb,depth:9}}]}).map((u,v,h)=>[u,v,ZF0+h])});
+  part({id:'front-glass',name:'Front ground glass',group:'Skylight and glazing',mat:'glass',matLabel:'Ground glass, 3 mm',node:'viewer',ex:[0,0,-82],uvPlanar:true,
+    note:'Cutting template. Ground face inward.',
+    soup:plate({rings:[{loop:rect2(-82.6,82.6,5.4,96.6),h:6},{loop:rect2(-82.6,82.6,5.4,96.6),h:9}]}).map((u,v,h)=>[u,v,ZF0+h])});
+  const slipSec=[[0,6],[0,-.5],[.6,-1.2],[1.4,-1.5],[2.4,-1.5],[3.2,-1.1],[3.6,-.3],[3.6,.5],[4.3,1.2],[5,1.6],[5,6]];
+  part({id:'front-slip',name:'Front glazing slip',group:'Skylight and glazing',mat:'gilt',matLabel:'Printed or wood, gilded',node:'viewer',ex:[0,0,-108],
+    note:'Bead that holds the front glass. Pin or glue into the rebate.',
+    soup:loft(slipSec.map(q=>offsetConvex(rect2(-82.7,82.7,5.3,96.7),q[0]).map(p=>[p[0],p[1],ZF0+q[1]])),{closed:true})});
+  /* sloping top: frame, glass, slip, cover, relief */
+  const SL=(u,v,h)=>[u,107-v*sin10+h*cos10,v*cos10+h*sin10], vOf=(z,h)=>(z-h*sin10)/cos10;
+  const topRing=h=>[[-hwo(ZF0),vOf(ZF0,h)],[hwo(ZF0),vOf(ZF0,h)],[hwo(ZL1),vOf(ZL1,h)],[-hwo(ZL1),vOf(ZL1,h)]];
+  const win=[[-(hwi(4)-7),vOf(4,0)],[hwi(4)-7,vOf(4,0)],[hwi(96)-7,vOf(96,0)],[-(hwi(96)-7),vOf(96,0)]], reb=offsetConvex(win,-6);
+  const mags=[[-52,-11],[52,-11],[-52,114],[52,114]];
+  part({id:'sky-frame',name:'Skylight frame',group:'Viewer body',mat:'walnut',matLabel:'Walnut, ½ in',node:'viewer',ex:[0,62,0],pre:RX(-AL),
+    note:'The sloping top. Rebated for the skylight glass; four magnet pockets.',
+    soup:plate({rings:[{loop:topRing(0),h:0},{loop:topRing(T),h:T}],holes:[{loop:win,top:{loop:reb,depth:9}}],
+      pockets:mags.map(m=>({loop:circ2(3.1,16,m[0],m[1]),depth:3.2,side:'top'}))}).map(SL)});
+  part({id:'sky-glass',name:'Skylight ground glass',group:'Skylight and glazing',mat:'glass',matLabel:'Ground glass, 3 mm',node:'viewer',ex:[0,92,0],pre:RX(-AL),
+    note:'Trapezoid cutting template. Ground face down.',
+    soup:plate({rings:[{loop:offsetConvex(reb,.5),h:3.7},{loop:offsetConvex(reb,.5),h:6.7}]}).map(SL)});
+  const skySec=[[0,6.7],[0,14.2],[.5,14.9],[1.3,15.2],[2.4,15.2],[3.2,14.8],[3.6,14],[3.6,13.2],[4.4,12.4],[5.4,11.9],[6,11.6],[6,6.7]];
+  part({id:'sky-slip',name:'Skylight glazing slip',group:'Skylight and glazing',mat:'gilt',matLabel:'Printed or wood, gilded',node:'viewer',ex:[0,118,0],pre:RX(-AL),
+    note:'Stands 2.5 mm proud of the frame: the cover locates on it.',
+    soup:loft(skySec.map(q=>offsetConvex(reb,.3+q[0]).map(p=>SL(p[0],p[1],q[1]))),{closed:true})});
+  const covOut=offsetConvex(topRing(T),-3), relPocket=offsetConvex(covOut,16);
+  part({id:'cover',name:'Cover',group:'Cover',mat:'walnut',matLabel:'Walnut, ½ in',node:'cover',ex:[0,172,0],pre:RX(-AL),
+    note:'Ogee edge, pocket for the relief, recess underneath that drops over the skylight slip.',
+    soup:plate({rings:[[1,0],[0,1],[0,5.2],[.9,5.2],[1.2,6.6],[2.1,8.3],[3.6,9.9],[5.4,11],[6.6,11.6],[6.9,12.1],[7.4,12.7]].map(p=>({loop:offsetConvex(covOut,p[0]),h:T+p[1]})),
+      pockets:[{loop:relPocket,depth:4.5,side:'top'},{loop:offsetConvex(reb,-.5),depth:3,side:'bottom'}].concat(mags.map(m=>({loop:circ2(3.1,16,m[0],m[1]),depth:3.2,side:'bottom'})))}).map(SL)});
+  const relLoop=offsetConvex(relPocket,.3);
+  part({id:'relief',name:'Bas-relief panel',group:'Cover',mat:'gilt',matLabel:'Cast, carved or printed; gilded',node:'cover',ex:[0,214,0],pre:RX(-AL),crease:50,
+    note:'Sunburst stand-in for your own relief. Sits 1 mm proud of the walnut.',
+    soup:reliefPanel(relLoop,2*T-4.5,2,sunRelief(relLoop),230,170).map(SL)});
+  DIM.relief=relPocket; DIM.coverNear=covOut[2][1];
+  /* inside the box */
+  part({id:'septum',name:'Septum',group:'Viewer body',mat:'black',matLabel:'Plywood 3 mm, blackened',node:'viewer',ex:[0,30,0],
+    note:'Stands in the floor groove, butts the lens board.',
+    soup:plate({rings:[0,3].map(h=>({loop:[[58,-2],[ZL0,-2],[ZL0,ytop(ZL0)-1],[58,ytop(58)-1]],h}))}).map((u,v,h)=>[h-1.5,v,u])});
+  part({id:'sill',name:'Light sill',group:'Viewer body',mat:'sill',matLabel:'Wood or printed; sloping face gilded',node:'viewer',ex:[0,16,0],
+    note:'Bounces skylight onto the foot of the card. Lit face hidden from the lenses.',
+    soup:plate({rings:[0,160].map(h=>({loop:[[5,0],[30,0],[30,9]],h}))}).map((u,v,h)=>[h-80,v,u])});
+  /* eyepieces (canonical: axis z, z=0 at the outer face of the lens board for the sleeve, at the shoulder for the barrel) */
+  const NT=168, trap=(p,crest)=>{p-=Math.floor(p);const d=Math.min(p,1-p),hc=crest/2;return d<=hc?1:d>=hc+.4?0:1-(d-hc)/.4;};
+  const fade=(z,a,b)=>smooth((z-a)/1.5)*smooth((b-z)/1.5);
+  const sl=[];[[26.2,-12.7],[26.8,-12.1],[26.8,0],[34,0],[34,2],[31,5],[24.3,5]].forEach(q=>sl.push(ring(q[0],q[1],NT)));
+  for(let z=5;z>=-12.7-1e-6;z-=.295)sl.push(ring(a=>23.95-TD*(1-trap(z/PITCH-STARTS*a/TAU,.16))*fade(z,-12.7,5),z,NT));
+  const sleeveEx=i=>[0,0,98];
+  part({id:'sleeve',name:'Eyepiece sleeve',group:'Eyepieces',mat:'gilt',matLabel:'Printed, gilded',node:'viewer',qty:2,ex:sleeveEx,flat:false,pre:RX(Math.PI),crease:40,
+    inst:[TR(-LX,LY,ZL1),TR(LX,LY,ZL1)],note:'Flanged bush with the internal thread. Press into the lens board; three small screws through the flange if you like.',
+    soup:loft(sl,{closed:true})});
+  const br=[];
+  for(let z=-26;z<=-1.2+1e-6;z+=.31)br.push(ring(a=>22.5+TD*trap(z/PITCH-STARTS*a/TAU,.1)*fade(z,-26,-1.2),z,NT));
+  br.push(ring(22.5,0,NT),ring(25.2,0,NT),ring(25.8,.6,NT));
+  for(let z=.9;z<=12.4+1e-6;z+=.5){const w=smooth((z-.6)/1.9)*smooth((12.4-z)/1.9);br.push(ring(a=>25.8-.9*w*(1-Math.pow(Math.abs(Math.cos(12*a)),.7)),z,NT));}
+  [[25.8,13.2],[25.2,14],[24.4,14],[17.25,6.85],[17.25,5],[19.2,5],[19.2,3],[19.6,3],[19.6,.3],[20.5,-26]].forEach(q=>br.push(ring(q[0],q[1],NT)));
+  part({id:'barrel',name:'Eyepiece barrel',group:'Eyepieces',mat:'gilt',matLabel:'Printed, gilded',node:'barrel',qty:2,ex:[0,0,48],flat:false,pre:RX(Math.PI),crease:40,
+    note:'Gadrooned eyecup, lens seat and focusing thread in one piece. Prints rim down.',soup:loft(br,{closed:true})});
+  part({id:'ring',name:'Lens retaining ring',group:'Eyepieces',mat:'gilt',matLabel:'Printed',node:'barrel',qty:2,ex:[0,0,-12],flat:false,
+    note:'Presses in behind the lens from the card side.',
+    soup:loft([[19.2,.4],[19.55,.8],[19.55,2.9],[19.3,3],[18,3],[18,.4]].map(q=>ring(q[0],q[1],72)),{closed:true})});
+  const Rl=155, sag=r=>Rl-Math.sqrt(Rl*Rl-r*r), hc=1+sag(19), ll=[];
+  for(let k=0;k<=12;k++){const r=19*k/12;ll.push(ring(r,4+hc-sag(r),64));}
+  for(let k=12;k>=0;k--){const r=19*k/12;ll.push(ring(r,4-hc+sag(r),64));}
+  part({id:'lens',name:'Lens, 38 mm biconvex, f 150',group:'Eyepieces',mat:'lens',matLabel:'Supplied (yours)',node:'barrel',qty:2,ex:[0,0,16],stl:false,crease:80,
+    note:'The pair you already have.',soup:loft(ll)});
+  /* pedestal (x, height above the table, viewer z) */
+  const sp=h=>[64-2*h*tan8,40-2*h*tan8,10-h*tan8], sp18=sp(18);
+  part({id:'key',name:'Key',group:'Pedestal',mat:'gilt',matLabel:'Hardwood, brass or printed',ex:[0,150,0],flat:false,pre:RX(Math.PI/2),
+    note:'The tapered tenon the viewer drops onto. Two screws into the capital; magnet in the top.',
+    soup:plate({rings:[{loop:rrect2(64,40,10,12),h:0},{loop:rrect2(sp18[0],sp18[1],sp18[2],12),h:18},{loop:rrect2(sp18[0]-4,sp18[1]-4,sp18[2]-2,12),h:20}],
+      pockets:[{loop:circ2(6.1,28),depth:3.2,side:'top'}],
+      holes:[-20,20].map(x=>({loop:circ2(1.8,14,x,0),top:{loop:circ2(3.6,14,x,0),depth:2.5}}))}).map((u,v,h)=>[u,PED+h,ZC+v])});
+  const cl=[],cAt=(l,y)=>l.map(p=>[p[0],y,ZC+p[1]]);
+  [[215,15],[215.6,16.4],[216.4,16.8],[217.2,16.4],[217.8,15],[218.3,13.5],[219,13]].forEach(q=>cl.push(cAt(sqPolar(q[1],q[1],2,NP),q[0])));
+  for(let k=1;k<=30;k++){const s=k/30,f=Math.pow(s,1.7);cl.push(cAt(sqPolar(13+48*f,13+28*f,2+3.5*smooth(s),NP,.07*Math.pow(Math.sin(Math.PI*s),1.2),20),219+27*s));}
+  [[246.4,63,43],[247.4,65,45],[252.8,65,45],[254,64,44]].forEach(q=>cl.push(cAt(sqPolar(q[1],q[2],5.5,NP),q[0])));
+  [[254,10],[246,10],[246,4.4],[215,4.4]].forEach(q=>cl.push(cAt(sqPolar(q[1],q[1],2,NP),q[0])));
+  part({id:'capital',name:'Capital',group:'Pedestal',mat:'gilt',matLabel:'Cast, carved or printed; gilded',ex:[0,118,0],flat:false,pre:RX(-Math.PI/2),crease:40,
+    note:'Flares from the column to the seat. Pocket on top for the tie-rod nut.',soup:loft(cl,{closed:true})});
+  const cp=profile([[[37,Y_TOP],[37,94.6]],[[37,94.6],[39.4,96.6],[39.4,99],[37,101]],[[37,101],[34,101.6]],[[34,101.6],[29.5,103.6],[27,107],[27.4,110]],[[27.4,110],[29.5,110.6]],
+    [[29.5,110.6],[31.5,112.2],[31.5,114],[29.5,115.6]],[[29.5,115.6],[24,116.4]],
+    [[24,116.4],[19,118.5],[16.5,121.5],[17.5,125],[22,130],[26,136.5],[27.5,143],[26.2,150],[22.8,159],[18.6,169],[15,179],[12.6,189],[11.4,198],[11.2,204]],
+    [[11.2,204],[13.5,204.6]],[[13.5,204.6],[15.6,206],[15.6,207.6],[13.5,209]],[[13.5,209],[12,209.6]],[[12,209.6],[12,212.5]],[[12,212.5],[14.5,213.2]],[[14.5,213.2],[15,Y_CAP]]]);
+  const colLoops=cp.map(q=>{const w=smooth((q[1]-123)/8)*smooth((160-q[1])/10);return ring(a=>q[0]*(1-.06*w*(1-Math.pow(Math.abs(Math.cos(6*a)),.7))),q[1],120);});
+  colLoops.push(ring(4.4,Y_CAP,120),ring(4.4,Y_TOP,120));
+  part({id:'column',name:'Column',group:'Pedestal',mat:'gilt',matLabel:'Turned, cast or printed; gilded',ex:[0,82,0],flat:false,pre:RX(Math.PI/2),crease:40,
+    note:'Plain baluster standing in for your sculpted one. Bored 8.8 mm for the tie rod.',soup:loft(colLoops,{closed:true}).map((x,y,z)=>[x,z,ZC+y])});
+  const PW=236,PD=196, pl=d=>rrect2(PW-2*d,PD-2*d,Math.max(3-d,.4));
+  const ogee=[[4.5,0],[4.2,1],[3,2.4],[1.4,3.4],[.4,4.6],[0,6],[0,9.2],[.7,9.2],[1,10.4],[1.8,11.6],[3.2,12.4],[4,12.7]];
+  part({id:'plinth-top',name:'Plinth top',group:'Pedestal',mat:'walnut',matLabel:'Walnut, ½ in',ex:[0,50,0],
+    note:'Bored for the tie rod, counterbored below for the nut. The groove is where the cover stands.',
+    soup:plate({rings:ogee.map(p=>({loop:pl(p[0]),h:p[1]})),holes:[{loop:circ2(4.4,24),bot:{loop:circ2(11,32),depth:6}}],
+      pockets:[{loop:rect2(-91,91,GROOVE[0],GROOVE[1]),depth:9,side:'top'}]}).map((u,v,h)=>[u,Y_CARC+h,ZC+v])});
+  part({id:'plinth-bottom',name:'Plinth bottom',group:'Pedestal',mat:'walnut',matLabel:'Walnut, ½ in',ex:[0,8,0],
+    note:'The drawer runs on it.',
+    soup:plate({rings:ogee.map(p=>({loop:pl(p[0]),h:T-p[1]})).reverse()}).map((u,v,h)=>[u,Y_FEET+h,ZC+v])});
+  const CW=112,CD=92;
+  part({id:'plinth-side',name:'Plinth side',group:'Pedestal',mat:'walnut',matLabel:'Walnut, ½ in',qty:2,grain:[0,0,1],ex:i=>[i?48:-48,24,0],
+    inst:[TR(-CW,0,0),TR(CW-T,0,0)],soup:box(0,T,Y_BOT,Y_CARC,ZC-CD,ZC+CD)});
+  part({id:'plinth-back',name:'Plinth back',group:'Pedestal',mat:'walnut',matLabel:'Walnut, ½ in',ex:[0,24,-48],
+    soup:box(-(CW-T),CW-T,Y_BOT,Y_CARC,ZC-CD,ZC-CD+T)});
+  const foot=profile([[[0,14],[11,14]],[[11,14],[11,12.4]],[[11,12.4],[8.6,11.8]],[[8.6,11.8],[8.6,11]],[[8.6,11],[12.5,10.2],[15.4,8],[16,5.6],[15,3],[12,1],[8,0]],[[8,0],[0,0]]]);
+  part({id:'foot',name:'Bun foot',group:'Pedestal',mat:'gilt',matLabel:'Turned or printed; gilded',qty:4,flat:false,pre:RX(-Math.PI/2),crease:40,
+    inst:[[-1,-1],[1,-1],[-1,1],[1,1]].map(s=>TR(s[0]*96,0,ZC+s[1]*76)),soup:loft(foot.map(q=>ring(q[0],q[1],48))).map((x,y,z)=>[x,z,y])});
+  part({id:'rod',name:'Tie rod, M8 × 180',group:'Hardware',mat:'steel',matLabel:'Supplied',stl:false,ex:[0,60,0],
+    note:'Threaded rod with two nuts and washers.',soup:loft([ring(4,72,24),ring(4,252,24)],{capA:true,capB:true}).map((x,y,z)=>[x,z,ZC+y])});
+  part({id:'ballast',name:'Ballast plate, 190 × 150 × 6',group:'Hardware',mat:'steel',matLabel:'Steel, supplied',stl:false,
+    note:'Screwed under the plinth, between the feet.',soup:box(-95,95,8,14,ZC-75,ZC+75)});
+  /* drawer */
+  const DH=98.8,DI=92.45,zF=ZC+CD,zB=ZC-77.05,zFi=zF-T;
+  part({id:'drawer-front',name:'Drawer front',group:'Drawer',mat:'walnut',matLabel:'Walnut, ½ in',node:'drawer',ex:[0,0,30],
+    soup:box(-DH,DH,Y_BOT+.5,Y_CARC-.5,zFi,zF)});
+  part({id:'drawer-side',name:'Drawer side',group:'Drawer',mat:'walnut',matLabel:'Walnut, ¼ in',node:'drawer',qty:2,grain:[0,0,1],ex:i=>[i?24:-24,0,0],
+    inst:[TR(-DH,0,0),TR(DI,0,0)],soup:box(0,DH-DI,Y_BOT+3.7,Y_CARC-3.5,zB,zFi)});
+  part({id:'drawer-back',name:'Drawer back',group:'Drawer',mat:'walnut',matLabel:'Walnut, ¼ in',node:'drawer',ex:[0,0,-24],
+    soup:box(-DI,DI,Y_BOT+3.7,Y_CARC-3.5,zB,zB+6.35)});
+  part({id:'drawer-bottom',name:'Drawer bottom',group:'Drawer',mat:'walnut',matLabel:'Plywood, ⅛ in',node:'drawer',ex:[0,-12,0],
+    soup:box(-DH,DH,Y_BOT+.5,Y_BOT+3.7,zB,zFi)});
+  part({id:'drawer-divider',name:'Drawer divider',group:'Drawer',mat:'walnut',matLabel:'Walnut, 4 mm',node:'drawer',ex:[0,30,0],
+    note:'Cards behind it, gloves and cloth in front.',soup:box(-DI,DI,Y_BOT+3.7,Y_BOT+36,zFi-32,zFi-28)});
+  const knob=[[0,0],[4,0],[4,3],[6,4.5],[8.5,7.5],[9,10],[8,12.5],[5,14],[0,14.5]];
+  part({id:'knob',name:'Drawer knob',group:'Drawer',mat:'gilt',matLabel:'Turned or printed; gilded',node:'drawer',ex:[0,0,56],flat:false,crease:40,
+    inst:[TR(0,(Y_BOT+Y_CARC)/2,zF)],soup:loft(knob.map(q=>ring(q[0],q[1],40)))});
+  /* magnets */
+  const disc=(r,h)=>loft([ring(r,0,24),ring(r,h,24)],{capA:true,capB:true}).map((x,y,z)=>[x,z,y]);
+  part({id:'magnet-12',name:'Magnet, 12 × 3 mm',group:'Hardware',mat:'steel',matLabel:'Supplied',stl:false,qty:2,node:'ped',
+    ex:[0,164,0],inst:[TR(0,PED+16.9,ZC)],note:'One in the key, one in the floor.',soup:disc(6,3)});
+  part({id:'magnet-12b',hidden:true,name:'',group:'Hardware',mat:'steel',stl:false,node:'viewer',ex:[0,-20,0],inst:[TR(0,-T,ZC)],soup:disc(6,3)});
+  part({id:'magnet-6',name:'Magnet, 6 × 3 mm',group:'Hardware',mat:'steel',matLabel:'Supplied',stl:false,qty:8,node:'viewer',ex:[0,62,0],
+    inst:mags.map(m=>{const p=SL(m[0],m[1],T-3.1);return TR(p[0],p[1],p[2]).multiply(RX(AL));}),note:'Four in the skylight frame, four in the cover.',soup:disc(3,3)});
+}
+const DIM={};
+
+/* bas-relief: heightfield over a trapezoid */
+function reliefPanel(loop,h0,base,fn,nu,nv){
+  const s=new Soup(),L=(a,b,t)=>[lerp(a[0],b[0],t),lerp(a[1],b[1],t)];
+  const pt=(i,j)=>{const a=L(loop[0],loop[1],i/nu),b=L(loop[3],loop[2],i/nu),p=L(a,b,j/nv);return[p[0],p[1],h0+base+fn(p[0],p[1])];};
+  const G=[];for(let j=0;j<=nv;j++){G.push([]);for(let i=0;i<=nu;i++)G[j].push(pt(i,j));}
+  const up=(a,b,c)=>{const ar=(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);if(ar>0)s.tri(a,b,c);else s.tri(a,c,b);};
+  for(let j=0;j<nv;j++)for(let i=0;i<nu;i++){const a=G[j][i],b=G[j][i+1],c=G[j+1][i+1],d=G[j+1][i];
+    if(Math.abs(a[2]-c[2])<Math.abs(b[2]-d[2])){up(a,b,c);up(a,c,d);}else{up(a,b,d);up(b,c,d);}}
+  const B=[];for(let i=0;i<=nu;i++)B.push(G[0][i]);for(let j=1;j<=nv;j++)B.push(G[j][nu]);for(let i=nu-1;i>=0;i--)B.push(G[nv][i]);for(let j=nv-1;j>=1;j--)B.push(G[j][0]);
+  const ccw=area2(B)>0,n=B.length,c=[0,0,h0];for(const p of B){c[0]+=p[0]/n;c[1]+=p[1]/n;}
+  for(let i=0;i<n;i++){const p=B[i],q=B[(i+1)%n],pb=[p[0],p[1],h0],qb=[q[0],q[1],h0];
+    if(ccw){s.quad(pb,qb,q,p);s.tri(c,qb,pb);}else{s.quad(qb,pb,p,q);s.tri(c,pb,qb);}}
+  return s;
+}
+function sunRelief(loop){
+  const n=loop.length,sg=Math.sign(area2(loop)),cx=loop.reduce((s,p)=>s+p[0],0)/n,cy=loop.reduce((s,p)=>s+p[1],0)/n;
+  const E=loop.map((p,i)=>{const q=loop[(i+1)%n],dx=q[0]-p[0],dy=q[1]-p[1],L=Math.hypot(dx,dy);return{p,tx:dx/L,ty:dy/L,nx:-dy/L*sg,ny:dx/L*sg,L};});
+  const rb=g=>{const c=Math.cos(g),s=Math.sin(g);let t=1e9;for(const e of E){const den=-(c*e.nx+s*e.ny);if(den>1e-6){const d=(cx-e.p[0])*e.nx+(cy-e.p[1])*e.ny-10.5;t=Math.min(t,d/den);}}return t;};
+  const ros=loop.map((p,i)=>{const a=E[(i-1+n)%n],b=E[i];return[p[0]+(a.nx+b.nx)*15,p[1]+(a.ny+b.ny)*15];});
+  const ray=(r,g,count,off,lenF,w0,H,wave)=>{const st=TAU/count,k=Math.round((g-off)/st),g0=k*st+off,dl=g-g0,L=rb(g0)*lenF;
+    const a=r*Math.cos(dl);let l=r*Math.sin(dl);const s=(a-19.5)/(L-19.5);if(s<=0||s>=1)return 0;
+    if(wave)l-=wave*Math.sin(s*TAU*2.2)*(1-s*.5);
+    const w=w0*Math.pow(1-s,.9)+.25;l=Math.abs(l);return l<w?(H*Math.pow(1-s,.5)+.25)*(1-l/w):0;};
+  return(u,v)=>{
+    let d1=1e9,d2=1e9,e1=null;for(const e of E){const d=(u-e.p[0])*e.nx+(v-e.p[1])*e.ny;if(d<d1){d2=d1;d1=d;e1=e;}else if(d<d2)d2=d;}
+    if(d1<6.2){if(d1<.8)return .4;if(d1<5)return .5+1.7*Math.pow(Math.sin(Math.PI*(d1-.8)/4.2),.8);return 1;}
+    let h=.3;
+    if(d1<10.6&&d2>9){const a=(u-e1.p[0])*e1.tx+(v-e1.p[1])*e1.ty,da=((a%4.4)+4.4)%4.4-2.2,rr=Math.hypot(da,d1-8.5);if(rr<1.75)h=Math.max(h,.3+1.4*Math.sqrt(1-rr*rr/3.0625));}
+    const x=u-cx,y=v-cy,r=Math.hypot(x,y),g=Math.atan2(y,x);
+    if(r<16.5)h=Math.max(h,.9+2.9*Math.sqrt(Math.max(0,1-r*r/272.25)));
+    else if(r<19.5)h=Math.max(h,1.1+1.2*Math.sin(Math.PI*(r-16.5)/3));
+    else if(d1>10.4){
+      h=Math.max(h,ray(r,g,8,0,.98,3.5,2.4,0),ray(r,g,8,TAU/16,.8,3.3,2.1,1.5),ray(r,g,16,TAU/32,.56,1.5,1.1,0));
+    }
+    for(const c of ros){const dx=u-c[0],dy=v-c[1],q=Math.hypot(dx,dy);if(q<6.5){const pe=.65+.35*Math.cos(6*Math.atan2(dy,dx));h=Math.max(h,.3+1.7*(1-q*q/42.25)*pe,q<1.8?2.1*Math.sqrt(1-q*q/3.6):0);}}
+    return h;
+  };
+}
+
+/* ───────────── meshes ───────────── */
+function creaseNormals(pos,deg){
+  const nv=pos.length/3,nt=nv/3,cosT=Math.cos(deg*RAD);let size=1;while(size<nv*2)size<<=1;
+  const tab=new Int32Array(size).fill(-1),ids=new Int32Array(nv),q=new Int32Array(nv*3);let count=0;
+  for(let i=0;i<nv;i++){const x=Math.round(pos[3*i]*100),y=Math.round(pos[3*i+1]*100),z=Math.round(pos[3*i+2]*100);q[3*i]=x;q[3*i+1]=y;q[3*i+2]=z;
+    let h=(Math.imul(x,73856093)^Math.imul(y,19349663)^Math.imul(z,83492791))&(size-1);
+    for(;;){const j=tab[h];if(j<0){tab[h]=i;ids[i]=count++;break;}if(q[3*j]===x&&q[3*j+1]===y&&q[3*j+2]===z){ids[i]=ids[j];break;}h=(h+1)&(size-1);}}
+  const fa=new Float32Array(nt*3),fu=new Float32Array(nt*3);
+  for(let t=0;t<nt;t++){const o=t*9,ux=pos[o+3]-pos[o],uy=pos[o+4]-pos[o+1],uz=pos[o+5]-pos[o+2],vx=pos[o+6]-pos[o],vy=pos[o+7]-pos[o+1],vz=pos[o+8]-pos[o+2];
+    const nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx,l=Math.hypot(nx,ny,nz)||1;fa[3*t]=nx;fa[3*t+1]=ny;fa[3*t+2]=nz;fu[3*t]=nx/l;fu[3*t+1]=ny/l;fu[3*t+2]=nz/l;}
+  const start=new Int32Array(count+1);for(let i=0;i<nv;i++)start[ids[i]+1]++;for(let i=0;i<count;i++)start[i+1]+=start[i];
+  const fill=start.slice(0,count),adj=new Int32Array(nv);for(let i=0;i<nv;i++)adj[fill[ids[i]]++]=(i/3)|0;
+  const nor=new Float32Array(nv*3);
+  for(let i=0;i<nv;i++){const t=(i/3)|0,id=ids[i];let x=0,y=0,z=0;
+    for(let k=start[id];k<start[id+1];k++){const u=adj[k];if(fu[3*u]*fu[3*t]+fu[3*u+1]*fu[3*t+1]+fu[3*u+2]*fu[3*t+2]>cosT){x+=fa[3*u];y+=fa[3*u+1];z+=fa[3*u+2];}}
+    const l=Math.hypot(x,y,z)||1;nor[3*i]=x/l;nor[3*i+1]=y/l;nor[3*i+2]=z/l;}
+  return nor;
+}
+function grainUV(pos,g,seed){
+  const nv=pos.length/3,uv=new Float32Array(nv*2),rnd=mulberry32(seed),ou=rnd(),ov=rnd();
+  const G=new THREE.Vector3(g[0],g[1],g[2]),A=new THREE.Vector3(),B=new THREE.Vector3(),N=new THREE.Vector3(),W=new THREE.Vector3(),P=new THREE.Vector3();
+  for(let t=0;t<nv/3;t++){const o=t*9;A.set(pos[o+3]-pos[o],pos[o+4]-pos[o+1],pos[o+5]-pos[o+2]);B.set(pos[o+6]-pos[o],pos[o+7]-pos[o+1],pos[o+8]-pos[o+2]);N.crossVectors(A,B).normalize();
+    W.crossVectors(N,G);const end=W.length()<.35;
+    if(end){W.set(Math.abs(G.x)<.9?1:0,Math.abs(G.x)<.9?0:1,0).cross(G).normalize();A.crossVectors(G,W);}else W.normalize();
+    for(let k=0;k<3;k++){P.set(pos[o+3*k],pos[o+3*k+1],pos[o+3*k+2]);const i=(t*3+k)*2;
+      if(end){uv[i]=P.dot(W)/60+ou;uv[i+1]=P.dot(A)/300+ov;}else{uv[i]=P.dot(G)/300+ou;uv[i+1]=P.dot(W)/300+ov;}}}
+  return uv;
+}
+function walnutTexture(){
+  const W=1024,H=1024,c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d'),rnd=mulberry32(11);
+  g.fillStyle='#4f3120';g.fillRect(0,0,W,H);
+  const line=(y0,lw,style)=>{const k1=1+Math.floor(rnd()*2),k2=2+Math.floor(rnd()*4),a1=4+rnd()*14,a2=rnd()*5,p1=rnd()*TAU,p2=rnd()*TAU;
+    g.lineWidth=lw;g.strokeStyle=style;for(const o of[-H,0,H]){g.beginPath();for(let x=-8;x<=W+8;x+=8){const y=y0+o+a1*Math.sin(TAU*k1*x/W+p1)+a2*Math.sin(TAU*k2*x/W+p2);if(x<0)g.moveTo(x,y);else g.lineTo(x,y);}g.stroke();}};
+  for(let i=0;i<46;i++){const dark=rnd()<.55;line(rnd()*H,10+rnd()*70,dark?`rgba(26,13,7,${.06+rnd()*.15})`:`rgba(140,96,58,${.04+rnd()*.09})`);}
+  for(let i=0;i<620;i++){const dark=rnd()<.72;line(rnd()*H,.5+rnd()*1.6,dark?`rgba(22,10,5,${.07+rnd()*.22})`:`rgba(170,124,80,${.05+rnd()*.11})`);}
+  g.strokeStyle='rgba(24,12,6,.22)';g.lineWidth=.8;for(let i=0;i<5200;i++){const x=rnd()*W,y=rnd()*H,l=3+rnd()*12;g.beginPath();g.moveTo(x,y);g.lineTo(x+l,y+(rnd()-.5));g.stroke();}
+  const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.encoding=THREE.sRGBEncoding;t.anisotropy=8;return t;
+}
+function cardTexture(){
+  const S=8,W=178*S,H=89*S,c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d'),rnd=mulberry32(5);
+  g.fillStyle='#d6b37c';g.fillRect(0,0,W,H);
+  for(let i=0;i<9000;i++){g.fillStyle=`rgba(${rnd()<.5?90:255},${rnd()<.5?60:240},40,${rnd()*.05})`;g.fillRect(rnd()*W,rnd()*H,2,2);}
+  const hills=(seed,base,amp)=>{const r=mulberry32(seed),ph=[r()*6,r()*6,r()*6];return x=>base+amp*(Math.sin(x*.9+ph[0])*.5+Math.sin(x*2.3+ph[1])*.3+Math.sin(x*5.1+ph[2])*.2);};
+  const far=hills(3,.50,.13),mid=hills(8,.66,.08);
+  const view=(x0,shift)=>{const w=74*S,h=78*S,y0=(89-83)*S;g.save();g.beginPath();g.moveTo(x0,y0+h);g.lineTo(x0,y0+w*.32);g.bezierCurveTo(x0,y0-w*.02,x0+w,y0-w*.02,x0+w,y0+w*.32);g.lineTo(x0+w,y0+h);g.closePath();g.clip();
+    const sky=g.createLinearGradient(0,y0,0,y0+h);sky.addColorStop(0,'#cdbb98');sky.addColorStop(.55,'#efe3c8');sky.addColorStop(1,'#bfa77f');g.fillStyle=sky;g.fillRect(x0,y0,w,h);
+    g.fillStyle='rgba(255,250,232,.9)';g.beginPath();g.arc(x0+w*.68-shift*.1,y0+h*.3,w*.07,0,TAU);g.fill();
+    const band=(f,col,sh)=>{g.fillStyle=col;g.beginPath();g.moveTo(x0,y0+h);for(let i=0;i<=60;i++){const t=i/60;g.lineTo(x0+t*w,y0+h*f((t*w+sh)/(w/6)));}g.lineTo(x0+w,y0+h);g.fill();};
+    band(far,'#a08a69',shift*.25);band(mid,'#77634a',shift*.6);
+    g.fillStyle='#8f7b5d';g.fillRect(x0,y0+h*.74,w,h*.1);g.fillStyle='#4a3a28';g.fillRect(x0,y0+h*.83,w,h*.2);
+    const tx=x0+w*.24+shift*1.6;g.fillStyle='#2f2318';g.fillRect(tx-5,y0+h*.42,10,h*.5);
+    for(let i=0;i<34;i++){const a=rnd()*TAU,r=rnd()*w*.16;g.beginPath();g.arc(tx+Math.cos(a)*r,y0+h*.36+Math.sin(a)*r*.8,w*.05+rnd()*w*.04,0,TAU);g.fill();}
+    const fx=x0+w*.62+shift*1.2;g.fillRect(fx-3,y0+h*.72,6,h*.14);g.beginPath();g.arc(fx,y0+h*.705,6,0,TAU);g.fill();
+    const vg=g.createRadialGradient(x0+w/2,y0+h/2,w*.3,x0+w/2,y0+h/2,w*.75);vg.addColorStop(0,'rgba(60,40,20,0)');vg.addColorStop(1,'rgba(60,40,20,.35)');g.fillStyle=vg;g.fillRect(x0,y0,w,h);g.restore();};
+  view(13.5*S,0);view(90.5*S,7);
+  g.fillStyle='rgba(70,45,20,.8)';g.font=`${2.6*S}px Georgia,serif`;g.textAlign='center';
+  g.save();g.translate(7*S,H/2);g.rotate(-Math.PI/2);g.fillText('SKYLIGHT VIEWS',0,0);g.restore();
+  g.save();g.translate(171.5*S,H/2);g.rotate(Math.PI/2);g.fillText('No. 12 · The Lake',0,0);g.restore();
+  const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=8;return t;
+}
+function doubleImage(){
+  const S=5,W=Math.round(165.2*S),H=Math.round(91.2*S),c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');
+  g.fillStyle='#000';g.fillRect(0,0,W,H);
+  for(const sx of[-1,1]){const cx=(82.6+sx*LX)*S,cy=H-(LY-5.4)*S,R=36*S;g.save();g.beginPath();g.arc(cx,cy,R,0,TAU);g.clip();g.translate(cx,cy);g.rotate(Math.PI);g.translate(sx*-6,0);
+    g.fillStyle='#3a3026';g.fillRect(-R,-R,2*R,2*R);g.fillStyle='#241c15';g.fillRect(-R,R*.45,2*R,R);
+    const wg=g.createLinearGradient(0,-R*.6,0,R*.3);wg.addColorStop(0,'#eaf3ff');wg.addColorStop(.6,'#cfe0ee');wg.addColorStop(1,'#9fb58f');g.fillStyle=wg;g.fillRect(-R*.42,-R*.6,R*.84,R*.9);
+    g.fillStyle='#55683f';g.beginPath();g.arc(-R*.12,R*.12,R*.2,0,TAU);g.arc(R*.18,R*.16,R*.16,0,TAU);g.fill();
+    g.fillStyle='#2a221a';g.fillRect(-R*.02,-R*.6,R*.04,R*.9);g.fillRect(-R*.42,-R*.18,R*.84,R*.04);
+    g.fillStyle='rgba(255,214,150,.75)';g.beginPath();g.arc(R*.68,-R*.1,R*.09,0,TAU);g.fill();g.restore();
+    const vg=g.createRadialGradient(cx,cy,R*.45,cx,cy,R);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,1)');g.fillStyle=vg;g.fillRect(cx-R-2,cy-R-2,2*R+4,2*R+4);}
+  const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;return t;
+}
+
+/* ───────────── scene ───────────── */
+let renderer,scene,camera,controls,nodes={},clipPlane,capGroup,sectionOn=false,cardMesh,glassFront,glassSky;
+const S={cover:0,card:0,drawer:0,lift:0,explode:0,focus:.57}, G=Object.assign({},S);
+const reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const CUT={walnut:0x9a6841,gilt:0xc2952b,sill:0xc2952b,black:0x4a4744,steel:0x8d959c};
+
+function init(){
+  const canvas=$('#c');
+  renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,stencil:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+  renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.92;
+  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.localClippingEnabled=true;
+  scene=new THREE.Scene();
+  const pm=new THREE.PMREMGenerator(renderer);scene.environment=pm.fromScene(new THREE.RoomEnvironment(),.04).texture;
+  camera=new THREE.PerspectiveCamera(30,1,20,8000);
+  controls=new THREE.OrbitControls(camera,canvas);controls.enableDamping=true;controls.dampingFactor=.08;controls.minDistance=160;controls.maxDistance=3200;controls.maxPolarAngle=Math.PI*.62;
+  controls.addEventListener('start',()=>{camTween=null;});
+  const key=new THREE.DirectionalLight(0xfff0dc,1.5);key.position.set(380,900,520);key.castShadow=true;key.shadow.mapSize.set(2048,2048);
+  const sc=key.shadow.camera;sc.left=-520;sc.right=520;sc.top=900;sc.bottom=-300;sc.near=100;sc.far=2400;key.shadow.bias=-.0004;key.shadow.normalBias=.7;key.shadow.radius=5;
+  scene.add(key,new THREE.HemisphereLight(0xe4ecf2,0x3a2e24,.3));
+  const ground=new THREE.Mesh(new THREE.CircleGeometry(1500,64),new THREE.ShadowMaterial({opacity:.28}));ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+  clipPlane=new THREE.Plane(new THREE.Vector3(-1,0,0),-2);capGroup=new THREE.Group();capGroup.visible=false;scene.add(capGroup);
+
+  ['ped','drawer','viewer','cover'].forEach(k=>{nodes[k]=new THREE.Group();scene.add(nodes[k]);});
+  nodes.barrel=[new THREE.Group(),new THREE.Group()];nodes.barrel.forEach(b=>nodes.viewer.add(b));
+  nodes.card=new THREE.Group();nodes.viewer.add(nodes.card);nodes.cover.matrixAutoUpdate=false;
+
+  buildParts();
+  const wal=walnutTexture(),rnd=mulberry32(3);
+  const mk={
+    walnut:()=>{const k=.86+rnd()*.16;return new THREE.MeshPhysicalMaterial({map:wal,color:new THREE.Color(k,k*.985,k*.97),roughness:.5,clearcoat:.45,clearcoatRoughness:.32});},
+    gilt:()=>new THREE.MeshStandardMaterial({color:0xe9a93c,metalness:1,roughness:.3,envMapIntensity:.85}),
+    sill:()=>new THREE.MeshStandardMaterial({color:0xe9a93c,metalness:1,roughness:.5,envMapIntensity:.85}),
+    black:()=>new THREE.MeshStandardMaterial({color:0x171615,roughness:.92}),
+    steel:()=>new THREE.MeshStandardMaterial({color:0x9aa1a8,metalness:.9,roughness:.38}),
+    glass:()=>new THREE.MeshStandardMaterial({color:0xe6eee8,roughness:.95,transparent:true,opacity:.62,depthWrite:false,emissive:0xffffff,emissiveIntensity:0}),
+    lens:()=>new THREE.MeshPhysicalMaterial({color:0xffffff,roughness:.03,transparent:true,opacity:.3,depthWrite:false,envMapIntensity:1.8})
+  };
+  let order=1;
+  PARTS.forEach((p,pi)=>{
+    const pos=new Float32Array(p.soup.a),geo=new THREE.BufferGeometry();
+    geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+    geo.setAttribute('normal',new THREE.BufferAttribute(creaseNormals(pos,p.crease||28),3));
+    if(p.mat==='walnut')geo.setAttribute('uv',new THREE.BufferAttribute(grainUV(pos,p.grain,pi+17),2));
+    if(p.uvPlanar){geo.computeBoundingBox();const b=geo.boundingBox,uv=new Float32Array(pos.length/3*2);for(let i=0;i<pos.length/3;i++){uv[2*i]=(pos[3*i]-b.min.x)/(b.max.x-b.min.x);uv[2*i+1]=(pos[3*i+1]-b.min.y)/(b.max.y-b.min.y);}geo.setAttribute('uv',new THREE.BufferAttribute(uv,2));}
+    p.material=mk[p.mat]();p.material.clippingPlanes=[];p.material.clipShadows=true;p.meshes=[];p.tris=pos.length/9;
+    const insts=p.inst||[M4()],opaque=!p.material.transparent;
+    insts.forEach((m,i)=>{
+      const e=typeof p.ex==='function'?p.ex(i):p.ex;
+      const make=parent=>{const mesh=new THREE.Mesh(geo,p.material);mesh.castShadow=opaque;mesh.receiveShadow=opaque;m.decompose(mesh.position,mesh.quaternion,mesh.scale);
+        mesh.userData={part:p,base:mesh.position.clone(),ex:new THREE.Vector3(e[0],e[1],e[2])};parent.add(mesh);p.meshes.push(mesh);};
+      if(p.node==='barrel')nodes.barrel.forEach(make);else make(nodes[p.node]);
+    });
+    if(opaque){ // stencil passes and a cap, used only in section view
+      const base={depthWrite:false,depthTest:false,colorWrite:false,stencilWrite:true,stencilFunc:THREE.AlwaysStencilFunc,clippingPlanes:[clipPlane]};
+      const bm=new THREE.MeshBasicMaterial(Object.assign({side:THREE.BackSide,stencilFail:THREE.IncrementWrapStencilOp,stencilZFail:THREE.IncrementWrapStencilOp,stencilZPass:THREE.IncrementWrapStencilOp},base));
+      const fm=new THREE.MeshBasicMaterial(Object.assign({side:THREE.FrontSide,stencilFail:THREE.DecrementWrapStencilOp,stencilZFail:THREE.DecrementWrapStencilOp,stencilZPass:THREE.DecrementWrapStencilOp},base));
+      p.stencils=[];p.meshes.forEach(mesh=>{[bm,fm].forEach(mm=>{const sm=new THREE.Mesh(geo,mm);sm.renderOrder=order;sm.visible=false;sm.raycast=()=>{};mesh.add(sm);p.stencils.push(sm);});});
+      const cap=new THREE.Mesh(new THREE.PlaneGeometry(1800,1800),new THREE.MeshBasicMaterial({color:CUT[p.mat]||0x999999,toneMapped:false,side:THREE.DoubleSide,
+        stencilWrite:true,stencilRef:0,stencilFunc:THREE.NotEqualStencilFunc,stencilFail:THREE.ReplaceStencilOp,stencilZFail:THREE.ReplaceStencilOp,stencilZPass:THREE.ReplaceStencilOp}));
+      cap.rotation.y=Math.PI/2;cap.position.set(-2,500,0);cap.renderOrder=order+.5;cap.onAfterRender=r=>r.clearStencil();cap.raycast=()=>{};capGroup.add(cap);order++;
+    }
+    exportInfo(p);
+  });
+  /* props: one card in the viewer, a stack in the drawer */
+  const ct=cardTexture(),edge=new THREE.MeshStandardMaterial({color:0xcaa672,roughness:.9}),face=new THREE.MeshStandardMaterial({map:ct,roughness:.75});
+  cardMesh=new THREE.Mesh(new THREE.BoxGeometry(178,89,1.4),[edge,edge,edge,edge,face,edge]);cardMesh.position.set(0,44.5,-.7);cardMesh.castShadow=true;nodes.card.add(cardMesh);
+  const stack=new THREE.Mesh(new THREE.BoxGeometry(178,26,89),[edge,edge,face,edge,edge,edge]);stack.position.set(0,Y_BOT+3.7+13,ZC-25);stack.userData.ex=new THREE.Vector3(0,48,0);stack.userData.base=stack.position.clone();stack.castShadow=true;nodes.drawer.add(stack);nodes.stack=stack;
+  glassFront=PARTS.find(p=>p.id==='front-glass').material;glassFront.emissiveMap=doubleImage();
+  glassSky=PARTS.find(p=>p.id==='sky-glass').material;glassSky.emissive=new THREE.Color(0xfff3dc);
+
+  new ResizeObserver(resize).observe($('#vitrine'));resize();
+  setView('hero',true);buildUI();
+  $('#loading').hidden=true;
+  let last=performance.now();
+  renderer.setAnimationLoop(now=>{const dt=Math.min(.25,(now-last)/1000);last=now;tick(dt);});
+}
+function resize(){const v=$('#vitrine'),w=v.clientWidth,h=v.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
+
+/* cover: on the viewer (0) or standing in the plinth groove (1) */
+const SLp=(u,v,h)=>new THREE.Vector3(u,107-v*sin10+h*cos10,v*cos10+h*sin10);
+const _q=new THREE.Quaternion(),_m=M4(),_m2=M4(),_v=new THREE.Vector3(),XA=new THREE.Vector3(1,0,0);
+function placeCover(vpos,e){
+  const c=reduce?Math.round(S.cover):smooth(S.cover),N=SLp(0,DIM.coverNear,T);
+  const p0=_v.copy(N).add(vpos),p1=new THREE.Vector3(0,Y_TOP-9,ZC+GROOVE[0]+2),b=Math.sin(Math.PI*c);
+  const pos=new THREE.Vector3().lerpVectors(p0,p1,c);pos.y+=70*b;pos.z+=150*b;
+  _q.setFromAxisAngle(XA,72*RAD*c);
+  _m.makeRotationFromQuaternion(_q).setPosition(pos);_m2.makeTranslation(-N.x,-N.y,-N.z);
+  nodes.cover.matrix.multiplyMatrices(_m,_m2);nodes.cover.matrixWorldNeedsUpdate=true;
+}
+let camTween=null;
+const VIEWS={hero:[[520,470,720],[0,205,60]],front:[[-400,400,-800],[0,225,40]],seat:[[70,440,600],[0,300,70]],under:[[330,150,420],[0,286,52]],
+  drawer:[[400,360,660],[0,110,130]],side:[[820,400,330],[70,300,40]],apart:[[980,760,1420],[0,470,60]],section:[[900,270,56],[0,222,56]],sectionLift:[[1020,310,56],[0,268,56]]};
+function setView(k,now){
+  const v=VIEWS[k],f=Math.max(1,1.35/camera.aspect),t=new THREE.Vector3().fromArray(v[1]),p=new THREE.Vector3().fromArray(v[0]).sub(t).multiplyScalar(f).add(t);
+  if(now||reduce){camera.position.copy(p);controls.target.copy(t);controls.update();camTween=null;}
+  else camTween={p0:camera.position.clone(),t0:controls.target.clone(),p1:p,t1:t,u:0};
+}
+function tick(dt){
+  const k=reduce?1:1-Math.exp(-dt*5.5);for(const key in S)S[key]+=(G[key]-S[key])*k;
+  const e=S.explode,lift=smooth(S.lift);
+  const vpos=new THREE.Vector3(0,VY+95*lift+225*e,0);nodes.viewer.position.copy(vpos);
+  nodes.drawer.position.set(0,24*e,118*smooth(S.drawer)+175*e);
+  const gap=.5+14*S.focus;
+  nodes.barrel.forEach((b,i)=>{b.position.set(i?LX:-LX,LY,ZL1+5+gap+150*e);b.rotation.z=TAU*(5+gap)/LEAD;});
+  nodes.card.position.x=(1-smooth(S.card))*236;nodes.card.visible=S.card>.004;
+  placeCover(vpos,e);
+  for(const p of PARTS)for(const m of p.meshes)m.position.copy(m.userData.base).addScaledVector(m.userData.ex,e);
+  nodes.stack.position.copy(nodes.stack.userData.base).addScaledVector(nodes.stack.userData.ex,e);
+  const open=smooth(S.cover);
+  glassSky.emissiveIntensity=.34*open;glassFront.emissiveIntensity=1.7*(1-open)*(1-S.card);
+  const lit=.3+.7*Math.max(open,e);cardMesh.material[4].color.setScalar(lit);
+  if(camTween){camTween.u=Math.min(1,camTween.u+dt/1.1);const u=smooth(camTween.u);camera.position.lerpVectors(camTween.p0,camTween.p1,u);controls.target.lerpVectors(camTween.t0,camTween.t1,u);if(camTween.u>=1)camTween=null;}
+  controls.update();renderer.render(scene,camera);
+}
+function setSection(on){
+  sectionOn=on;capGroup.visible=on;
+  for(const p of PARTS){p.material.clippingPlanes=on?[clipPlane]:[];p.material.needsUpdate=true;if(p.stencils)p.stencils.forEach(s=>s.visible=on);}
+  [cardMesh,nodes.stack].forEach(m=>m.material.forEach(mm=>{mm.clippingPlanes=on?[clipPlane]:[];mm.needsUpdate=true;}));
+  if(on)setView(G.lift>.5?'sectionLift':'section');
+}
+
+/* ───────────── export ───────────── */
+function exportPositions(p){
+  const a=Float32Array.from(p.soup.a),v=new THREE.Vector3();
+  if(p.pre)for(let i=0;i<a.length;i+=3){v.set(a[i],a[i+1],a[i+2]).applyMatrix4(p.pre);a[i]=v.x;a[i+1]=v.y;a[i+2]=v.z;}
+  const mn=[1e9,1e9,1e9],mx=[-1e9,-1e9,-1e9];for(let i=0;i<a.length;i++){const k=i%3;if(a[i]<mn[k])mn[k]=a[i];if(a[i]>mx[k])mx[k]=a[i];}
+  let perm=[0,1,2];
+  if(p.flat){const d=[mx[0]-mn[0],mx[1]-mn[1],mx[2]-mn[2]],m=d.indexOf(Math.min.apply(null,d));perm=m===2?[0,1,2]:m===0?[1,2,0]:[2,0,1];}
+  const out=new Float32Array(a.length);for(let i=0;i<a.length;i+=3)for(let k=0;k<3;k++)out[i+k]=a[i+perm[k]]-mn[perm[k]];
+  return{pos:out,dims:[0,1,2].map(k=>mx[perm[k]]-mn[perm[k]])};
+}
+function exportInfo(p){const r=exportPositions(p);p.dims=r.dims.slice().sort((a,b)=>b-a);}
+function stlBinary(p){
+  const a=exportPositions(p).pos,n=a.length/9,buf=new ArrayBuffer(84+n*50),dv=new DataView(buf),hd='Skylight Stereoscope - '+p.id+' - mm';
+  for(let i=0;i<hd.length&&i<80;i++)dv.setUint8(i,hd.charCodeAt(i));dv.setUint32(80,n,true);let o=84;
+  for(let t=0;t<n;t++){const i=t*9,ux=a[i+3]-a[i],uy=a[i+4]-a[i+1],uz=a[i+5]-a[i+2],vx=a[i+6]-a[i],vy=a[i+7]-a[i+1],vz=a[i+8]-a[i+2];
+    let nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;const l=Math.hypot(nx,ny,nz)||1;
+    dv.setFloat32(o,nx/l,true);dv.setFloat32(o+4,ny/l,true);dv.setFloat32(o+8,nz/l,true);for(let k=0;k<9;k++)dv.setFloat32(o+12+4*k,a[i+k],true);o+=50;}
+  return new Uint8Array(buf);
+}
+const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+const crc32=u=>{let c=0xFFFFFFFF;for(let i=0;i<u.length;i++)c=CRC[(c^u[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0;};
+async function deflate(u){try{if(typeof CompressionStream==='undefined')return null;return new Uint8Array(await new Response(new Blob([u]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer());}catch(e){return null;}}
+async function makeZip(files){
+  const enc=new TextEncoder(),chunks=[],central=[],d=new Date(),dd=((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate(),dt=(d.getHours()<<11)|(d.getMinutes()<<5);let off=0;
+  for(const f of files){const name=enc.encode(f.name),crc=crc32(f.data);let comp=await deflate(f.data),method=8;if(!comp||comp.length>=f.data.length){comp=f.data;method=0;}
+    const lh=new DataView(new ArrayBuffer(30));lh.setUint32(0,0x04034b50,true);lh.setUint16(4,20,true);lh.setUint16(6,0x0800,true);lh.setUint16(8,method,true);lh.setUint16(10,dt,true);lh.setUint16(12,dd,true);
+    lh.setUint32(14,crc,true);lh.setUint32(18,comp.length,true);lh.setUint32(22,f.data.length,true);lh.setUint16(26,name.length,true);
+    const ch=new DataView(new ArrayBuffer(46));ch.setUint32(0,0x02014b50,true);ch.setUint16(4,20,true);ch.setUint16(6,20,true);ch.setUint16(8,0x0800,true);ch.setUint16(10,method,true);ch.setUint16(12,dt,true);ch.setUint16(14,dd,true);
+    ch.setUint32(16,crc,true);ch.setUint32(20,comp.length,true);ch.setUint32(24,f.data.length,true);ch.setUint16(28,name.length,true);ch.setUint32(42,off,true);
+    chunks.push(new Uint8Array(lh.buffer),name,comp);central.push(new Uint8Array(ch.buffer),name);off+=30+name.length+comp.length;}
+  const cd=central.reduce((s,c)=>s+c.length,0),end=new DataView(new ArrayBuffer(22));end.setUint32(0,0x06054b50,true);end.setUint16(8,files.length,true);end.setUint16(10,files.length,true);end.setUint32(12,cd,true);end.setUint32(16,off,true);
+  return new Blob(chunks.concat(central,[new Uint8Array(end.buffer)]),{type:'application/zip'});
+}
+let dlNS;
+function toast(msg){const t=$('#toast');t.textContent=msg;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>{t.hidden=true;},3200);}
+async function save(filename,blob){
+  if(window.claude&&window.claude.use){
+    if(dlNS===undefined){try{dlNS=await window.claude.use('downloads');}catch(e){dlNS=null;}}
+    if(!dlNS){toast('Saving files is not available in this view.');return;}
+    try{await dlNS.save({filename,data:blob});toast('Saved '+filename);}
+    catch(e){const c=e&&e.code;toast(c==='declined'?'Download cancelled.':c==='rate_limited'?'One download at a time. Try again in a moment.':'Could not save the file here.');}
+    return;
+  }
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;document.body.appendChild(a);a.click();a.remove();
+}
+const fmt=d=>d.map(v=>v>=100?v.toFixed(0):v.toFixed(1)).join(' × ');
+const stlName=p=>p.id+(p.qty>1?'_x'+p.qty:'')+'.stl';
+async function downloadPart(p){await save('stereoscope_'+p.id+'.zip',await makeZip([{name:stlName(p),data:stlBinary(p)}]));}
+async function downloadAll(btn){
+  btn.disabled=true;const label=btn.textContent;btn.textContent='Packing…';await new Promise(r=>setTimeout(r,30));
+  const list=PARTS.filter(p=>p.stl&&!p.hidden),files=list.map((p,i)=>({name:String(i+1).padStart(2,'0')+'_'+stlName(p),data:stlBinary(p)}));
+  let txt='SKYLIGHT STEREOSCOPE - parts list\r\nAll files are millimetres, each part lying flat with its lowest corner at the origin.\r\n\r\n';
+  for(const g of GROUPS){txt+=g.toUpperCase()+'\r\n';for(const p of PARTS.filter(q=>q.group===g&&!q.hidden))txt+='  '+p.qty+' x  '+p.name+'  |  '+p.matLabel+'  |  '+fmt(p.dims)+' mm'+(p.stl?'':'  (no file)')+'\r\n';txt+='\r\n';}
+  files.push({name:'parts-list.txt',data:new TextEncoder().encode(txt)});
+  await save('skylight-stereoscope_all-parts.zip',await makeZip(files));btn.disabled=false;btn.textContent=label;
+}
+
+/* ───────────── interface ───────────── */
+const GROUPS=['Viewer body','Skylight and glazing','Cover','Eyepieces','Pedestal','Drawer','Hardware'];
+const STEPS=[
+  {t:'At rest',v:'hero',s:{cover:0,card:0,drawer:0,lift:0,explode:0},c:'Covered, the box is dark. Each lens throws its own small, inverted picture of the room onto the front ground glass. Turn the model round to see the pair.'},
+  {t:'Choose a card',v:'drawer',s:{cover:0,card:0,drawer:1,lift:0,explode:0},c:'The drawer in the plinth pulls toward you. Cards lie flat on a ribbon; the front bay holds gloves and a cloth.'},
+  {t:'Lift the cover',v:'hero',s:{cover:1,card:0,drawer:0,lift:0,explode:0},c:'Both hands, straight up off its magnets. Stand it in the groove on the plinth, relief facing you. The skylight is open.'},
+  {t:'Slide the card in',v:'side',s:{cover:1,card:1,drawer:0,lift:0,explode:0},c:'The card goes in at either side and runs along the floor until it is centred. A fingertip in the notch pushes it out the far side.'},
+  {t:'Look',v:'seat',s:{cover:1,card:1,drawer:0,lift:0,explode:0},c:'Rest your brow on the eyecups. Turn each eyepiece until its picture is sharp; the two are independent.'},
+  {t:'Lift off',v:'under',s:{cover:1,card:1,drawer:0,lift:1,explode:0},c:'Lift straight up and the socle leaves the tapered key. Hold the viewer to the window, or set it down on any table: it stands on the socle. Lower it back and it finds its own seat.'},
+  {t:'Disassembled',v:'apart',s:{cover:0,card:0,drawer:0,lift:0,explode:1},c:'Every part, drawn out along the direction it goes together. Select one for its size and its file.'}
+];
+let selected=null;
+function syncUI(){
+  $('#r-explode').value=G.explode;
+  [['cover','#t-cover'],['card','#t-card'],['drawer','#t-drawer'],['lift','#t-lift']].forEach(q=>$(q[1]).setAttribute('aria-pressed',G[q[0]]>.5));
+  $('#t-section').setAttribute('aria-pressed',sectionOn);
+  const d=133.5+.5+14*G.focus,img=d<149.9?1/(1/d-1/150)/1000:Infinity;
+  $('#o-focus').textContent='Lens to card '+d.toFixed(0)+' mm. Picture appears '+(img>20?'at infinity':img.toFixed(1)+' m away')+'.';
+}
+function select(p){
+  if(selected){selected.material.emissive.setHex(selected.mat==='glass'&&selected.id==='sky-glass'?0xfff3dc:selected.mat==='glass'?0xffffff:0);if(selected.row)selected.row.classList.remove('sel');}
+  selected=p&&!p.hidden?p:null;const box=$('#pick');
+  if(!selected){box.hidden=true;return;}
+  if(selected.mat!=='glass')selected.material.emissive.setHex(selected.mat==='gilt'||selected.mat==='sill'?0x3a2400:0x2a3f10);
+  if(selected.row)selected.row.classList.add('sel');
+  $('#pick-name').textContent=selected.name+(selected.qty>1?' × '+selected.qty:'');
+  $('#pick-meta').textContent=selected.matLabel+' · '+fmt(selected.dims)+' mm'+(selected.note?'. '+selected.note:'');
+  $('#pick-dl').hidden=!selected.stl;box.hidden=false;
+}
+function buildUI(){
+  const ol=$('#steps');
+  STEPS.forEach((st,i)=>{const li=document.createElement('li'),b=document.createElement('button');b.textContent=st.t;b.id='step-'+i;
+    b.addEventListener('click',()=>{Object.assign(G,st.s);ol.querySelectorAll('button').forEach(x=>x.removeAttribute('aria-current'));b.setAttribute('aria-current','step');$('#caption').textContent=st.c;if(sectionOn)setSection(false);setView(st.v);syncUI();});
+    li.appendChild(b);ol.appendChild(li);});
+  ol.querySelector('button').setAttribute('aria-current','step');$('#caption').textContent=STEPS[0].c;
+  $('#r-explode').addEventListener('input',e=>{G.explode=+e.target.value;if(G.explode>.02&&camera.position.distanceTo(controls.target)<1300&&!camTween)setView('apart');});
+  $('#r-focus').addEventListener('input',e=>{G.focus=+e.target.value;syncUI();});
+  [['cover','#t-cover'],['card','#t-card'],['drawer','#t-drawer'],['lift','#t-lift']].forEach(q=>$(q[1]).addEventListener('click',()=>{G[q[0]]=G[q[0]]>.5?0:1;if(q[0]==='card'&&G.card)G.cover=1;syncUI();}));
+  $('#t-section').addEventListener('click',()=>{setSection(!sectionOn);syncUI();});
+  document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
+  $('#pick-x').addEventListener('click',()=>select(null));
+  $('#pick-dl').addEventListener('click',()=>selected&&downloadPart(selected));
+  $('#dl-all').addEventListener('click',e=>downloadAll(e.currentTarget));
+  /* parts table */
+  const host=$('#parts');
+  for(const g of GROUPS){const sec=document.createElement('div');sec.className='group';const h=document.createElement('h3');h.textContent=g;sec.appendChild(h);
+    for(const p of PARTS.filter(q=>q.group===g&&!q.hidden)){const r=document.createElement('div');r.className='row';r.tabIndex=0;r.setAttribute('role','button');
+      const cell=(cls,txt)=>{const d=document.createElement('div');d.className=cls;d.textContent=txt;r.appendChild(d);return d;};
+      const n=cell('n',p.name);if(p.note){const sm=document.createElement('small');sm.textContent=p.note;n.appendChild(sm);}
+      cell('q','× '+p.qty);cell('m',p.matLabel);cell('d',fmt(p.dims)+' mm');
+      const a=cell('a','');if(p.stl){const b=document.createElement('button');b.className='btn ghost';b.textContent='STL';b.setAttribute('aria-label','Download STL of '+p.name);b.addEventListener('click',ev=>{ev.stopPropagation();downloadPart(p);});a.appendChild(b);}
+      const pickRow=()=>{select(p);$('#vitrine').scrollIntoView({behavior:reduce?'auto':'smooth',block:'nearest'});};
+      r.addEventListener('click',pickRow);r.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();pickRow();}});
+      p.row=r;sec.appendChild(r);}
+    host.appendChild(sec);}
+  const dimOf=id=>PARTS.find(p=>p.id===id).dims;
+  $('#n-front').textContent=fmt(dimOf('front-glass').slice(0,2));$('#n-sky').textContent=fmt(dimOf('sky-glass').slice(0,2));
+  const rp=DIM.relief;$('#n-relief').textContent=(rp[1][0]-rp[0][0]).toFixed(0)+' wide at the far edge, '+(rp[2][0]-rp[3][0]).toFixed(0)+' at the near edge, '+(rp[2][1]-rp[1][1]).toFixed(0)+' deep';
+  /* picking */
+  const cv=$('#c'),ray=new THREE.Raycaster(),m2=new THREE.Vector2();let down=null;
+  cv.addEventListener('pointerdown',e=>{down=[e.clientX,e.clientY];});
+  cv.addEventListener('pointerup',e=>{if(!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>5)return;const b=cv.getBoundingClientRect();
+    m2.set((e.clientX-b.left)/b.width*2-1,-(e.clientY-b.top)/b.height*2+1);ray.setFromCamera(m2,camera);
+    const list=[];for(const p of PARTS)if(!p.hidden)for(const m of p.meshes)list.push(m);
+    const hits=ray.intersectObjects(list,false).filter(h=>!sectionOn||h.point.x<=-1.5);
+    const hit=hits.find(h=>!h.object.material.transparent)||hits[0];select(hit?hit.object.userData.part:null);});
+  syncUI();
+  if(window.claude&&window.claude.use)window.claude.use('downloads').then(ns=>{dlNS=ns;if(!ns)document.querySelectorAll('.btn').forEach(b=>{if(b.id!=='pick-x')b.title='Saving files is not available in this view';});}).catch(()=>{dlNS=null;});
+}
+window.__stereo={PARTS,S,G,setView,setSection,stlBinary,makeZip,snap:()=>{tick(0);return $('#c').toDataURL('image/png');}};
+setTimeout(()=>{try{init();}catch(err){$('#loading').textContent='The model could not be built in this browser.';console.error(err);}},40);
+})();
+</script>
