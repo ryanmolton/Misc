@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Bas Relief Generator",
     "author": "Claude Code",
-    "version": (1, 0, 0),
+    "version": (1, 1, 0),
     "blender": (4, 1, 0),
     "location": "3D Viewport > Sidebar (N) > Relief",
     "description": "Turn the active camera's view of the scene into a printable bas-relief panel",
@@ -46,7 +46,8 @@ def _wanted(inst, settings):
 
 def _gather_geometry(context, settings, cam_inv):
     depsgraph = context.evaluated_depsgraph_get()
-    verts_all, tris_all, nors_all = [], [], []
+    verts_all, tris_all, nors_all, oid_all = [], [], [], []
+    names = []          # per source object: (instancer name or "", object name)
     offset = 0
     for inst in depsgraph.object_instances:
         if not _wanted(inst, settings):
@@ -88,11 +89,15 @@ def _gather_geometry(context, settings, cam_inv):
         verts_all.append(co)
         tris_all.append(tri_v.reshape(-1, 3) + offset)
         nors_all.append(cn[tri_l].reshape(-1, 3, 3))
+        par = inst.parent.original.name if (inst.is_instance and inst.parent) else ""
+        oid_all.append(np.full(nt, len(names), np.int64))
+        names.append((par, ob.original.name))
         offset += nv
 
     if not verts_all:
         return None
-    return (np.concatenate(verts_all), np.concatenate(tris_all), np.concatenate(nors_all))
+    return (np.concatenate(verts_all), np.concatenate(tris_all), np.concatenate(nors_all),
+            np.concatenate(oid_all), names)
 
 
 def capture(context, settings):
@@ -109,7 +114,7 @@ def capture(context, settings):
     geo = _gather_geometry(context, settings, cam_inv)
     if geo is None:
         raise RuntimeError("No visible geometry found for the chosen source")
-    verts, tris, cnors = geo
+    verts, tris, cnors, tri_oid, obj_names = geo
 
     bvh = BVHTree.FromPolygons(verts.tolist(), tris.tolist(), all_triangles=True)
 
@@ -194,7 +199,10 @@ def capture(context, settings):
     else:
         pix = depth * ((xmax - xmin) / W) / abs(fz)
 
+    obj_id = np.where(mask, tri_oid[np.maximum(hit_idx, 0)], -1)
+
     return dict(depth=depth, normals=normals, mask=mask, pix=pix, W=W, H=H,
+                obj_id=obj_id, obj_names=obj_names,
                 aspect=(ymax - ymin) / (xmax - xmin), seconds=time.time() - t0,
                 camera=cam.name, scene=scene.name)
 
@@ -258,16 +266,48 @@ def _build_mesh(name, height, fy, fx, width, panel_h, depth_amt, base, solid):
 def build_relief(context, settings, cap):
     params = dict(
         compression=settings.compression,
+        far_compression=settings.far_compression,
+        far_flatten=settings.far_flatten,
+        depth_curve=settings.depth_curve,
         detail_boost=settings.detail_boost,
         detail_radius=settings.detail_radius,
         layering=settings.layering,
         background_lift=settings.background_lift,
         edge_softness=settings.edge_softness,
         edge_threshold=settings.edge_threshold,
-        smoothing=settings.smoothing,
+        smoothing=0.0,
         use_normals=settings.use_normals,
     )
-    hgt = relief_core.compute_relief(cap["depth"], cap["normals"], cap["mask"], cap["pix"], params)
+    layers = [l for l in settings.layers if l.collection is not None] if settings.use_layers else []
+    if not layers:
+        hgt = relief_core.compute_relief(cap["depth"], cap["normals"], cap["mask"], cap["pix"], params)
+    else:
+        # which layer does every captured object belong to (first match wins)?
+        members = [set(l.collection.all_objects.keys()) for l in layers]
+        lut = np.full(len(cap["obj_names"]) + 1, len(layers), np.int64)
+        for i, (par, name) in enumerate(cap["obj_names"]):
+            for k, mem in enumerate(members):
+                if name in mem or (par and par in mem):
+                    lut[i] = k
+                    break
+        labels = np.where(cap["mask"], lut[np.maximum(cap["obj_id"], 0)], -1)
+        regions = []
+        for l in layers:
+            prm = dict(params)
+            prm.update(compression=l.compression, far_compression=l.compression * l.far_factor,
+                       detail_boost=l.detail_boost, layering=l.layering)
+            regions.append(dict(band=(min(l.band_min, l.band_max), max(l.band_min, l.band_max)),
+                                params=prm))
+        regions.append(dict(band=(min(settings.other_band_min, settings.other_band_max),
+                                  max(settings.other_band_min, settings.other_band_max)),
+                            params=params))
+        hgt = relief_core.compose_layers(cap["depth"], cap["normals"], cap["mask"], cap["pix"],
+                                         labels, regions, settings.edge_softness)
+    if settings.smoothing > 0:
+        hgt = relief_core.gaussian_blur(hgt, settings.smoothing)
+    hgt = np.clip(hgt, 0.0, None)
+    if hgt.max() > 1.0:
+        hgt /= hgt.max()
     if settings.invert:
         hgt = 1.0 - hgt
 
@@ -313,6 +353,23 @@ def build_relief(context, settings, cap):
 # Settings / UI
 # ==========================================================================
 
+class BASRELIEF_Layer(bpy.types.PropertyGroup):
+    collection: PointerProperty(name="Collection", type=bpy.types.Collection,
+                                description="Objects in this collection form this depth layer")
+    band_min: FloatProperty(name="Band Bottom", default=0.35, min=0.0, max=1.0, subtype="FACTOR",
+                            description="Lowest point of this layer, as a fraction of Relief Depth")
+    band_max: FloatProperty(name="Band Top", default=1.0, min=0.0, max=1.0, subtype="FACTOR",
+                            description="Highest point of this layer, as a fraction of Relief Depth")
+    compression: FloatProperty(name="Compression", default=2.0, min=0.0, soft_max=30.0,
+                               description="Slope compression inside this layer (low = rounder, fuller forms)")
+    far_factor: FloatProperty(name="Far Compression x", default=1.0, min=0.0, soft_max=10.0,
+                              description="Compression at the back of this layer, as a multiple of its Compression")
+    detail_boost: FloatProperty(name="Detail Boost", default=1.2, min=0.0, soft_max=4.0)
+    layering: FloatProperty(name="Depth Layering", default=0.45, min=0.0, max=1.0, subtype="FACTOR",
+                            description="How much real depth is kept inside this layer "
+                                        "(e.g. an arm in front of a body)")
+
+
 class BASRELIEF_Settings(bpy.types.PropertyGroup):
     source: EnumProperty(
         name="Source",
@@ -337,6 +394,16 @@ class BASRELIEF_Settings(bpy.types.PropertyGroup):
     compression: FloatProperty(name="Compression", default=4.0, min=0.0, soft_max=30.0,
                                description="How strongly steep slopes are flattened compared with gentle ones. "
                                            "Higher = flatter, more even relief with detail kept readable")
+    far_compression: FloatProperty(name="Far Compression", default=4.0, min=0.0, soft_max=30.0,
+                                   description="Compression used for the farthest parts of the scene. Set it higher "
+                                               "than Compression to keep foreground forms round and flatten the "
+                                               "background")
+    far_flatten: FloatProperty(name="Background Flattening", default=0.0, min=0.0, max=1.0, subtype="FACTOR",
+                               description="Shrinks all relief towards the far end of the scene, so distant things "
+                                           "become almost drawn into the surface (rilievo schiacciato)")
+    depth_curve: FloatProperty(name="Foreground Emphasis", default=1.0, min=0.2, soft_max=5.0,
+                               description="Shapes Depth Layering: above 1 gives the nearest objects most of the "
+                                           "depth and squeezes the distance; below 1 does the opposite")
     detail_boost: FloatProperty(name="Detail Boost", default=1.5, min=0.0, soft_max=4.0,
                                 description="Exaggerates fine surface detail (1 = unchanged)")
     detail_radius: FloatProperty(name="Detail Size", default=6.0, min=0.5, soft_max=50.0, subtype="PIXEL",
@@ -359,6 +426,15 @@ class BASRELIEF_Settings(bpy.types.PropertyGroup):
                                           "custom normals). Off = from the raw depth buffer")
     invert: BoolProperty(name="Invert (Intaglio / Mould)", default=False,
                          description="Carve the image into the panel instead of raising it")
+
+    use_layers: BoolProperty(name="Depth Layers", default=False,
+                             description="Give collections their own depth band and settings")
+    layers: bpy.props.CollectionProperty(type=BASRELIEF_Layer)
+    layers_index: IntProperty(default=0)
+    other_band_min: FloatProperty(name="Bottom", default=0.0, min=0.0, max=1.0, subtype="FACTOR",
+                                  description="Depth band of objects that are in no layer")
+    other_band_max: FloatProperty(name="Top", default=0.25, min=0.0, max=1.0, subtype="FACTOR",
+                                  description="Depth band of objects that are in no layer")
 
     mesh_step: IntProperty(name="Mesh Step", default=1, min=1, max=16,
                            description="Use every Nth pixel as a vertex (1 = one vertex per pixel)")
@@ -397,6 +473,86 @@ class BASRELIEF_OT_generate(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class BASRELIEF_OT_layer_add(bpy.types.Operator):
+    bl_idname = "basrelief.layer_add"
+    bl_label = "Add Depth Layer"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        s = context.scene.bas_relief
+        l = s.layers.add()
+        col = context.collection
+        if col is not None and col != context.scene.collection:
+            l.collection = col
+        s.layers_index = len(s.layers) - 1
+        s.use_layers = True
+        return {"FINISHED"}
+
+
+class BASRELIEF_OT_layer_remove(bpy.types.Operator):
+    bl_idname = "basrelief.layer_remove"
+    bl_label = "Remove Depth Layer"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        s = context.scene.bas_relief
+        if 0 <= s.layers_index < len(s.layers):
+            s.layers.remove(s.layers_index)
+            s.layers_index = max(0, s.layers_index - 1)
+        return {"FINISHED"}
+
+
+class BASRELIEF_OT_layer_move(bpy.types.Operator):
+    bl_idname = "basrelief.layer_move"
+    bl_label = "Move Depth Layer"
+    bl_options = {"REGISTER", "UNDO"}
+    direction: EnumProperty(items=[("UP", "Up", ""), ("DOWN", "Down", "")])
+
+    def execute(self, context):
+        s = context.scene.bas_relief
+        i = s.layers_index
+        j = i - 1 if self.direction == "UP" else i + 1
+        if 0 <= i < len(s.layers) and 0 <= j < len(s.layers):
+            s.layers.move(i, j)
+            s.layers_index = j
+        return {"FINISHED"}
+
+
+PRESETS = {
+    "LOW": dict(depth_mm=3.0, compression=8.0, far_compression=8.0, far_flatten=0.0, depth_curve=1.0,
+                detail_boost=1.8, layering=0.12, background_lift=0.3, edge_softness=1.5),
+    "MEDIUM": dict(depth_mm=6.0, compression=4.0, far_compression=4.0, far_flatten=0.0, depth_curve=1.0,
+                   detail_boost=1.5, layering=0.25, background_lift=0.25, edge_softness=2.0),
+    "HIGH": dict(depth_mm=15.0, compression=1.5, far_compression=12.0, far_flatten=0.7, depth_curve=2.0,
+                 detail_boost=1.3, layering=0.5, background_lift=0.05, edge_softness=3.0),
+}
+
+
+class BASRELIEF_OT_preset(bpy.types.Operator):
+    bl_idname = "basrelief.preset"
+    bl_label = "Relief Preset"
+    bl_description = "Load a starting point for the shape settings"
+    bl_options = {"REGISTER", "UNDO"}
+    preset: EnumProperty(items=[
+        ("LOW", "Low Relief (Coin)", "Very shallow, even, detail-driven relief"),
+        ("MEDIUM", "Bas Relief", "The default balanced bas-relief"),
+        ("HIGH", "High Relief (Ghiberti)", "Deep, rounded foreground; background flattened almost to a drawing"),
+    ])
+
+    def execute(self, context):
+        s = context.scene.bas_relief
+        for k, v in PRESETS[self.preset].items():
+            setattr(s, k, v)
+        return {"FINISHED"}
+
+
+class BASRELIEF_UL_layers(bpy.types.UIList):
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        row = layout.row(align=True)
+        row.prop(item, "collection", text="", emboss=False, icon="OUTLINER_COLLECTION")
+        row.label(text="%.0f-%.0f%%" % (100 * item.band_min, 100 * item.band_max))
+
+
 class BASRELIEF_PT_panel(bpy.types.Panel):
     bl_label = "Bas Relief"
     bl_space_type = "VIEW_3D"
@@ -433,19 +589,54 @@ class BASRELIEF_PT_panel(bpy.types.Panel):
         b.prop(s, "units", text="")
 
         b = L.box()
-        b.label(text="Shape")
+        row = b.row()
+        row.label(text="Shape")
+        row.operator_menu_enum(BASRELIEF_OT_preset.bl_idname, "preset", text="Presets", icon="PRESET")
         c = b.column(align=True)
         c.prop(s, "compression")
+        c.prop(s, "far_compression")
+        c.prop(s, "far_flatten")
+        c = b.column(align=True)
         c.prop(s, "detail_boost")
         c.prop(s, "detail_radius")
         c = b.column(align=True)
         c.prop(s, "layering")
+        c.prop(s, "depth_curve")
         c.prop(s, "background_lift")
         c.prop(s, "edge_softness")
         c.prop(s, "edge_threshold")
         c.prop(s, "smoothing")
         b.prop(s, "use_normals")
         b.prop(s, "invert")
+
+        b = L.box()
+        b.prop(s, "use_layers")
+        if s.use_layers:
+            row = b.row()
+            row.template_list("BASRELIEF_UL_layers", "", s, "layers", s, "layers_index", rows=3)
+            col = row.column(align=True)
+            col.operator(BASRELIEF_OT_layer_add.bl_idname, text="", icon="ADD")
+            col.operator(BASRELIEF_OT_layer_remove.bl_idname, text="", icon="REMOVE")
+            col.separator()
+            col.operator(BASRELIEF_OT_layer_move.bl_idname, text="", icon="TRIA_UP").direction = "UP"
+            col.operator(BASRELIEF_OT_layer_move.bl_idname, text="", icon="TRIA_DOWN").direction = "DOWN"
+            if 0 <= s.layers_index < len(s.layers):
+                l = s.layers[s.layers_index]
+                c = b.column(align=True)
+                c.prop(l, "collection", text="")
+                r2 = c.row(align=True)
+                r2.prop(l, "band_min", text="Bottom")
+                r2.prop(l, "band_max", text="Top")
+                c = b.column(align=True)
+                c.prop(l, "compression")
+                c.prop(l, "far_factor")
+                c.prop(l, "detail_boost")
+                c.prop(l, "layering")
+            b.label(text="Objects in no layer:")
+            r2 = b.row(align=True)
+            r2.prop(s, "other_band_min")
+            r2.prop(s, "other_band_max")
+            b.label(text="Uses the global Shape settings", icon="INFO")
 
         b = L.box()
         b.label(text="Output")
@@ -464,7 +655,9 @@ class BASRELIEF_PT_panel(bpy.types.Panel):
         op.recapture = False
 
 
-classes = (BASRELIEF_Settings, BASRELIEF_OT_generate, BASRELIEF_PT_panel)
+classes = (BASRELIEF_Layer, BASRELIEF_Settings, BASRELIEF_OT_generate, BASRELIEF_OT_layer_add,
+           BASRELIEF_OT_layer_remove, BASRELIEF_OT_layer_move, BASRELIEF_OT_preset,
+           BASRELIEF_UL_layers, BASRELIEF_PT_panel)
 
 
 def register():

@@ -59,19 +59,57 @@ flat background plate. You can also include a backdrop object.
 | Relief Depth | Height of the highest point above the background, in mm. |
 | Base Thickness | Backing plate thickness, in mm. |
 | Units | `1 Unit = 1 mm` (best for STL) or true size in scene units. |
-| **Compression** | How much steep slopes flatten compared with gentle ones. 0 = no compression. 3–8 is typical. Higher gives a flatter, more even, more "coin-like" relief. |
+| Presets | Starting points: *Low Relief (Coin)*, *Bas Relief*, *High Relief (Ghiberti)*. |
+| **Compression** | How much steep slopes flatten compared with gentle ones, for the **nearest** parts of the scene. 0 = no compression. 3–8 is typical. Higher gives a flatter, more even, more "coin-like" relief. |
+| **Far Compression** | The same, for the **farthest** parts. Values in between blend by depth. Set it higher than Compression to keep the foreground round and full while the distance flattens. |
+| **Background Flattening** | Shrinks all relief toward the far end, so distant things are almost drawn into the surface (*rilievo schiacciato*). |
 | **Detail Boost** | Exaggerates fine surface detail. 1 = unchanged. |
 | Detail Size | Pixel size of what counts as "fine" detail for the boost. |
 | **Depth Layering** | 0 = pure normal-based relief (edges flush with the background). 1 = plain depth map. 0.15–0.4 is a good range. |
+| **Foreground Emphasis** | Shapes Depth Layering. Above 1, the nearest objects get most of the depth and the distance is squeezed. 1 = linear. |
 | Background Lift | How far even the farthest object stands off the background. |
 | **Edge Softness** | Rounds the silhouette steps (in pixels). This helps printing and looks more hand-carved. |
 | Edge Threshold | Slope above which a depth jump counts as an occlusion edge. This also caps slopes. 3 ≈ 72°. |
 | Smoothing | Final blur of the height field (in pixels). This removes stair-stepping. |
 | Use Smooth Normals | Takes slopes from interpolated normals. Turn it off to use the raw depth buffer. |
 | Invert | Intaglio: carves the image into the panel instead of raising it (useful for moulds). |
+| **Depth Layers** | Gives collections their own **depth band** (bottom and top, as a fraction of Relief Depth) and their own Compression, Far Compression, Detail Boost and Depth Layering. Each layer is solved separately and placed in its band. Objects in no layer use the global settings and the "Objects in no layer" band. If an object is in several layers, the first one in the list wins. |
 | Mesh Step | Uses every Nth pixel as a vertex, to make the mesh lighter. |
 | Watertight Solid | Adds sides and a flat back so the mesh is manifold and printable. |
 | Heightmap PNG | Optionally also writes a 16-bit grayscale heightmap (for CNC or displacement). |
+
+## High relief / Ghiberti-style panels
+
+Panels like Ghiberti's *Gates of Paradise* mix several kinds of relief in one panel. Foreground
+figures are almost in the round, the middle ground is half relief, and the architecture behind
+is barely raised. A sculptor plans this as a few depth zones, and **Depth Layers** works the same way:
+
+1. Put your figures in collections, for example `Foreground`, `Midground` and `Background`
+   (architecture and landscape).
+2. Choose **Presets → High Relief (Ghiberti)**. Turn on **Depth Layers** and add a layer for each
+   collection, then set the bands. These are good starting values:
+
+   | Layer | Bottom | Top | Compression | Depth Layering |
+   |---|---|---|---|---|
+   | Foreground | 0.35 | 1.00 | 1–2 | 0.5 |
+   | Midground | 0.12 | 0.38 | 3 | 0.3 |
+   | Objects in no layer (architecture) | 0.00 | 0.10 | global (with Background Flattening) | |
+
+3. Use a perspective camera with a moderate lens (35–50 mm). Then the architecture recedes
+   in perspective, as it does on the Gates.
+4. Set Relief Depth to 12–25 mm on a 150–250 mm panel, and Edge Softness to 3–5 px so the
+   foreground steps print cleanly.
+
+Left to right: default settings, the High Relief preset, and the preset with depth layers.
+
+![modes](docs/modes_default_high_layers.png)
+
+**Limit:** the result is a single height surface seen from the front, so it has no undercuts.
+Ghiberti's foreground heads and limbs come completely free of the ground. To get that, generate
+the panel with the foreground layer's band kept low. Then add the foreground figures as real
+geometry: duplicate them, flatten them toward the camera with a scale along the camera's view
+axis, cut off their backs, and boolean-union them onto the panel. Or sculpt the undercuts by
+hand in Sculpt Mode on the generated relief.
 
 ## Tips
 

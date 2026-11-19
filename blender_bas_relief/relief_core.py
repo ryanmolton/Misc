@@ -97,13 +97,18 @@ DEFAULTS = dict(
     smoothing=0.0,           # px, final gaussian smoothing
     use_normals=True,        # slopes from smooth normals (True) or depth differences (False)
     flatten_scale=0.08,      # fraction of image size; removes low-frequency drift/halo
+    depth_curve=1.0,         # >1 gives the foreground more of the layering depth (t**curve)
+    far_compression=None,    # compression used at the far end (None = same as compression)
+    far_flatten=0.0,         # 0..1: scales slopes down towards the far end (schiacciato)
 )
 
 
 def _compress(s, alpha):
-    if alpha <= 1e-6:
-        return s
-    return np.sign(s) * np.log1p(alpha * np.abs(s)) / alpha
+    """Log compression; alpha may be a scalar or an array (0 = identity)."""
+    alpha = np.maximum(np.asarray(alpha, dtype=np.float64), 0.0)
+    safe = np.maximum(alpha, 1e-6)
+    out = np.sign(s) * np.log1p(safe * np.abs(s)) / safe
+    return np.where(alpha <= 1e-6, s, out)
 
 
 def compute_relief(depth, normals, mask, pix, params=None):
@@ -131,6 +136,18 @@ def compute_relief(depth, normals, mask, pix, params=None):
     z = np.where(mask, -depth, 0.0)          # height towards the viewer, world units
     max_slope = max(p["edge_threshold"], 1e-3)
 
+    # nearness t in [0,1] (1 = nearest part of this region) drives the
+    # depth-dependent settings
+    zf = z[mask]
+    lo, hi = np.percentile(zf, 0.5), np.percentile(zf, 99.5)
+    if hi - lo < 1e-12:
+        t = np.where(mask, 1.0, 0.0)
+    else:
+        t = np.clip((z - lo) / (hi - lo), 0.0, 1.0)
+    a_near = p["compression"]
+    a_far = a_near if p["far_compression"] is None else p["far_compression"]
+    flat = float(np.clip(p["far_flatten"], 0.0, 1.0))
+
     # ---- per-pixel slopes (height per lateral unit) from normals ----
     if p["use_normals"]:
         nz = np.maximum(normals[..., 2], 1e-4)
@@ -155,17 +172,34 @@ def compute_relief(depth, normals, mask, pix, params=None):
             slope = 0.5 * (s[a] + s[b])
         else:
             slope = np.clip(dz / np.maximum(pav, 1e-12), -max_slope, max_slope)
-        # compress slope, then convert to "reference pixel" height steps
-        g = _compress(slope, p["compression"]) * (pav / pix_ref)
+        # compress slope (strength depends on nearness), then convert to
+        # "reference pixel" height steps
+        tp = 0.5 * (t[a] + t[b])
+        alpha = a_far + (a_near - a_far) * tp
+        g = _compress(slope, alpha) * (1.0 - flat * (1.0 - tp)) * (pav / pix_ref)
         g = np.where(valid, g, 0.0)
+        # uncompressed field incl. the real jumps at occlusions: integrates to
+        # a smooth (normal-based) copy of the depth buffer
+        raw = np.where(valid, slope * pav, np.where(both, dz, 0.0)) / pix_ref
         full = np.zeros((H, W))
         vfull = np.zeros((H, W))
+        rfull = np.zeros((H, W))
         full[a] = g
         vfull[a] = valid
-        return full, vfull
+        rfull[a] = raw
+        return full, vfull, rfull
 
-    gx, vx = axis_grad(1)
-    gy, vy = axis_grad(0)
+    gx, vx, rx = axis_grad(1)
+    gy, vy, ry = axis_grad(0)
+
+    # Smooth depth for the layering term: facets of the polygon depth buffer
+    # would otherwise show through when layering is high.
+    if p["use_normals"]:
+        zr = poisson_integrate(rx, ry) * pix_ref
+        corr = masked_blur(z - zr, mask.astype(np.float64), max(4.0, 0.03 * max(H, W)), eps=1e-12)
+        zs = np.where(mask, zr + corr, 0.0)
+        if hi - lo > 1e-12:
+            t = np.where(mask, np.clip((zs - lo) / (hi - lo), 0.0, 1.0), 0.0)
 
     # ---- detail boost (unsharp mask of gradients) ----
     boost = p["detail_boost"]
@@ -192,12 +226,7 @@ def compute_relief(depth, normals, mask, pix, params=None):
     Rn = R / scale if scale > 1e-12 else R * 0.0
 
     # ---- layering: compressed, softened depth order ----
-    zf = z[mask]
-    lo, hi = np.percentile(zf, 0.5), np.percentile(zf, 99.5)
-    if hi - lo < 1e-12:
-        Lraw = np.ones((H, W))
-    else:
-        Lraw = np.clip((z - lo) / (hi - lo), 0.0, 1.0)
+    Lraw = t ** max(p["depth_curve"], 1e-3)
     lift = p["background_lift"]
     L = np.where(mask, lift + (1.0 - lift) * Lraw, 0.0)
     if p["edge_softness"] > 0:
@@ -213,6 +242,41 @@ def compute_relief(depth, normals, mask, pix, params=None):
     if m > 1e-12:
         Hf /= m
     return Hf
+
+
+def compose_layers(depth, normals, mask, pix, labels, regions, edge_softness=2.0):
+    """
+    Layered ("Ghiberti-style") relief: every region is solved on its own with
+    its own settings and then placed into its own depth band.
+
+    labels  : (H,W) int, region index per pixel (-1 = background / no hit)
+    regions : list of dicts {"band": (lo, hi), "params": {...}}; bands are
+              fractions of the total relief depth
+    returns : (H,W) height, 0 = background plate, 1 = full relief depth
+    """
+    H, W = depth.shape
+    out = np.zeros((H, W))
+    for k, reg in enumerate(regions):
+        m = mask & (labels == k)
+        if not m.any():
+            continue
+        prm = dict(reg.get("params", {}))
+        prm["edge_softness"] = 0.0           # softened jointly below
+        hk = compute_relief(depth, normals, m, pix, prm)
+        lo, hi = reg["band"]
+        out[m] = lo + (hi - lo) * hk[m]
+
+    if edge_softness > 0:
+        lab = np.where(mask, labels, -1)
+        b = np.zeros((H, W))
+        dx = lab[:, 1:] != lab[:, :-1]
+        dy = lab[1:, :] != lab[:-1, :]
+        b[:, 1:] += dx; b[:, :-1] += dx
+        b[1:, :] += dy; b[:-1, :] += dy
+        b = (b > 0).astype(np.float64)
+        w = np.clip(gaussian_blur(b, edge_softness) * edge_softness * 2.5, 0.0, 1.0)
+        out = out * (1.0 - w) + gaussian_blur(out, edge_softness) * w
+    return np.maximum(out, 0.0)
 
 
 def write_png16(path, height01):

@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "bas_relief_generator"
-version = "1.0.0"
+version = "1.1.0"
 name = "Bas Relief Generator"
 tagline = "Turn a camera view of your scene into a printable bas-relief panel"
 maintainer = "Claude Code"
